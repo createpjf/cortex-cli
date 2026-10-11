@@ -33477,6 +33477,7 @@ function isLockContentionError(error) {
 }
 
 // src/appearance.ts
+var themeNames = ["auto", "dark", "light", "catppuccin", "dracula", "nord", "gruvbox", "tokyo-night", "high-contrast"];
 var isLanguage = (value) => value === "en" || value === "zh-CN";
 function resolveCliLanguage(env, saved) {
   return isLanguage(env.CORTEX_LANGUAGE) ? env.CORTEX_LANGUAGE : saved ?? "en";
@@ -33488,7 +33489,7 @@ var appearancePath = () => (0, import_node_path2.join)((0, import_node_os.homedi
 function validateAppearance(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   const data = value;
-  if (data.version !== 1 || !["auto", "dark", "light"].includes(String(data.theme)) || typeof data.reducedMotion !== "boolean") {
+  if (data.version !== 1 || !themeNames.includes(String(data.theme)) || typeof data.reducedMotion !== "boolean") {
     throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   }
   if (data.language !== void 0 && !isLanguage(data.language) || data.notifications !== void 0 && typeof data.notifications !== "boolean" || data.expandDetails !== void 0 && typeof data.expandDetails !== "boolean") {
@@ -33529,40 +33530,31 @@ function saveAppearance(value, path = appearancePath()) {
     }
   }, { recoverDeadOwner: true });
 }
+var rgbCode = (rgb, layer = 38) => /^(truecolor|24bit)$/i.test(process.env.COLORTERM ?? "") ? layer + ";2;" + rgb.join(";") : layer + ";5;" + (16 + rgb.reduce((sum, value) => sum * 6 + Math.round(value / 255 * 5), 0));
+var hex = (value) => [1, 3, 5].map((at) => parseInt(value.slice(at, at + 2), 16));
+var ported = (colors) => ({
+  accent: rgbCode(hex(colors.primary)),
+  muted: rgbCode(hex(colors.muted)),
+  success: rgbCode(hex(colors.success)),
+  warning: rgbCode(hex(colors.warning)),
+  error: rgbCode(hex(colors.error)),
+  panel: "",
+  selected: rgbCode(hex(colors.selection === colors.foreground ? colors.background : colors.foreground)) + ";" + rgbCode(hex(colors.selection), 48)
+});
 var palettes = {
-  auto: {
-    accent: "38;5;31",
-    muted: "39",
-    success: "38;5;28",
-    warning: "38;5;130",
-    error: "38;5;160",
-    selected: "7",
-    panel: "",
-    user: "7"
-  },
-  dark: {
-    accent: "38;5;81",
-    muted: "38;5;248",
-    success: "38;5;114",
-    warning: "38;5;221",
-    error: "38;5;210",
-    selected: "38;5;255;48;5;24",
-    panel: "",
-    user: "48;5;236"
-  },
-  light: {
-    accent: "38;5;25",
-    muted: "38;5;240",
-    success: "38;5;28",
-    warning: "38;5;130",
-    error: "38;5;124",
-    selected: "38;5;16;48;5;153",
-    panel: "",
-    user: "48;5;255"
-  }
+  auto: { accent: "38;5;31", muted: "39", success: "38;5;28", warning: "38;5;130", error: "38;5;160", selected: "7", panel: "" },
+  dark: { accent: "38;5;81", muted: "38;5;248", success: "38;5;114", warning: "38;5;221", error: "38;5;210", selected: "38;5;255;48;5;24", panel: "" },
+  light: { accent: "38;5;25", muted: "38;5;240", success: "38;5;28", warning: "38;5;130", error: "38;5;124", selected: "38;5;16;48;5;153", panel: "" },
+  catppuccin: ported({ primary: "#CBA6F7", muted: "#6C7086", success: "#A6E3A1", warning: "#F9E2AF", error: "#F38BA8", foreground: "#CDD6F4", background: "#1E1E2E", selection: "#313244" }),
+  dracula: ported({ primary: "#BD93F9", muted: "#6272A4", success: "#50FA7B", warning: "#F1FA8C", error: "#FF5555", foreground: "#F8F8F2", background: "#282A36", selection: "#44475A" }),
+  nord: ported({ primary: "#88C0D0", muted: "#4C566A", success: "#A3BE8C", warning: "#EBCB8B", error: "#BF616A", foreground: "#ECEFF4", background: "#2E3440", selection: "#3B4252" }),
+  gruvbox: ported({ primary: "#83A598", muted: "#928374", success: "#B8BB26", warning: "#FABD2F", error: "#FB4934", foreground: "#EBDBB2", background: "#282828", selection: "#83A598" }),
+  "tokyo-night": ported({ primary: "#7AA2F7", muted: "#565F89", success: "#9ECE6A", warning: "#E0AF68", error: "#F7768E", foreground: "#C0CAF5", background: "#24283B", selection: "#364A82" }),
+  "high-contrast": ported({ primary: "#00FFFF", muted: "#CCCCCC", success: "#00FF00", warning: "#FFFF00", error: "#FF4444", foreground: "#FFFFFF", background: "#000000", selection: "#FFFFFF" })
 };
+var themeSwatch = (name) => ["accent", "success", "warning", "error"].map((key) => style(palettes[name][key], "\u25CF")).join(" ");
 var style = (code, text) => process.env.NO_COLOR !== void 0 || !code ? text : "\x1B[" + code + "m" + text.replaceAll("\x1B[0m", "\x1B[0m\x1B[" + code + "m") + "\x1B[0m";
-var color = (key) => (text) => style(palettes[appearanceStore.get(appearanceAtom).theme][key], text);
+var color = (key) => (text) => style((palettes[appearanceStore.get(appearanceAtom).theme] ?? palettes.auto)[key], text);
 var theme = {
   accent: color("accent"),
   muted: color("muted"),
@@ -33571,7 +33563,6 @@ var theme = {
   error: color("error"),
   selected: color("selected"),
   panel: color("panel"),
-  user: color("user"),
   bold: (text) => style("1", text),
   dim: (text) => style("2", text),
   italic: (text) => style("3", text),
@@ -33580,8 +33571,7 @@ var theme = {
 };
 function brandGradient(position, text) {
   const [from, to] = appearanceStore.get(appearanceAtom).theme === "light" ? [[29, 144, 230], [43, 168, 78]] : [[63, 169, 245], [86, 217, 119]];
-  const rgb = from.map((value, index) => Math.round(value + (to[index] - value) * Math.min(1, Math.max(0, position))));
-  return style(/^(truecolor|24bit)$/i.test(process.env.COLORTERM ?? "") ? "38;2;" + rgb.join(";") : "38;5;" + (16 + rgb.reduce((sum, value) => sum * 6 + Math.round(value / 255 * 5), 0)), text);
+  return style(rgbCode(from.map((value, index) => Math.round(value + (to[index] - value) * Math.min(1, Math.max(0, position))))), text);
 }
 function unicodeSupported(env = process.env) {
   if (env.NO_UNICODE === "1" || env.NO_UNICODE === "true") return false;
@@ -33946,6 +33936,33 @@ function stepsLabel(steps, max, paint = { added: (text) => text, removed: (text)
   return shown.map((text, i) => i && !hasCjk(text) ? text[0].toLowerCase() + text.slice(1) : text).join(tr("\uFF0C", ", "));
 }
 var turnLabel = (steps, paint) => stepsLabel(steps, 4, paint);
+function markTurnEnds(entries, liveRunId) {
+  const last = /* @__PURE__ */ new Map();
+  const info = /* @__PURE__ */ new Map();
+  entries.forEach((entry, index) => {
+    if (!entry.runId || entry.runId === liveRunId || entry.kind === "user") return;
+    const known = info.get(entry.runId);
+    info.set(entry.runId, { turnMs: entry.turnMs ?? known?.turnMs, turnStatus: entry.turnStatus ?? known?.turnStatus });
+    last.set(entry.runId, index);
+  });
+  const ends = new Map([...last].filter(([runId]) => info.get(runId)?.turnStatus).map(([runId, index]) => [index, runId]));
+  if (!ends.size) return entries;
+  return entries.flatMap((entry, index) => {
+    const runId = ends.get(index);
+    if (runId === void 0) return [entry];
+    const { turnMs, turnStatus } = info.get(runId);
+    const outcome = {
+      completed: tr("\u672C\u8F6E\u7ED3\u675F", "Turn ended"),
+      cancelled: tr("\u5DF2\u505C\u6B62", "Stopped"),
+      failed: tr("\u5931\u8D25", "Failed"),
+      blocked: tr("\u5DF2\u963B\u6B62", "Blocked"),
+      unknown: tr("\u7ED3\u679C\u672A\u77E5", "Unknown result")
+    }[turnStatus];
+    const took = turnMs === void 0 ? "" : formatDuration(turnMs);
+    const text = !took ? outcome : turnStatus === "completed" ? tr("\u672C\u8F6E\u7528\u65F6 ", "Turn took ") + took : outcome + tr(" \xB7 \u7528\u65F6 ", " \xB7 ") + took;
+    return [entry, { id: "end:" + runId, kind: "divider", runId, text, turnStatus }];
+  });
+}
 function collapseTurns(entries, liveRunId, isOpen) {
   const folds = (entry) => entry.kind === "tool" && entry.status !== "denied" && !entry.agentLaunches && !entry.agentName;
   const steps = /* @__PURE__ */ new Map();
@@ -33965,8 +33982,7 @@ function collapseTurns(entries, liveRunId, isOpen) {
     const id = "turn:" + runId;
     if (!placed.has(id)) {
       placed.add(id);
-      const turnMs = turn.reduce((value, step) => step.turnMs ?? value, void 0);
-      result.push({ id, kind: "turn", runId, text: turnLabel(turn), steps: turn, ...turnMs !== void 0 && { turnMs } });
+      result.push({ id, kind: "turn", runId, text: turnLabel(turn), steps: turn });
     }
     if (isOpen(id)) result.push(entry);
   }
@@ -34159,7 +34175,55 @@ function approvalDetails(request) {
 function minorChangePath(path) {
   return /(^|\/)(__tests__|tests?|fixtures?|__snapshots__|dist|build|generated)\//i.test(path) || /\.(test|spec)\.[^/]+$|\.snap$|(^|\/)[^/]*\.lock$|-lock\.(json|yaml)$|lock\.yaml$|\.min\.[a-z]+$|\.generated\./i.test(path);
 }
+function parsePatch(patch = "") {
+  const rows = [];
+  let old = 0, now = 0, inHunk = false;
+  for (const line of patch.split("\n")) {
+    const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+    if (hunk) {
+      old = Number(hunk[1]);
+      now = Number(hunk[2]);
+      inHunk = true;
+      rows.push({ kind: "hunk", text: line });
+      continue;
+    }
+    if (!inHunk || !line || line.startsWith("\\")) {
+      if (inHunk && line && !line.startsWith("\\")) rows.push({ kind: "note", text: line });
+      continue;
+    }
+    if (line[0] === "+") rows.push({ kind: "add", text: line.slice(1), new: now++ });
+    else if (line[0] === "-") rows.push({ kind: "remove", text: line.slice(1), old: old++ });
+    else if (line[0] === " ") rows.push({ kind: "context", text: line.slice(1), old: old++, new: now++ });
+    else rows.push({ kind: "note", text: line });
+  }
+  return rows;
+}
+function pairDiffRows(rows) {
+  const paired = [];
+  for (let index = 0; index < rows.length; ) {
+    const row = rows[index];
+    if (row.kind === "hunk" || row.kind === "note") {
+      paired.push({ full: row });
+      index++;
+      continue;
+    }
+    if (row.kind === "context") {
+      paired.push({ left: row, right: row });
+      index++;
+      continue;
+    }
+    const removed = [], added = [];
+    while (rows[index]?.kind === "remove") removed.push(rows[index++]);
+    while (rows[index]?.kind === "add") added.push(rows[index++]);
+    for (let at = 0; at < Math.max(removed.length, added.length); at++) paired.push({ left: removed[at], right: added[at] });
+  }
+  return paired;
+}
 function patchCounts(patch = "") {
+  if (/^@@ /m.test(patch)) {
+    const rows = parsePatch(patch);
+    return { added: rows.filter((row) => row.kind === "add").length, removed: rows.filter((row) => row.kind === "remove").length };
+  }
   let added = 0, removed = 0;
   for (const line of patch.split("\n")) {
     if (/^\+(?!\+\+)/.test(line)) added++;
@@ -34463,11 +34527,11 @@ async function hasClipboardImage() {
 async function clipboardImage() {
   if (process.platform !== "darwin") throw new Error(tr("\u6B64\u5E73\u53F0\u8BF7\u7528 /attach <\u56FE\u7247\u8DEF\u5F84> \u6DFB\u52A0\u56FE\u7247", "Use /attach <image path> on this platform"));
   const { stdout } = await execute("/usr/bin/osascript", ["-e", "the clipboard as \xABclass PNGf\xBB"], { timeout: 3e3, maxBuffer: MAX_ATTACHMENT_BYTES * 2 + 1024 });
-  const hex = stdout.match(/^«data PNGf([A-Fa-f0-9]+)»\s*$/)?.[1];
-  if (!hex || hex.length % 2 || hex.length / 2 > MAX_ATTACHMENT_BYTES) {
+  const hex2 = stdout.match(/^«data PNGf([A-Fa-f0-9]+)»\s*$/)?.[1];
+  if (!hex2 || hex2.length % 2 || hex2.length / 2 > MAX_ATTACHMENT_BYTES) {
     throw new Error(tr("\u526A\u8D34\u677F\u6CA1\u6709\u53EF\u8BFB\u53D6\u7684 PNG \u56FE\u7247\uFF0C\u6216\u56FE\u7247\u8D85\u8FC7 20 MiB", "No readable PNG in the clipboard, or the image exceeds 20 MiB"));
   }
-  const bytes = Buffer.from(hex, "hex");
+  const bytes = Buffer.from(hex2, "hex");
   if (bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") throw new Error(tr("\u526A\u8D34\u677F\u56FE\u7247\u683C\u5F0F\u65E0\u6548", "Invalid clipboard image format"));
   return bytes;
 }
@@ -34847,8 +34911,22 @@ var TerminalUI = class {
       if (command === "/theme") {
         const selected = await this.select(tr("\u4E3B\u9898", "Theme"), [
           { value: "auto", label: tr("\u8DDF\u968F\u7EC8\u7AEF", "Match terminal"), description: tr("\u4F7F\u7528\u7EC8\u7AEF\u9ED8\u8BA4\u914D\u8272", "Use the terminal\u2019s default colors") },
-          { value: "dark", label: tr("\u6DF1\u8272", "Dark"), description: tr("\u51B7\u8272\u5F3A\u8C03\uFF0C\u6CBF\u7528\u7EC8\u7AEF\u80CC\u666F", "Cool accents on the terminal background") },
-          { value: "light", label: tr("\u6D45\u8272", "Light"), description: tr("\u6DF1\u8272\u6587\u5B57\uFF0C\u6CBF\u7528\u7EC8\u7AEF\u80CC\u666F", "Dark text on the terminal background") }
+          { value: "dark", label: tr("\u6DF1\u8272", "Dark"), tail: themeSwatch("dark"), description: tr("\u51B7\u8272\u5F3A\u8C03\uFF0C\u6CBF\u7528\u7EC8\u7AEF\u80CC\u666F", "Cool accents on the terminal background") },
+          { value: "light", label: tr("\u6D45\u8272", "Light"), tail: themeSwatch("light"), description: tr("\u6DF1\u8272\u6587\u5B57\uFF0C\u6CBF\u7528\u7EC8\u7AEF\u80CC\u666F", "Dark text on the terminal background") },
+          // 移植的主题只改文字颜色、不铺背景，配色按深色背景设计
+          ...[
+            ["catppuccin", "Catppuccin"],
+            ["dracula", "Dracula"],
+            ["nord", "Nord"],
+            ["gruvbox", "Gruvbox"],
+            ["tokyo-night", "Tokyo Night"],
+            ["high-contrast", tr("\u9AD8\u5BF9\u6BD4\u5EA6", "High contrast")]
+          ].map(([value, label]) => ({
+            value,
+            label,
+            tail: themeSwatch(value),
+            description: value === "high-contrast" ? tr("\u6DF1\u8272\u7EC8\u7AEF\uFF0C\u6587\u5B57\u66F4\u4EAE", "Dark terminals, brighter text") : tr("\u9002\u5408\u6DF1\u8272\u7EC8\u7AEF", "For dark terminals")
+          }))
         ], { initial: before.theme, search: false, onHighlight: (value) => {
           appearanceStore.set(appearanceAtom, { ...before, theme: value });
           this.tui.requestRender(true);
@@ -35277,7 +35355,8 @@ var TerminalUI = class {
             tool: tr("\u5DE5\u5177", "Tool"),
             error: tr("\u9519\u8BEF", "Error"),
             notice: tr("\u63D0\u793A", "Notice"),
-            turn: tr("\u672C\u8F6E\u6B65\u9AA4", "Steps")
+            turn: tr("\u672C\u8F6E\u6B65\u9AA4", "Steps"),
+            divider: tr("\u8F6E\u6B21", "Turn")
           }[entry2.kind]
         })),
         { initial }
@@ -35311,7 +35390,7 @@ var TerminalUI = class {
     return mainTranscript(this.entries);
   }
   collapsedEntries() {
-    return collapseTurns(this.visibleEntries(), this.liveRunId, (id) => this.isOpen(id));
+    return collapseTurns(markTurnEnds(this.visibleEntries(), this.liveRunId), this.liveRunId, (id) => this.isOpen(id));
   }
   renderEntries(width) {
     const appearance = appearanceStore.get(appearanceAtom);
@@ -35343,7 +35422,16 @@ var TerminalUI = class {
       if (group[0].kind === "turn") {
         const turn = group[0], open = this.isOpen(turn.id);
         const label = turnLabel(turn.steps ?? [], { added: theme.success, removed: theme.error });
-        lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted("  " + (open ? "\u25BE " : "\u25B8 ")) + theme.muted(label) + (turn.turnMs !== void 0 ? theme.muted("  \xB7 " + formatDuration(turn.turnMs)) : ""), width), "");
+        lines.push((0, import_pi_tui3.truncateToWidth)(
+          theme.muted("  " + (open ? "\u25BE " : "\u25B8 ")) + theme.muted(label),
+          width
+        ), "");
+        continue;
+      }
+      if (group[0].kind === "divider") {
+        const end = group[0], paint = end.turnStatus === "completed" ? theme.muted : end.turnStatus === "cancelled" ? theme.warning : theme.error;
+        const label = " " + clean(end.text) + " \u2500";
+        lines.push(theme.muted("\u2500".repeat(Math.max(1, width - (0, import_pi_tui3.visibleWidth)(label)))) + paint(label), "");
         continue;
       }
       const grouped = group.length > 1;
@@ -35481,11 +35569,12 @@ var TerminalUI = class {
   /** muted：净化后再淡化显示；hidden：只在输入搜索词后出现，放在列表末尾；key：标签前的快捷键字母；group：标签前右对齐的淡色分组列 */
   select(title, items, options = {}) {
     const groupWidth = Math.max(0, ...items.map((item) => item.group ? (0, import_pi_tui3.visibleWidth)(clean(item.group)) : 0));
+    const tailColumn = Math.max(0, ...items.map((item) => item.tail ? (0, import_pi_tui3.visibleWidth)(clean(item.label || item.value)) : 0));
     const compose = (item, text, query = "") => {
       const at = query ? text.toLowerCase().indexOf(query) : -1;
       const shown2 = at < 0 ? text : text.slice(0, at) + theme.warning(text.slice(at, at + query.length)) + text.slice(at + query.length);
       const group = groupWidth ? theme.muted(" ".repeat(groupWidth - (0, import_pi_tui3.visibleWidth)(clean(item.group ?? ""))) + clean(item.group ?? "")) + "  " : "";
-      return group + (item.key ? theme.accent(clean(item.key)) + "  " : "") + (item.muted ? theme.muted(shown2) : shown2);
+      return group + (item.key ? theme.accent(clean(item.key)) + "  " : "") + (item.muted ? theme.muted(shown2) : shown2) + (item.tail ? " ".repeat(Math.max(0, tailColumn - (0, import_pi_tui3.visibleWidth)(text)) + 2) + item.tail : "");
     };
     const safeItems = items.map((item) => {
       const text = clean(item.label || item.value) || tr("\u672A\u547D\u540D\u9009\u9879", "Untitled option");
@@ -35652,8 +35741,8 @@ var TerminalUI = class {
       cancel = reject;
     }, Math.min(64, this.terminal.columns));
   }
-  /** text 可以是一个按正文宽度返回已排版行的函数；note 写在下边框提示前 */
-  view(title, text, markdown = false, note = "") {
+  /** text 可以是一个按正文宽度返回已排版行的函数；note 写在下边框提示前；onTab 给 Tab 键（如切换视图） */
+  view(title, text, markdown = false, note = "", onTab) {
     let offset = 0;
     let page = 1;
     let count = 0;
@@ -35669,16 +35758,23 @@ var TerminalUI = class {
         count = lines.length;
         page = Math.max(1, this.terminal.rows - 8);
         offset = Math.min(offset, Math.max(0, count - page));
+        const hint = typeof note === "function" ? note() : note;
         return boxed(
           width,
-          theme.warning(theme.bold(clean(title))),
+          theme.warning(theme.bold(clean(typeof title === "function" ? title() : title))),
           lines.slice(offset, offset + page),
-          (note ? note + " \xB7 " : "") + tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
+          (hint ? hint + " \xB7 " : "") + tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
         );
       },
       handleInput: (data) => {
         if ((0, import_pi_tui3.matchesKey)(data, "escape") || (0, import_pi_tui3.matchesKey)(data, "enter")) {
           finish();
+          return;
+        }
+        if (onTab && (0, import_pi_tui3.matchesKey)(data, "tab")) {
+          onTab();
+          offset = 0;
+          this.tui.requestRender();
           return;
         }
         if ((0, import_pi_tui3.matchesKey)(data, "up")) offset--;
@@ -35694,6 +35790,53 @@ var TerminalUI = class {
     return this.form(component, (resolve6) => {
       finish = () => resolve6();
     });
+  }
+  /**
+   * 查看改动：带旧 / 新行号的统一格式；正文不少于 136 列（终端约 140 列）时 Tab 可切换左右并排（参考 termcn DiffView）。
+   * 多个文件依次排列，每个文件前写路径与增删行数；没有预览的文件照写「无法预览」。
+   */
+  viewDiff(title, files, footer = "") {
+    let split = false;
+    const paint = (row, text) => !row ? text : row.kind === "add" ? theme.success(text) : row.kind === "remove" ? theme.error(text) : row.kind === "hunk" || row.kind === "note" ? theme.muted(text) : text;
+    const sign = (row) => row.kind === "add" ? "+" : row.kind === "remove" ? "-" : " ";
+    const render = (inner) => {
+      const wide2 = split && inner >= 136;
+      const lines = [];
+      for (const [index, file] of files.entries()) {
+        const rows = parsePatch(file.diff);
+        const { added, removed } = patchCounts(file.diff);
+        if (files.length > 1) lines.push(...index ? [""] : [], theme.bold(clean(file.path)) + "  " + theme.success(added ? "+" + added : "") + " " + theme.error(removed ? "\u2212" + removed : ""));
+        if (file.diff === void 0) {
+          lines.push(theme.muted(tr("\uFF08\u6587\u4EF6\u8FC7\u5927\u6216\u4E0D\u662F\u6587\u672C\uFF0C\u65E0\u6CD5\u9884\u89C8\u6539\u52A8\uFF09", "(Too large or not text; no preview)")));
+          continue;
+        }
+        const digits = String(Math.max(1, ...rows.map((row) => Math.max(row.old ?? 0, row.new ?? 0)))).length;
+        const number = (value) => theme.muted(value === void 0 ? " ".repeat(digits) : String(value).padStart(digits));
+        if (!wide2) {
+          for (const row of rows) lines.push(row.kind === "hunk" || row.kind === "note" ? paint(row, clean(row.text)) : number(row.old) + " " + number(row.new) + " " + paint(row, sign(row) + clean(row.text)));
+          continue;
+        }
+        const half = Math.floor((inner - 3) / 2);
+        const side = (row, value) => {
+          const cell = row ? number(value) + " " + paint(row, sign(row) + clean(row.text)) : "";
+          const fitted = (0, import_pi_tui3.truncateToWidth)(cell, half);
+          return fitted + " ".repeat(Math.max(0, half - (0, import_pi_tui3.visibleWidth)(fitted)));
+        };
+        for (const pair of pairDiffRows(rows)) lines.push(pair.full ? paint(pair.full, clean(pair.full.text)) : side(pair.left, pair.left?.old) + theme.muted(" \u2502 ") + side(pair.right, pair.right?.new));
+      }
+      if (footer) lines.push("", theme.muted(footer));
+      return lines;
+    };
+    const wide = () => this.terminal.columns >= 140;
+    return this.view(
+      () => title + (wide() ? "  \xB7  " + (split ? tr("\u5E76\u6392", "Side by side") : tr("\u7EDF\u4E00", "Unified")) : ""),
+      render,
+      false,
+      () => wide() ? tr("Tab \u7EDF\u4E00 / \u5E76\u6392", "Tab unified / side by side") : "",
+      () => {
+        split = !split;
+      }
+    );
   }
   ask(title, options = {}) {
     const input = options.secret ? new SecretInput({ prompt: "\u203A " }) : new import_pi_tui3.Input({ prompt: theme.accent("\u203A ") });
@@ -36644,7 +36787,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.13";
+var version = "0.1.14";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -37249,8 +37392,7 @@ async function runInteractive(worker, options, request, ui) {
       };
       const total = counted(changes.map((change) => change.diff ?? "").join("\n"));
       const title = tr("\u672C\u4F1A\u8BDD\u6539\u52A8", "Changes in this session") + (total ? "  " + total : "");
-      const body = (change) => change.path + "\n" + (change.diff ?? tr("\uFF08\u6587\u4EF6\u8FC7\u5927\u6216\u4E0D\u662F\u6587\u672C\uFF0C\u65E0\u6CD5\u9884\u89C8\u6539\u52A8\uFF09", "(Too large or not text; no preview)"));
-      const truncated = reply.truncated ? "\n\n" + tr("\u53EA\u663E\u793A\u524D 50 \u4E2A\u6587\u4EF6\u3002", "Showing the first 50 files.") : "";
+      const truncated = reply.truncated ? tr("\u53EA\u663E\u793A\u524D 50 \u4E2A\u6587\u4EF6\u3002", "Showing the first 50 files.") : "";
       for (; ; ) {
         const picked = await ui.select(title, [
           { value: "*", label: tr("\u5168\u90E8\u6587\u4EF6", "All files") },
@@ -37261,10 +37403,7 @@ async function runInteractive(worker, options, request, ui) {
             description: change.diff === void 0 ? tr("\u65E0\u6CD5\u9884\u89C8", "No preview") : counted(change.diff) || void 0
           }))
         ]);
-        await ui.view(
-          picked === "*" ? title : clean(changes[Number(picked)].path),
-          picked === "*" ? changes.map(body).join("\n\n") + truncated : body(changes[Number(picked)])
-        );
+        await (picked === "*" ? ui.viewDiff(title, changes, truncated) : ui.viewDiff(clean(changes[Number(picked)].path), [changes[Number(picked)]]));
       }
     } catch (error) {
       if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
@@ -37916,8 +38055,8 @@ async function runInteractive(worker, options, request, ui) {
         entry(result.answer, void 0, "assistant");
       }
       const entries = store.get(state).entries.map((item) => {
-        if (item.kind !== "tool" || item.runId !== result.runId) return item;
-        const settled2 = ["requested", "running"].includes(item.status ?? "") ? toolEntry({
+        if (item.runId !== result.runId || item.kind === "user") return item;
+        const settled2 = item.kind === "tool" && ["requested", "running"].includes(item.status ?? "") ? toolEntry({
           type: "tool.updated",
           sessionId: result.sessionId,
           runId: result.runId,
@@ -37926,7 +38065,7 @@ async function runInteractive(worker, options, request, ui) {
           messageId: item.id.split(":tool:")[1],
           toolStatus: result.status === "cancelled" ? "cancelled" : "unknown"
         }, item) : item;
-        return result.durationMs === void 0 ? settled2 : { ...settled2, turnMs: result.durationMs };
+        return { ...settled2, ...result.durationMs !== void 0 && { turnMs: result.durationMs }, turnStatus: result.status };
       });
       const visibleResult = {
         ...result,
