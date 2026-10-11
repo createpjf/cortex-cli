@@ -36121,6 +36121,8 @@ var TerminalUI = class {
   now = Date.now;
   unsubscribeAppearance;
   entryCache;
+  /** 对话区里可展开的行：行号 → 条目 ID，鼠标单击时据此展开或收起 */
+  entryTargets = /* @__PURE__ */ new Map();
   /** 正在运行的一轮不折叠；其余已结束的轮次在渲染时折成摘要 */
   liveRunId;
   logoFrame = 0;
@@ -36187,9 +36189,19 @@ var TerminalUI = class {
     });
     this.editor = new Composer(this.tui, () => this.commands, () => this.renderActivity(80).length + this.renderAttachments(80).length, (width) => this.inputFrame(width));
     this.editor.onChange = () => this.clearNotice();
-    const transcript = { invalidate: () => {
-      this.entryCache = void 0;
-    }, render: (width) => this.ascii(this.renderEntries(width)) };
+    const transcript = {
+      invalidate: () => {
+        this.entryCache = void 0;
+      },
+      render: (width) => this.ascii(this.renderEntries(width)),
+      // 单击带 ▸ / ▾ 的行展开或收起；拖动选择文字不算单击，照常由终端界面处理
+      handleMouse: (event) => {
+        const id = event.type === "click" && event.button === "left" ? this.entryTargets.get(event.y) : void 0;
+        if (!id) return void 0;
+        this.toggle(id);
+        return { handled: true };
+      }
+    };
     const input = {
       invalidate() {
       },
@@ -36728,13 +36740,13 @@ var TerminalUI = class {
         continue;
       }
       const grouped = group.length > 1;
-      const id2 = "tools:" + group[0].id;
+      const id = "tools:" + group[0].id;
       if (grouped) items.push({
-        value: id2,
-        label: (this.isOpen(id2) ? "\u25BE " : "\u25B8 ") + toolGroupLabel(group),
-        description: this.isOpen(id2) ? tr("\u6536\u8D77\u5DE5\u5177\u7EC4", "Collapse tool group") : tr("\u5C55\u5F00\u5DE5\u5177\u7EC4", "Expand tool group")
+        value: id,
+        label: (this.isOpen(id) ? "\u25BE " : "\u25B8 ") + toolGroupLabel(group),
+        description: this.isOpen(id) ? tr("\u6536\u8D77\u5DE5\u5177\u7EC4", "Collapse tool group") : tr("\u5C55\u5F00\u5DE5\u5177\u7EC4", "Expand tool group")
       });
-      if (!grouped || this.isOpen(id2)) {
+      if (!grouped || this.isOpen(id)) {
         for (const entry of group) if (entry.detail) items.push({
           value: entry.id,
           label: (grouped ? "  \u21B3 " : "") + entry.text.replace(/\s+/g, " "),
@@ -36746,7 +36758,9 @@ var TerminalUI = class {
       await this.view(tr("\u5DE5\u5177\u8BE6\u60C5", "Tool details"), tr("\u5F53\u524D\u6CA1\u6709\u5DE5\u5177\u3001\u62A5\u544A\u6216\u9519\u8BEF\u8BE6\u60C5\u3002", "No tool, report or error details."));
       return;
     }
-    const id = await this.select(tr("\u5DE5\u5177\u3001\u62A5\u544A\u4E0E\u9519\u8BEF\u8BE6\u60C5", "Tools, reports and errors"), items, { initial: items.at(-1)?.value });
+    this.toggle(await this.select(tr("\u5DE5\u5177\u3001\u62A5\u544A\u4E0E\u9519\u8BEF\u8BE6\u60C5", "Tools, reports and errors"), items, { initial: items.at(-1)?.value }));
+  }
+  toggle(id) {
     if (this.expanded.has(id)) this.expanded.delete(id);
     else this.expanded.add(id);
     this.entryCache = void 0;
@@ -36812,6 +36826,10 @@ var TerminalUI = class {
     const appearance = appearanceStore.get(appearanceAtom);
     if (this.entryCache?.width === width && this.entryCache.rows === this.terminal.rows && this.entryCache.entries === this.entries && this.entryCache.appearance === appearance && this.entryCache.live === this.liveRunId) return this.entryCache.lines;
     const lines = [];
+    const targets = /* @__PURE__ */ new Map();
+    const clickable = (id) => {
+      targets.set(lines.length, id);
+    };
     const center = (text2) => {
       const clipped = (0, import_pi_tui3.truncateToWidth)(text2, width);
       return " ".repeat(Math.max(0, Math.floor((width - (0, import_pi_tui3.visibleWidth)(clipped)) / 2))) + clipped;
@@ -36834,10 +36852,16 @@ var TerminalUI = class {
     }
     lines.push("");
     const groups = transcriptGroups(this.collapsedEntries());
+    const agentHead = (entry) => clean(entry.text).split(/\s{2,}/)[0];
+    const agentWidths = /* @__PURE__ */ new Map();
+    for (const entry of groups.flat()) if (entry.agentName) {
+      agentWidths.set(entry.runId ?? "", Math.max(agentWidths.get(entry.runId ?? "") ?? 0, (0, import_pi_tui3.visibleWidth)(agentHead(entry))));
+    }
     for (const [groupIndex, group] of groups.entries()) {
       if (group[0].kind === "turn") {
         const turn = group[0], open = this.isOpen(turn.id);
         const label = turnLabel(turn.steps ?? [], { added: theme.success, removed: theme.error });
+        clickable(turn.id);
         lines.push((0, import_pi_tui3.truncateToWidth)(
           theme.muted("  " + (open ? "\u25BE " : "\u25B8 ")) + theme.muted(label),
           width
@@ -36857,6 +36881,7 @@ var TerminalUI = class {
         const reason = toolFailure(group[0]);
         const color2 = reason ? group[0].status === "denied" ? theme.warning : theme.error : theme.muted;
         const owner = group[0].agentId ? this.agents.find((agent) => agent.id === group[0].agentId)?.name : void 0;
+        clickable(id);
         lines.push((0, import_pi_tui3.truncateToWidth)(color2(theme.bold("  " + (open ? "\u25BE " : "\u25B8 ") + clean(toolGroupLabel(group)) + (owner ? "  @" + clean(owner) : ""))), width));
         if (!open) {
           if (reason) lines.push((0, import_pi_tui3.truncateToWidth)("    " + color2(clean(reason).split("\n")[0]), width));
@@ -36895,6 +36920,7 @@ var TerminalUI = class {
           const color3 = entry.status === "denied" ? theme.warning : failed ? theme.error : entry.status === "completed" ? theme.success : entry.status === "cancelled" ? theme.muted : theme.accent;
           const owner = !grouped && entry.agentId ? this.agents.find((agent) => agent.id === entry.agentId)?.name : void 0;
           const heading = indent + (open ? "\u25BE " : "\u25B8 ") + color3(theme.bold(marker)) + " " + theme.bold(text2.slice(marker.length).trimStart()) + (owner ? "  @" + clean(owner) : "") + (!open && entry.exitCode !== void 0 && entry.exitCode !== 0 ? "  " + tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : "");
+          clickable(entry.id);
           lines.push((0, import_pi_tui3.truncateToWidth)(heading, width));
           if (!showing) {
             if (failed) lines.push((0, import_pi_tui3.truncateToWidth)(indent + "  " + color3(clean(toolFailure(entry)).split("\n")[0]), width));
@@ -36932,7 +36958,10 @@ var TerminalUI = class {
         if (entry.agentName) {
           const open = this.isOpen(entry.id);
           const agent = this.agents.find((agent2) => agent2.id === entry.agentId);
-          lines.push((0, import_pi_tui3.truncateToWidth)("  " + (open ? "\u25BE " : "\u25B8 ") + (agent ? agentColor(agent) : theme.muted)(theme.bold(text2)), width));
+          const head = agentHead(entry), rest = text2.slice(text2.indexOf(head) + head.length).trim().split(/\s{2,}/).filter(Boolean);
+          const aligned = head + " ".repeat(Math.max(0, (agentWidths.get(entry.runId ?? "") ?? 0) - (0, import_pi_tui3.visibleWidth)(head))) + (rest.length ? "  " + rest.join("  ") : "");
+          clickable(entry.id);
+          lines.push((0, import_pi_tui3.truncateToWidth)("  " + (open ? "\u25BE " : "\u25B8 ") + (agent ? agentColor(agent) : theme.muted)(theme.bold(aligned)), width));
           if (entry.detail) {
             const detail = clean(open ? entry.detail : reportSummary(entry.detail));
             const rewritten = rewriteMentionLinks(detail, this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks);
@@ -36945,6 +36974,7 @@ var TerminalUI = class {
         }
         if (!text2 && !entry.detail) continue;
         const color2 = entry.kind === "error" ? theme.error : theme.muted;
+        if (entry.detail) clickable(entry.id);
         lines.push(...new import_pi_tui3.Text(color2(text2), 0, 0).render(width));
         if (this.isOpen(entry.id) && entry.detail) {
           const detail = new import_pi_tui3.Text(diffText(entry.detail), 2, 0).render(width);
@@ -36955,6 +36985,7 @@ var TerminalUI = class {
       if (grouped) lines.push("");
     }
     this.entryCache = { width, rows: this.terminal.rows, entries: this.entries, appearance, live: this.liveRunId, lines };
+    this.entryTargets = targets;
     return lines;
   }
   form(component, bind, width = "100%") {
@@ -38221,7 +38252,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.21";
+var version = "0.1.22";
 
 // src/interactive.ts
 var import_node_fs18 = require("node:fs");
