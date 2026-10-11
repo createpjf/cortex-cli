@@ -36134,6 +36134,7 @@ var TerminalUI = class {
   unicode = unicodeSupported();
   clipboardTimer;
   clipboardAvailable = false;
+  clipboardProbed = false;
   clipboardChecking = false;
   disposed = false;
   attachments = [];
@@ -36184,7 +36185,7 @@ var TerminalUI = class {
       this.syncLogo();
       this.tui.requestRender(true);
     });
-    this.editor = new Composer(this.tui, () => this.commands, () => this.agentStrip(80).length + this.renderActivity(80).length + this.renderAttachments(80).length, (width) => this.inputFrame(width));
+    this.editor = new Composer(this.tui, () => this.commands, () => this.renderActivity(80).length + this.renderAttachments(80).length, (width) => this.inputFrame(width));
     this.editor.onChange = () => this.clearNotice();
     const transcript = { invalidate: () => {
       this.entryCache = void 0;
@@ -36284,10 +36285,11 @@ var TerminalUI = class {
         this.clipboardChecking = true;
         try {
           const available = await hasClipboardImage();
-          if (!this.disposed && available !== this.clipboardAvailable) {
-            this.clipboardAvailable = available;
-            this.tui.requestRender();
+          if (!this.disposed && available && !this.clipboardAvailable && this.clipboardProbed) {
+            this.notify(tr("\u526A\u8D34\u677F\u56FE\u7247 \xB7 Ctrl+V \u6DFB\u52A0", "Clipboard image \xB7 Ctrl+V to attach"), "info", 4e3);
           }
+          this.clipboardAvailable = available;
+          this.clipboardProbed = true;
         } finally {
           this.clipboardChecking = false;
         }
@@ -36446,17 +36448,17 @@ var TerminalUI = class {
     this.editor.prediction = text2;
     this.tui.requestRender();
   }
-  /** 一行代理状态统计；查看与控制统一走 /agents 看板。 */
+  /** 代理状态统计（已上色），放在任务进度那一行右侧；查看与控制统一走 /agents 看板。 */
   agentStrip(width) {
-    if (this.pending || this.tui.hasOverlay() || !this.agents.length) return [];
+    if (!this.agents.length) return "";
     const counts = /* @__PURE__ */ new Map();
     for (const agent of this.agents) {
       const label = agentLabel(agent);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const hint = tr("  /agents \u67E5\u770B", "  /agents view");
-    const summary = [...counts].map(([label, count]) => count + " " + label).join("  ");
-    return [theme.muted((0, import_pi_tui3.truncateToWidth)(summary, Math.max(0, width - (0, import_pi_tui3.visibleWidth)(hint))) + hint)];
+    const summary = [...counts].map(([label, count]) => count + " " + label).join(" \xB7 ");
+    const hint = " \xB7 /agents";
+    return theme.accent((0, import_pi_tui3.truncateToWidth)(summary, Math.max(0, Math.floor(width / 2) - hint.length))) + theme.muted(hint);
   }
   async stopAgents() {
     const sessionId = this.context?.sessionId, runId = this.agentRunId;
@@ -36566,18 +36568,23 @@ var TerminalUI = class {
     this.noticeTimer.unref();
     this.tui.requestRender();
   }
-  /** 输入框上方只留任务进度；运行状态与提示在输入框下边框 */
+  /** 输入框上方一行：左边任务进度（运行中），右边代理统计与 /agents；都没有时不占行。运行状态在下边框 */
   renderActivity(width) {
-    if (this.pending || this.tui.hasOverlay() || !this.active || !this.tasks) return [];
-    return [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(this.tasks), width))];
+    if (this.pending || this.tui.hasOverlay()) return [];
+    const tasks = this.active && this.tasks ? "\u25C6 " + clean(this.tasks) : "";
+    const agents = this.agentStrip(width);
+    if (!tasks && !agents) return [];
+    const room = Math.max(0, width - (0, import_pi_tui3.visibleWidth)(agents) - (agents ? 2 : 0));
+    const left = (0, import_pi_tui3.truncateToWidth)(tasks, room);
+    return [theme.muted(left) + " ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(left) - (0, import_pi_tui3.visibleWidth)(agents))) + agents];
   }
   /** 输入框边框：上边框右侧是上下文占用、模型与思考强度；下边框左侧是状态或模式，右侧是目录与分支 */
   inputFrame(width) {
     const percent = /(\d+)%/.exec(this.contextText)?.[1];
     const meter = percent === void 0 ? theme.muted(clean(this.contextText)) : (() => {
       const value = Math.min(100, Number(percent)), filled = Math.round(value / 100 * 8);
-      const paint = value >= 90 ? theme.error : value >= 75 ? theme.warning : theme.success;
-      return paint("\u2588".repeat(filled) + "\u2591".repeat(8 - filled) + " " + (/容量估计|estimated/.test(this.contextText) ? "\u2248" : "") + value + "%");
+      const paint = value >= 90 ? theme.error : value >= 75 ? theme.warning : value >= 50 ? theme.success : theme.muted;
+      return paint((value >= 50 ? "\u2588".repeat(filled) + "\u2591".repeat(8 - filled) + " " : "") + (/容量估计|estimated/.test(this.contextText) ? "\u2248" : "") + value + "%");
     })();
     const thinking = this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value : "";
     const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join(" \xB7 ");
@@ -36589,8 +36596,9 @@ var TerminalUI = class {
     const detail = this.pending ? "" : this.editor.prediction && !this.editor.getText() ? theme.muted(tr("Tab \u63A5\u53D7\u9884\u6D4B", "Tab accept")) + theme.muted(" \xB7 Beta") : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
       { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
     ) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
-      status + (tool?.tool ? " " + clean(tool.tool) : ""),
-      clean(this.metrics),
+      // 等待子代理时宿主已给出说明（等待 N 个代理），不再重复「运行中 + 内部工具名」
+      tool?.tool === "WaitAgentUpdates" && this.metrics ? "" : status + (tool?.tool ? " " + clean(tool.tool) : ""),
+      ...clean(this.metrics).split(/\s{2,}/),
       tr("Esc \u505C\u6B62", "Esc stop"),
       ...queue
     ].filter(Boolean).join(" \xB7 ")) : !this.context ? theme.muted(state + " \xB7 " + tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit")) : this.idle ? "" : theme.muted(state);
@@ -36603,12 +36611,12 @@ var TerminalUI = class {
   }
   renderAttachments(width) {
     if (this.pending || this.tui.hasOverlay()) return [];
-    const label = this.attachments.length ? this.attachments.length + tr(" \u9644\u4EF6  ", " " + plural(this.attachments.length, "attachment") + "  ") + this.attachments.map((file) => file.filename).join(", ") : this.clipboardAvailable ? tr("\u526A\u8D34\u677F\u56FE\u7247  Ctrl+V \u7C98\u8D34", "Clipboard image  Ctrl+V paste") : "";
+    const label = this.attachments.length ? this.attachments.length + tr(" \u9644\u4EF6  ", " " + plural(this.attachments.length, "attachment") + "  ") + this.attachments.map((file) => file.filename).join(", ") : "";
     return label ? [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(label), width))] : [];
   }
-  /** 输入框下方只放代理统计；模式、模型与目录都在输入框边框上 */
-  renderFooter(width) {
-    return this.agentStrip(width);
+  /** 输入框是屏幕最后一块：代理统计已并入输入框上方的任务行 */
+  renderFooter(_width) {
+    return [];
   }
   launch(run) {
     void run().catch((error) => {
@@ -38213,7 +38221,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.20";
+var version = "0.1.21";
 
 // src/interactive.ts
 var import_node_fs18 = require("node:fs");
@@ -39739,7 +39747,7 @@ async function runInteractive(worker, options, request, ui) {
         const activeAgents = current2.agents.filter((agent) => agent.kind !== "workflow" && ["queued", "running"].includes(agent.status)).length;
         const waiting = current2.agents.filter((agent) => agent.waitingConfirmation).length;
         const waitingAgents = current2.entries.some((item) => item.kind === "tool" && item.status === "running" && /WaitAgentUpdates/.test(item.text));
-        const summary = current2.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u540E\u53F0\u4EE3\u7406", " background agents") : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
+        const summary = current2.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u4EE3\u7406", " " + plural(activeAgents, "agent")) : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
         screen.liveRunId = current2.running ? current2.runId : void 0;
         screen.update(
           current2.entries,
