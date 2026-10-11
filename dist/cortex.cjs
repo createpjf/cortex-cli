@@ -2880,7 +2880,7 @@ function getConfigDirName() {
   return _configDirName;
 }
 function getConfigDir() {
-  return ensureCortexDirectory(configuredDirectory ?? (0, import_node_path9.join)((0, import_node_os4.homedir)(), getConfigDirName()));
+  return ensureCortexDirectory(configuredDirectory ?? (0, import_node_path9.join)((0, import_node_os5.homedir)(), getConfigDirName()));
 }
 function getChannelsPath() {
   return (0, import_node_path9.join)(getConfigDir(), "channels.json");
@@ -2891,12 +2891,12 @@ function getProxySettingsPath() {
 function getChatToolsConfigPath() {
   return (0, import_node_path9.join)(getConfigDir(), "chat-tools.json");
 }
-var import_node_path9, import_node_os4, _configDirName, configuredDirectory;
+var import_node_path9, import_node_os5, _configDirName, configuredDirectory;
 var init_config_paths = __esm({
   "../electron/src/main/lib/config-paths.ts"() {
     "use strict";
     import_node_path9 = require("node:path");
-    import_node_os4 = require("node:os");
+    import_node_os5 = require("node:os");
     init_storage_paths();
     init_bundled_skills();
     init_src();
@@ -32676,6 +32676,7 @@ var init_channel_manager = __esm({
 // src/tui.ts
 var import_node_child_process4 = require("node:child_process");
 var import_node_path7 = require("node:path");
+var import_node_os4 = require("node:os");
 var import_pi_tui3 = require("@earendil-works/pi-tui");
 init_src();
 
@@ -33572,10 +33573,16 @@ var theme = {
   panel: color("panel"),
   user: color("user"),
   bold: (text) => style("1", text),
+  dim: (text) => style("2", text),
   italic: (text) => style("3", text),
   strikethrough: (text) => style("9", text),
   underline: (text) => style("4", text)
 };
+function brandGradient(position, text) {
+  const [from, to] = appearanceStore.get(appearanceAtom).theme === "light" ? [[29, 144, 230], [43, 168, 78]] : [[63, 169, 245], [86, 217, 119]];
+  const rgb = from.map((value, index) => Math.round(value + (to[index] - value) * Math.min(1, Math.max(0, position))));
+  return style(/^(truecolor|24bit)$/i.test(process.env.COLORTERM ?? "") ? "38;2;" + rgb.join(";") : "38;5;" + (16 + rgb.reduce((sum, value) => sum * 6 + Math.round(value / 255 * 5), 0)), text);
+}
 
 // src/terminal-text.ts
 var import_node_util = require("node:util");
@@ -33995,7 +34002,7 @@ var cortexTitle = [
   "| |__| |_| |  _ < | | | |___ /  \\ ",
   " \\____\\___/|_| \\_\\|_| |_____/_/\\_\\"
 ];
-var cortexWelcomeTitle = [
+var cortexGlyph = [
   " ###   ###  ####  ##### ##### #   #",
   "#   # #   # #   #   #   #     #   #",
   "#     #   # #   #   #   #      # # ",
@@ -34003,7 +34010,22 @@ var cortexWelcomeTitle = [
   "#     #   # # #     #   #      # # ",
   "#   # #   # #  #    #   #     #   #",
   " ###   ###  #   #   #   ##### #   #"
-].map((line) => [...line].map((character) => character.repeat(2)).join(""));
+];
+var dotLogoWidth = cortexGlyph[0].length * 2;
+function dotLogo(frame, paint) {
+  const lines = [];
+  for (let y = -1; y <= cortexGlyph.length; y++) {
+    let line = "";
+    for (let x = 0; x < dotLogoWidth; x++) {
+      const lit = cortexGlyph[y]?.[x >> 1] === "#";
+      const wave = 0.5 + 0.5 * Math.sin(x * 0.16 - frame * 0.35 + y * 0.5);
+      if (lit) line += paint(x / (dotLogoWidth - 1), wave > 0.35 ? 2 : 1, "\u25CF");
+      else line += wave > 0.85 && (x + y) % 2 === 0 ? paint(x / (dotLogoWidth - 1), 0, "\xB7") : " ";
+    }
+    lines.push(line);
+  }
+  return lines;
+}
 function resultEntries(result) {
   const entries = [];
   const errors = [...new Map(result.errors.map((error) => [error.message, error])).values()];
@@ -34076,6 +34098,17 @@ function taskSummary(tasks) {
 }
 function mainTranscript(entries) {
   return entries.filter((entry) => !entry.agentId || entry.agentName || entry.kind === "tool" && !!toolFailure(entry));
+}
+function approvalDetails(request) {
+  const { command, description: _description, timeout, ...rest } = request.toolInput;
+  const value = (item) => (typeof item === "string" ? item : JSON.stringify(item)).replace(/\s+/g, " ").slice(0, 200);
+  return [
+    request.description,
+    ...typeof command === "string" ? ["  $ " + command] : [],
+    ...request.editPreview ? [request.editPreview] : Object.entries(rest).map(([key, item]) => "  " + key + tr("\uFF1A", ": ") + value(item)),
+    ...typeof timeout === "number" ? [tr("  \u8D85\u65F6 " + timeout + " \u79D2", "  Timeout " + timeout + "s")] : [],
+    ...request.decisionReason ? [tr("\u539F\u56E0\uFF1A", "Reason: ") + request.decisionReason] : []
+  ].join("\n");
 }
 function minorChangePath(path) {
   return /(^|\/)(__tests__|tests?|fixtures?|__snapshots__|dist|build|generated)\//i.test(path) || /\.(test|spec)\.[^/]+$|\.snap$|(^|\/)[^/]*\.lock$|-lock\.(json|yaml)$|lock\.yaml$|\.min\.[a-z]+$|\.generated\./i.test(path);
@@ -34160,6 +34193,7 @@ function commandCatalog(context) {
       ...!context.session?.thinking?.levels.some((level) => level !== "off") ? [] : [{
         name: "thinking",
         label: tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"),
+        shortcut: "Ctrl+S",
         description: tr("\u8C03\u6574\u601D\u8003\u5F3A\u5EA6\uFF08\u5F53\u524D\uFF1A", "Change thinking (current: ") + thinkingLabel(context.session.thinking.value) + tr("\uFF09", ")"),
         group: settings2,
         getArgumentCompletions: (prefix) => choices(context.session.thinking.levels, prefix)
@@ -34419,9 +34453,6 @@ function stageAttachment(configDir, bytes) {
   return path;
 }
 
-// package.json
-var version = "0.1.9";
-
 // src/external-editor.ts
 var import_node_child_process3 = require("node:child_process");
 var import_node_fs6 = require("node:fs");
@@ -34463,7 +34494,7 @@ var selectTheme = {
   noMatch: () => theme.muted(tr("\u6CA1\u6709\u5339\u914D\u9879", "No matches"))
 };
 var markdownTheme = {
-  heading: theme.bold,
+  heading: (text) => theme.accent(theme.bold(text)),
   link: theme.accent,
   linkUrl: theme.muted,
   code: theme.accent,
@@ -34479,6 +34510,24 @@ var markdownTheme = {
   underline: theme.underline
 };
 var diffText = (text) => clean(text).split("\n").map((line) => line.startsWith("+") ? theme.success(line) : line.startsWith("-") ? theme.error(line) : line.startsWith("@@") ? theme.accent(line) : line).join("\n");
+function border(width, corners, left = "", right = "") {
+  const room = Math.max(0, width - 4);
+  const r = right && (left ? (0, import_pi_tui3.visibleWidth)(left) + 2 : 0) + (0, import_pi_tui3.visibleWidth)(right) + 2 <= room ? right : "";
+  const l = left ? (0, import_pi_tui3.truncateToWidth)(left, Math.max(0, room - (r ? (0, import_pi_tui3.visibleWidth)(r) + 2 : 0) - 2)) : "";
+  const used = (l ? (0, import_pi_tui3.visibleWidth)(l) + 2 : 0) + (r ? (0, import_pi_tui3.visibleWidth)(r) + 2 : 0);
+  return theme.muted(corners[0] + "\u2500") + (l ? " " + l + " " : "") + theme.muted("\u2500".repeat(Math.max(0, room - used))) + (r ? " " + r + " " : "") + theme.muted("\u2500" + corners[1]);
+}
+function boxed(width, title, body, hint = "", tag = "") {
+  const inner = Math.max(1, width - 4);
+  return [
+    border(width, "\u256D\u256E", title, tag),
+    ...body.map((line) => {
+      const text = (0, import_pi_tui3.truncateToWidth)(line, inner);
+      return theme.muted("\u2502") + " " + text + " ".repeat(Math.max(0, inner - (0, import_pi_tui3.visibleWidth)(text))) + " " + theme.muted("\u2502");
+    }),
+    border(width, "\u2570\u256F", "", hint ? theme.muted(hint) : "")
+  ];
+}
 var UiCancelled = class extends Error {
   constructor(exitCode) {
     super(tr("\u5DF2\u53D6\u6D88", "Cancelled"));
@@ -34486,10 +34535,11 @@ var UiCancelled = class extends Error {
   }
 };
 var Composer = class extends import_pi_tui3.Editor {
-  constructor(tui, commands, reserved) {
+  constructor(tui, commands, reserved, frame) {
     super(tui, { borderColor: theme.muted, selectList: selectTheme }, { autocompleteMaxVisible: 6 });
     this.commands = commands;
     this.reserved = reserved;
+    this.frame = frame;
   }
   handleInput(data) {
     if (this.isShowingAutocomplete() && (0, import_pi_tui3.matchesKey)(data, "enter")) {
@@ -34506,7 +34556,8 @@ var Composer = class extends import_pi_tui3.Editor {
   render(width) {
     const rows = this.tui.terminal.rows;
     this.setAutocompleteMaxVisible(Math.max(3, Math.min(8, Math.floor(rows / 3))));
-    const lines = super.render(Math.max(1, width - 2));
+    const inner = Math.max(1, width - 6);
+    const lines = super.render(inner);
     const bottom = lines.indexOf("", 1);
     const end = bottom < 0 ? lines.length : bottom;
     const menu = lines.slice(end + 1);
@@ -34514,8 +34565,12 @@ var Composer = class extends import_pi_tui3.Editor {
     const available = this.tui.hasOverlay() ? 1 : Math.max(1, rows - (rows >= 12 ? 2 : 0) - 1 - menu.length - 2 - (rows >= 10 ? 1 : 0) - this.reserved());
     const cursor = Math.max(0, content.findIndex((line) => line.includes(import_pi_tui3.CURSOR_MARKER)));
     const start = Math.max(0, Math.min(cursor - available + 1, content.length - available));
-    const border = theme.muted("\u2500".repeat(width));
-    return [...menu, border, ...content.slice(start, start + available).map((line, index) => (index ? "  " : theme.accent("\u203A ")) + line), border];
+    const frame = this.frame(width);
+    const body = content.slice(start, start + available).map((line, index) => {
+      const text = (index ? "  " : theme.accent("\u203A ")) + line;
+      return theme.muted("\u2502") + " " + text + " ".repeat(Math.max(0, inner + 2 - (0, import_pi_tui3.visibleWidth)(text))) + " " + theme.muted("\u2502");
+    });
+    return [...menu, border(width, "\u256D\u256E", "", frame.top), ...body, border(width, "\u2570\u256F", frame.left, frame.right)];
   }
   // 重排后的补全列表不复用旧鼠标坐标，键盘操作保持一致。
   handleMouse() {
@@ -34562,6 +34617,8 @@ var TerminalUI = class {
   entryCache;
   /** 正在运行的一轮不折叠；其余已结束的轮次在渲染时折成摘要 */
   liveRunId;
+  logoFrame = 0;
+  logoTimer;
   pending;
   commands = { busy: false };
   notice = "";
@@ -34596,6 +34653,8 @@ var TerminalUI = class {
   };
   onPasteImage = async () => {
   };
+  onDial = () => {
+  };
   constructor(terminal = new import_pi_tui3.ProcessTerminal(), appearance = defaultAppearance) {
     appearanceStore.set(appearanceAtom, { ...appearance });
     this.terminal = terminal;
@@ -34613,9 +34672,10 @@ var TerminalUI = class {
     this.loader = new import_pi_tui3.Loader(this.tui, theme.accent, theme.muted, "", { frames: ["\u2026"], intervalMs: 120 });
     this.unsubscribeAppearance = appearanceStore.sub(appearanceAtom, () => {
       this.syncAnimation();
+      this.syncLogo();
       this.tui.requestRender(true);
     });
-    this.editor = new Composer(this.tui, () => this.commands, () => this.agentStrip(80).length + this.renderActivity(80).length + this.renderAttachments(80).length + (this.agents.length && this.terminal.rows >= 18 ? 1 : 0));
+    this.editor = new Composer(this.tui, () => this.commands, () => this.agentStrip(80).length + this.renderActivity(80).length + this.renderAttachments(80).length, (width) => this.inputFrame(width));
     this.editor.onChange = () => this.clearNotice();
     const transcript = { invalidate: () => {
       this.entryCache = void 0;
@@ -34678,6 +34738,10 @@ var TerminalUI = class {
       }
       if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "f2")) {
         this.onCommand("/settings");
+        return { consume: true };
+      }
+      if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "ctrl+s")) {
+        this.onDial();
         return { consume: true };
       }
       if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "shift+tab")) {
@@ -34800,7 +34864,23 @@ var TerminalUI = class {
       this.syncAnimation();
     }
     this.syncStatusTitle(waiting);
+    this.syncLogo();
     this.tui.requestRender();
+  }
+  /** 点阵标志只在欢迎页（还没有对话内容）播放；减少动态效果或 NO_COLOR 时静止 */
+  syncLogo() {
+    const play = !this.disposed && !this.visibleEntries().length && !appearanceStore.get(appearanceAtom).reducedMotion && process.env.NO_COLOR === void 0;
+    if (play && !this.logoTimer) {
+      this.logoTimer = setInterval(() => {
+        this.logoFrame++;
+        this.entryCache = void 0;
+        this.tui.requestRender();
+      }, 120);
+      this.logoTimer.unref();
+    } else if (!play && this.logoTimer) {
+      clearInterval(this.logoTimer);
+      this.logoTimer = void 0;
+    }
   }
   /** 标题与进度反映运行状态；需要确认或运行 ≥10 秒后结束时提醒一次 */
   syncStatusTitle(waiting) {
@@ -34945,43 +35025,43 @@ var TerminalUI = class {
     this.noticeTimer.unref();
     this.tui.requestRender();
   }
+  /** 输入框上方只留任务进度；运行状态与提示在输入框下边框 */
   renderActivity(width) {
-    if (this.pending || this.tui.hasOverlay()) return [];
-    if (!this.notice && !this.active && this.idle && !this.metrics) return [];
+    if (this.pending || this.tui.hasOverlay() || !this.active || !this.tasks) return [];
+    return [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(this.tasks), width))];
+  }
+  /** 输入框边框：上边框右侧是上下文占用、模型与思考强度；下边框左侧是状态或模式，右侧是目录与分支 */
+  inputFrame(width) {
+    const percent = Number(/(\d+)%/.exec(this.contextText)?.[1] ?? 0);
+    const paint = percent >= 90 ? theme.error : percent >= 70 ? theme.warning : theme.muted;
+    const thinking = this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value : "";
+    const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join(" \xB7 ");
+    const top = [this.contextText && !this.pending ? paint(clean(this.contextText)) : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted(" \xB7 "));
+    const mode = this.context ? { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[this.context.mode] : "";
+    const [status = "", ...queue] = clean(this.state).trim().split(/\s{2,}/);
+    const state = [status, ...queue].join(" \xB7 ");
     const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
-    const line = (this.active ? this.indicator() + " " : "") + clean(this.notice || this.state) + (!this.notice && this.active && tool?.tool ? "  " + clean(tool.tool) : "") + (!this.notice && this.metrics ? "  " + clean(this.metrics) : "");
-    const task = this.active && this.tasks ? [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(this.tasks), width))] : [];
-    return this.terminal.rows >= 18 ? ["", ...task, theme.muted((0, import_pi_tui3.truncateToWidth)(line, width)), ""] : [...task, theme.muted((0, import_pi_tui3.truncateToWidth)(line, width))];
+    const detail = this.pending ? "" : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? theme.accent(this.notice) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
+      status + (tool?.tool ? " " + clean(tool.tool) : ""),
+      clean(this.metrics),
+      tr("Esc \u505C\u6B62", "Esc stop"),
+      ...queue
+    ].filter(Boolean).join(" \xB7 ")) : !this.context ? theme.muted(state + " \xB7 " + tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit")) : this.idle ? "" : theme.muted(state);
+    const left = [mode ? theme.muted(mode) : "", detail].filter(Boolean).join(theme.muted(" \xB7 "));
+    const home = (0, import_node_os4.homedir)(), cwd = clean(this.context?.cwd ?? "");
+    const project = cwd === home || cwd.startsWith(home + "/") ? "~" + cwd.slice(home.length) : cwd;
+    const branch = clean(this.context?.branch ?? "");
+    const right = width >= 60 && project ? theme.muted(project + (branch ? " (" + branch + ")" : "")) : "";
+    return { top, left, right };
   }
   renderAttachments(width) {
     if (this.pending || this.tui.hasOverlay()) return [];
     const label = this.attachments.length ? this.attachments.length + tr(" \u9644\u4EF6  ", " " + plural(this.attachments.length, "attachment") + "  ") + this.attachments.map((file) => file.filename).join(", ") : this.clipboardAvailable ? tr("\u526A\u8D34\u677F\u56FE\u7247  Ctrl+V \u7C98\u8D34", "Clipboard image  Ctrl+V paste") : "";
     return label ? [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(label), width))] : [];
   }
+  /** 输入框下方只放代理统计；模式、模型与目录都在输入框边框上 */
   renderFooter(width) {
-    const core = this.context ? { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[this.context.mode] : "";
-    const hint = this.pending ? tr("Enter \u786E\u8BA4  Esc \u8FD4\u56DE", "Enter confirm  Esc back") : this.editor.isShowingAutocomplete() ? tr("\u2191\u2193 \u9009\u62E9  Enter \u786E\u8BA4  Tab \u8865\u5168  Esc \u5173\u95ED", "\u2191\u2193 select  Enter confirm  Tab complete  Esc close") : !this.context ? tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit") : !this.active && this.notice ? tr("? \u5E2E\u52A9", "? help") : this.active ? tr("Esc \u505C\u6B62", "Esc stop") : tr("Ctrl+O \u5C55\u5F00  / \u547D\u4EE4/Skills  ? \u5E2E\u52A9", "Ctrl+O expand  / commands/Skills  ? help");
-    const ctx = this.pending || this.editor.isShowingAutocomplete() ? "" : this.contextText;
-    const percent = Number(/(\d+)%/.exec(ctx)?.[1] ?? 0);
-    const paint = percent >= 90 ? theme.error : percent >= 70 ? theme.warning : theme.muted;
-    const model = clean(this.context?.model ?? ""), branch = clean(this.context?.branch ?? "");
-    const sep2 = "  \xB7  ";
-    const full = [core, model, branch].filter(Boolean).join(sep2);
-    const coreModel = [core, model].filter(Boolean).join(sep2);
-    const keepHint = this.active || this.pending || this.editor.isShowingAutocomplete();
-    const options = width < 60 ? [] : keepHint ? [[full, ctx, true], [coreModel, ctx, true]] : [[full, ctx, true], [full, ctx, false], [coreModel, ctx, false]];
-    const [left, rightCtx, withHint] = options.find(([l, c, h]) => (0, import_pi_tui3.visibleWidth)(l) + 2 + (0, import_pi_tui3.visibleWidth)(c) + (h ? 2 + (0, import_pi_tui3.visibleWidth)(hint) : 0) <= width) ?? [core, ctx, true];
-    const room = Math.max(0, width - (0, import_pi_tui3.visibleWidth)(left) - 2 - (rightCtx ? (0, import_pi_tui3.visibleWidth)(rightCtx) + 2 : 0));
-    const tail = withHint ? (0, import_pi_tui3.truncateToWidth)(hint, room) : "";
-    const gap = rightCtx && tail ? "  " : "";
-    const rightWidth = (0, import_pi_tui3.visibleWidth)(rightCtx) + gap.length + (0, import_pi_tui3.visibleWidth)(tail);
-    const right = (rightCtx ? paint(rightCtx) : "") + theme.muted(gap + tail);
-    const agents = this.agentStrip(width);
-    return [
-      (0, import_pi_tui3.truncateToWidth)(theme.muted(left) + " ".repeat(Math.max(2, width - (0, import_pi_tui3.visibleWidth)(left) - rightWidth)) + right, width),
-      ...agents.length && this.terminal.rows >= 18 ? [""] : [],
-      ...agents
-    ];
+    return this.agentStrip(width);
   }
   launch(run) {
     void run().catch((error) => {
@@ -35029,6 +35109,7 @@ var TerminalUI = class {
           description: tr("Esc \u505C\u6B62\u751F\u6210\uFF1BCtrl+C \u590D\u5236\u9009\u4E2D\u5185\u5BB9\u6216\u53D6\u6D88\uFF1BCtrl+D \u7A7A\u8F93\u5165\u65F6\u9000\u51FA", "Esc stop; Ctrl+C copy selection or cancel; Ctrl+D quit when input is empty")
         },
         { value: "menu", label: tr("\u547D\u4EE4 \xB7 \u641C\u7D22\u9762\u677F", "Commands \xB7 search panel"), description: "Ctrl+P" },
+        { value: "dial", label: tr("\u6A21\u578B \xB7 \u601D\u8003\u5F3A\u5EA6", "Model \xB7 thinking"), description: tr("Ctrl+S \u62E8\u76D8\uFF1A\u2190\u2192 \u8C03\u6574\uFF0CEnter \u53EA\u6539\u5F53\u524D\u4F1A\u8BDD", "Ctrl+S dial: \u2190\u2192 adjust, Enter applies to this session") },
         { value: "history", label: tr("\u8F93\u5165 \xB7 \u641C\u7D22\u5386\u53F2", "Input \xB7 search history"), description: tr("Ctrl+R \u641C\u7D22\u672C\u9879\u76EE\u7684\u8F93\u5165\u5386\u53F2\uFF1B\u2191\u2193 \u9010\u6761\u6D4F\u89C8\uFF1B\u6709\u5F85\u53D1\u9001\u6D88\u606F\u65F6 \u2191 \u5148\u628A\u6700\u540E\u4E00\u6761\u6539\u56DE\u8349\u7A3F", "Ctrl+R search this project\u2019s prompt history; \u2191\u2193 browse; with queued messages, \u2191 first brings the last one back to edit") },
         { value: "editor", label: tr("\u8F93\u5165 \xB7 \u5916\u90E8\u7F16\u8F91\u5668", "Input \xB7 external editor"), description: tr("Ctrl+G \u7528 $VISUAL / $EDITOR \u7F16\u8F91\u8349\u7A3F\uFF0C\u4FDD\u5B58\u9000\u51FA\u540E\u56DE\u586B\uFF0C\u4E0D\u4F1A\u53D1\u9001", "Ctrl+G edit the draft in $VISUAL / $EDITOR; saved text returns to the input, not sent") },
         {
@@ -35057,11 +35138,17 @@ var TerminalUI = class {
     const command = await this.select(tr("\u547D\u4EE4\u4E0E Skills", "Commands and Skills"), [
       ...commandCatalog(this.commands).map((item) => ({
         value: "/" + item.name,
-        label: "/" + item.name,
-        description: item.group + " \xB7 " + item.label + " \xB7 " + item.description + (item.shortcut ? "  " + item.shortcut : "")
+        group: item.group,
+        label: item.label,
+        description: item.shortcut ?? "/" + item.name
       })),
-      ...skillItems(this.commands.session?.skills ?? []).map((item) => ({ ...item, value: "/" + item.value }))
-    ]);
+      ...(this.commands.session?.skills ?? []).map((skill) => ({
+        value: "/skill:" + skill.id,
+        group: "Skill",
+        label: skill.id,
+        description: clean(skill.name + (skill.description ? " \u2014 " + skill.description : "")).replace(/\s+/g, " ")
+      }))
+    ], { hint: tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u6253\u5F00 \xB7 Esc \u8FD4\u56DE", "\u2191\u2193 select \xB7 Enter open \xB7 Esc back") });
     if (command.startsWith("/skill:")) {
       this.editor.insertTextAtCursor(command + " ");
       this.tui.requestRender();
@@ -35139,6 +35226,7 @@ var TerminalUI = class {
   async stop() {
     this.disposed = true;
     if (this.clipboardTimer) clearInterval(this.clipboardTimer);
+    this.syncLogo();
     this.cancelForm();
     this.clearNotice();
     this.loader.stop();
@@ -35166,44 +35254,21 @@ var TerminalUI = class {
       const clipped = (0, import_pi_tui3.truncateToWidth)(text, width);
       return " ".repeat(Math.max(0, Math.floor((width - (0, import_pi_tui3.visibleWidth)(clipped)) / 2))) + clipped;
     };
-    const full = this.terminal.rows >= 22;
-    const project = clean(this.context?.cwd ?? "");
-    const info = [
-      this.context?.model,
-      this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value + " effort" : "",
-      this.context?.provider,
-      this.context?.credentialSource === "environment" ? tr("\u73AF\u5883\u53D8\u91CF\u51ED\u636E", "Environment credentials") : this.context?.credentialSource === "saved" ? tr("\u5DF2\u4FDD\u5B58\u8FDE\u63A5", "Saved connection") : this.context?.credentialSource === "desktop" ? tr("\u684C\u9762\u8FDE\u63A5", "Desktop connection") : ""
-    ].filter(Boolean).join("  ");
-    if (this.terminal.rows >= 28) lines.push("");
-    const title = this.terminal.rows >= 24 && width >= 76 ? cortexWelcomeTitle : width >= 38 && this.terminal.rows >= 18 ? cortexTitle : ["CORTEX"];
-    lines.push(...title.map((line) => center(theme.accent(theme.bold(line)))), "", center(theme.muted("Cortex CLI v" + version)));
-    if (full) {
-      const skills = this.context?.skills;
-      lines.push(
-        "",
-        center(theme.bold(tr("TIP: /settings \u8C03\u6574\u4F60\u7684\u4F7F\u7528\u504F\u597D", "TIP: Use /settings to customize your experience"))),
-        center(theme.muted(tr("Shift+Tab \u6A21\u5F0F   /model \u6A21\u578B   / Skills   ? \u5E2E\u52A9", "Shift+Tab modes   /model models   / Skills   ? help"))),
-        center(theme.muted(skills ? "Skills (" + skills.length + ")" : tr("Skills \u5F85\u8FDE\u63A5", "Skills awaiting connection"))),
-        ""
-      );
-    }
-    if (info) lines.push(center(theme.muted((0, import_pi_tui3.truncateToWidth)(clean(info), width))));
-    if (this.context?.title) lines.push(center(theme.muted((0, import_pi_tui3.truncateToWidth)(clean(displaySessionTitle(this.context.title)), width))));
-    if (project) lines.push(center(theme.muted((0, import_pi_tui3.truncateToWidth)(project, width))));
-    if (full) {
-      lines.push("");
-      const heading = theme.accent(theme.bold(tr("\u6B22\u8FCE\u4F7F\u7528 Cortex", "Welcome to Cortex")));
-      const hint = tr("\u7406\u89E3\u9879\u76EE\u3001\u7F16\u5199\u4EE3\u7801\u3001\u5B8C\u6210\u4EFB\u52A1\u3002", "Understand your project, write code, and get things done.");
-      if (width >= 60 && this.terminal.rows >= 28) {
-        const inside = Math.min(width - 4, 96);
-        const row = (text) => center(theme.muted("\u2502 ") + text + " ".repeat(Math.max(0, inside - (0, import_pi_tui3.visibleWidth)(text))) + theme.muted(" \u2502"));
-        lines.push(
-          center(theme.muted("\u250C" + "\u2500".repeat(inside + 2) + "\u2510")),
-          row(heading),
-          row(theme.muted((0, import_pi_tui3.truncateToWidth)(hint, inside))),
-          center(theme.muted("\u2514" + "\u2500".repeat(inside + 2) + "\u2518"))
-        );
-      } else lines.push(center(heading), center(theme.muted((0, import_pi_tui3.truncateToWidth)(hint, width))));
+    if (!this.visibleEntries().length) {
+      const greeting = [
+        theme.accent(theme.bold(tr("\u6B22\u8FCE\u4F7F\u7528 Cortex", "Welcome to Cortex"))),
+        theme.bold("Ctrl+P") + theme.muted(tr(" \u547D\u4EE4 \xB7 ", " commands \xB7 ")) + theme.bold("?") + theme.muted(tr(" \u5FEB\u6377\u952E", " shortcuts"))
+      ];
+      const greetingWidth = Math.max(...greeting.map((line) => (0, import_pi_tui3.visibleWidth)(line)));
+      const welcome = [];
+      if (this.terminal.rows >= 24 && width >= dotLogoWidth + 4) {
+        const logo = dotLogo(this.logoFrame, (position, level, text) => level === 2 ? brandGradient(position, text) : theme.dim(brandGradient(position, text)));
+        if (width >= dotLogoWidth + greetingWidth + 8) {
+          const pad = " ".repeat(Math.max(0, Math.floor((width - dotLogoWidth - greetingWidth - 6) / 2)));
+          welcome.push(...logo.map((line, row) => pad + line + (row === 3 || row === 4 ? "      " + greeting[row - 3] : "")));
+        } else welcome.push(...logo.map(center), "", ...greeting.map(center));
+      } else welcome.push(...(width >= 38 && this.terminal.rows >= 18 ? cortexTitle : ["CORTEX"]).map((line) => center(theme.accent(theme.bold(line)))), "", ...greeting.map(center));
+      lines.push(...Array(Math.max(0, Math.floor((this.terminal.rows - 3 - welcome.length) / 2))).fill(""), ...welcome);
     }
     lines.push("");
     const groups = transcriptGroups(this.collapsedEntries());
@@ -35247,7 +35312,7 @@ var TerminalUI = class {
           continue;
         }
         if (entry.kind === "user") {
-          lines.push(...new import_pi_tui3.Text(theme.bold("\u203A ") + text, 0, 0).render(width).map((line) => theme.user(line + " ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(line))))), "");
+          lines.push(...new import_pi_tui3.Text(text, 0, 0).render(Math.max(1, width - 4)).map((line, index) => theme.success("\u258E") + " " + (index ? "  " : theme.success("\u203A ")) + line), "");
           continue;
         }
         if (entry.kind === "tool") {
@@ -35320,7 +35385,7 @@ var TerminalUI = class {
     this.entryCache = { width, rows: this.terminal.rows, entries: this.entries, appearance, live: this.liveRunId, lines };
     return lines;
   }
-  form(component, bind) {
+  form(component, bind, width = "100%") {
     this.clearNotice();
     this.cancelForm();
     if (this.editor.isShowingAutocomplete()) this.editor.handleInput("\x1B");
@@ -35338,17 +35403,24 @@ var TerminalUI = class {
         run();
       };
       const failed = (error) => finish(() => reject(error));
-      const overlay = this.tui.showOverlay(component, { width: "100%", maxHeight: "100%", anchor: "bottom-left", margin: { bottom: 4 } });
+      const overlay = this.tui.showOverlay(component, { width, maxHeight: "100%", anchor: "bottom-left", margin: { bottom: 3 } });
       this.pending = { component, reject: failed, overlay };
       bind((value) => finish(() => resolve6(value)), failed);
       this.tui.requestRender();
     });
   }
-  /** muted：净化后再淡化显示；hidden：只在输入搜索词后出现，放在列表末尾 */
+  /** muted：净化后再淡化显示；hidden：只在输入搜索词后出现，放在列表末尾；key：标签前的快捷键字母；group：标签前右对齐的淡色分组列 */
   select(title, items, options = {}) {
+    const groupWidth = Math.max(0, ...items.map((item) => item.group ? (0, import_pi_tui3.visibleWidth)(clean(item.group)) : 0));
+    const compose = (item, text, query = "") => {
+      const at = query ? text.toLowerCase().indexOf(query) : -1;
+      const shown2 = at < 0 ? text : text.slice(0, at) + theme.warning(text.slice(at, at + query.length)) + text.slice(at + query.length);
+      const group = groupWidth ? theme.muted(" ".repeat(groupWidth - (0, import_pi_tui3.visibleWidth)(clean(item.group ?? ""))) + clean(item.group ?? "")) + "  " : "";
+      return group + (item.key ? theme.accent(clean(item.key)) + "  " : "") + (item.muted ? theme.muted(shown2) : shown2);
+    };
     const safeItems = items.map((item) => {
-      const label = clean(item.label || item.value) || tr("\u672A\u547D\u540D\u9009\u9879", "Untitled option");
-      return { ...item, label: item.muted ? theme.muted(label) : label, description: item.description ? clean(item.description) : void 0 };
+      const text = clean(item.label || item.value) || tr("\u672A\u547D\u540D\u9009\u9879", "Untitled option");
+      return { ...item, text, label: compose(item, text), description: item.description ? clean(item.description) : void 0 };
     });
     const shown = safeItems.filter((item) => !item.hidden);
     const openedAt = Date.now();
@@ -35364,7 +35436,7 @@ var TerminalUI = class {
     const filterItems = () => {
       const selected = list.getSelectedItem()?.value;
       const search = clean(input.getValue()).toLowerCase();
-      filtered = (search ? safeItems : shown).filter((item) => [item.value, item.label, item.description].some((text) => text?.toLowerCase().includes(search)));
+      filtered = (search ? safeItems : shown).filter((item) => [item.value, item.text, item.group, item.description].some((text) => text?.toLowerCase().includes(search))).map((item) => ({ ...item, label: compose(item, item.text, search) }));
       const next = new import_pi_tui3.SelectList(filtered, visible, selectTheme);
       next.setSelectedIndex(Math.max(0, filtered.findIndex((item) => item.value === selected)));
       next.onSelect = list.onSelect;
@@ -35385,14 +35457,15 @@ var TerminalUI = class {
       },
       render: (width) => {
         const height = Math.max(6, this.terminal.rows - 4);
-        const description = options.description ? new import_pi_tui3.Text(diffText(options.description), 0, 0).render(width) : [];
+        const inner = Math.max(1, width - 4);
+        const description = options.description ? new import_pi_tui3.Text(diffText(options.description), 0, 0).render(inner) : [];
         descriptionPage = Math.max(1, Math.min(description.length, Math.floor((height - 6) / 2)));
         descriptionOffset = Math.min(descriptionOffset, Math.max(0, description.length - descriptionPage));
         const details = description.length ? [
           ...description.slice(descriptionOffset, descriptionOffset + descriptionPage),
           ...description.length > descriptionPage ? [theme.muted(tr("\u8BE6\u60C5 ", "Details ") + (descriptionOffset + 1) + "\u2013" + Math.min(description.length, descriptionOffset + descriptionPage) + "/" + description.length + "  PgUp/PgDn")] : []
         ] : [];
-        const maxVisible = Math.max(1, Math.min(8, height - details.length - (searching ? 6 : 4)));
+        const maxVisible = Math.max(1, Math.min(8, height - details.length - (searching ? 5 : 3)));
         if (maxVisible !== visible) {
           const selected = list.getSelectedItem()?.value;
           const onSelect = list.onSelect;
@@ -35404,14 +35477,14 @@ var TerminalUI = class {
           visible = maxVisible;
           list.onSelectionChange = (item) => options.onHighlight?.(item.value);
         }
-        return [
-          theme.bold((0, import_pi_tui3.truncateToWidth)(clean(title), width)),
-          ...details,
-          "",
-          ...list.render(width),
-          ...searching ? [...input.render(width)] : [],
-          theme.muted((0, import_pi_tui3.truncateToWidth)(clean((searching ? options.searchHint : void 0) ?? options.hint ?? tr("\u2191\u2193 \u9009\u62E9   Enter \u786E\u8BA4   Esc \u8FD4\u56DE", "\u2191\u2193 select   Enter confirm   Esc back")), width))
-        ].map((line) => theme.panel(line + " ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(line)))));
+        const hint = clean((searching ? options.searchHint : void 0) ?? options.hint ?? tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Esc \u8FD4\u56DE", "\u2191\u2193 select \xB7 Enter confirm \xB7 Esc back"));
+        return boxed(
+          width,
+          theme.warning(theme.bold(clean(title))),
+          [...searching ? [...input.render(inner), ""] : [], ...details, ...details.length ? [""] : [], ...list.render(inner)],
+          hint,
+          options.tag ? theme.error("\u25CF " + clean(options.tag)) : ""
+        );
       },
       handleInput: (data) => {
         if (options.search === "toggle" && !searching && data === "/") {
@@ -35458,6 +35531,58 @@ var TerminalUI = class {
     });
   }
   /** 详情只在独立浏览区滚动，底部操作不随长文本消失。 */
+  /**
+   * 拨盘：←→ 在档位间移动，点阵条显示当前位置；Enter 返回所选档位，Tab 返回 ':list' 交给完整列表，Esc 取消。
+   * info 是拨盘下方的说明行。
+   */
+  dial(title, levels, initial, info = []) {
+    let index = Math.max(0, levels.findIndex((level) => level.value === initial));
+    let done = () => {
+    };
+    let cancel = () => {
+    };
+    const component = {
+      focused: false,
+      invalidate() {
+      },
+      render: (width) => {
+        const inner = Math.max(levels.length, width - 4);
+        const filled = levels.length > 1 ? Math.round(index / (levels.length - 1) * (inner - 1)) + 1 : inner;
+        let labels = "", used = 0;
+        levels.forEach((level, at) => {
+          const text = clean(level.label), size = (0, import_pi_tui3.visibleWidth)(text);
+          const position = levels.length > 1 ? Math.round(at * (inner - size) / (levels.length - 1)) : 0;
+          labels += " ".repeat(Math.max(at ? 1 : 0, position - used)) + (at === index ? theme.success(theme.bold(text)) : theme.muted(text));
+          used = Math.max(used + (at ? 1 : 0), position) + size;
+        });
+        return boxed(
+          width,
+          theme.warning(theme.bold(clean(title))),
+          [theme.success("\u25CF".repeat(filled)) + theme.muted("\xB7".repeat(inner - filled)), labels, ...info.length ? ["", ...info.map((line) => theme.muted(clean(line)))] : []],
+          tr("\u2190\u2192 \u8C03\u6574 \xB7 Tab \u5217\u8868 \xB7 Enter \u786E\u8BA4 \xB7 Esc \u8FD4\u56DE", "\u2190\u2192 adjust \xB7 Tab list \xB7 Enter confirm \xB7 Esc back")
+        );
+      },
+      handleInput: (data) => {
+        if ((0, import_pi_tui3.matchesKey)(data, "left")) index = Math.max(0, index - 1);
+        else if ((0, import_pi_tui3.matchesKey)(data, "right")) index = Math.min(levels.length - 1, index + 1);
+        else if ((0, import_pi_tui3.matchesKey)(data, "enter")) {
+          done(levels[index].value);
+          return;
+        } else if ((0, import_pi_tui3.matchesKey)(data, "tab")) {
+          done(":list");
+          return;
+        } else if ((0, import_pi_tui3.matchesKey)(data, "escape")) {
+          cancel(new UiCancelled());
+          return;
+        }
+        this.tui.requestRender();
+      }
+    };
+    return this.form(component, (resolve6, reject) => {
+      done = resolve6;
+      cancel = reject;
+    }, Math.min(64, this.terminal.columns));
+  }
   view(title, text, markdown = false) {
     let offset = 0;
     let page = 1;
@@ -35470,17 +35595,17 @@ var TerminalUI = class {
       },
       render: (width) => {
         const rewritten = markdown ? rewriteMentionLinks(clean(text), this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks) : clean(text);
-        const lines = markdown ? new import_pi_tui3.Markdown(rewritten, 0, 0, markdownTheme).render(width) : new import_pi_tui3.Text(diffText(text), 0, 0).render(width);
+        const inner = Math.max(1, width - 4);
+        const lines = markdown ? new import_pi_tui3.Markdown(rewritten, 0, 0, markdownTheme).render(inner) : new import_pi_tui3.Text(diffText(text), 0, 0).render(inner);
         count = lines.length;
         page = Math.max(1, this.terminal.rows - 8);
         offset = Math.min(offset, Math.max(0, count - page));
-        return [
-          theme.bold((0, import_pi_tui3.truncateToWidth)(clean(title), width)),
-          "",
-          ...lines.slice(offset, offset + page),
-          "",
-          theme.muted((0, import_pi_tui3.truncateToWidth)(tr("\u2191\u2193 \u6EDA\u52A8  PgUp/PgDn \u7FFB\u9875  Esc \u8FD4\u56DE  ", "\u2191\u2193 scroll  PgUp/PgDn page  Esc back  ") + `${offset + 1}/${Math.max(1, count)}`, width))
-        ];
+        return boxed(
+          width,
+          theme.warning(theme.bold(clean(title))),
+          lines.slice(offset, offset + page),
+          tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
+        );
       },
       handleInput: (data) => {
         if ((0, import_pi_tui3.matchesKey)(data, "escape") || (0, import_pi_tui3.matchesKey)(data, "enter")) {
@@ -35517,12 +35642,12 @@ var TerminalUI = class {
         input.invalidate();
       },
       handleInput: (data) => input.handleInput(data),
-      render: (width) => [
-        ...new import_pi_tui3.Text(theme.bold(clean(title)), 0, 0).render(width),
-        "",
-        ...input.render(width),
-        ...new import_pi_tui3.Text(error ? theme.error(clean(error)) : theme.muted(clean(options.hint ?? tr("Enter \u786E\u8BA4   Esc \u53D6\u6D88", "Enter confirm   Esc cancel"))), 0, 1).render(width)
-      ]
+      render: (width) => boxed(
+        width,
+        theme.warning(theme.bold(clean(title))),
+        [...input.render(Math.max(1, width - 4)), ...error ? new import_pi_tui3.Text(theme.error(clean(error)), 0, 0).render(Math.max(1, width - 4)) : []],
+        clean(options.hint ?? tr("Enter \u786E\u8BA4 \xB7 Esc \u53D6\u6D88", "Enter confirm \xB7 Esc cancel"))
+      )
     };
     return this.form(component, (resolve6, reject) => {
       input.onEscape = () => reject(new UiCancelled());
@@ -35543,7 +35668,7 @@ var TerminalUI = class {
       focused: false,
       invalidate() {
       },
-      render: (width) => new import_pi_tui3.Text(clean(title) + tr("\nCtrl+C \u53D6\u6D88", "\nCtrl+C cancel"), 0, 0).render(width)
+      render: (width) => boxed(width, theme.warning(theme.bold(clean(title))), [theme.muted(tr("\u8BF7\u7A0D\u5019\u2026", "Working\u2026"))], tr("Ctrl+C \u53D6\u6D88", "Ctrl+C cancel"))
     };
     return this.form(component, (resolve6, reject) => {
       this.pending.reject = (error) => {
@@ -35865,7 +35990,7 @@ init_src();
 
 // ../electron/src/main/runtime/profile.ts
 var import_node_fs12 = require("node:fs");
-var import_node_os5 = require("node:os");
+var import_node_os6 = require("node:os");
 var import_node_path10 = require("node:path");
 var import_node_crypto5 = require("node:crypto");
 init_src();
@@ -35882,7 +36007,7 @@ function contains(parent, path) {
 function acquireProfile(input) {
   const directory = canonical((0, import_node_path10.resolve)(input));
   for (const protectedName of [".cortex", ".cortex-kb-dev", ".cortex-dev"]) {
-    const protectedPath = canonical((0, import_node_path10.join)((0, import_node_os5.homedir)(), protectedName));
+    const protectedPath = canonical((0, import_node_path10.join)((0, import_node_os6.homedir)(), protectedName));
     if (contains(protectedPath, directory) || contains(directory, protectedPath)) throw new Error(tr("CLI \u9884\u89C8\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55\u6216\u5176\u7236\u5B50\u76EE\u5F55", "CLI preview can\u2019t use the desktop config directory or its parents or children"));
   }
   (0, import_node_fs12.mkdirSync)(directory, { recursive: true, mode: 448 });
@@ -36448,6 +36573,9 @@ var DesktopClient = class extends import_node_events.EventEmitter {
 async function connectDesktop(profileDir) {
   return new DesktopClient(await connectLocalTransport({ profileDir }));
 }
+
+// package.json
+var version = "0.1.11";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -37243,7 +37371,7 @@ async function runInteractive(worker, options, request, ui) {
       } else if (command === "/status") {
         const session = current2.session;
         const context = current2.context;
-        entry((session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
+        entry("Cortex CLI v" + version + "\n" + (session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + (session.provider ? tr("\u4F9B\u5E94\u5546\uFF1A", "Provider: ") + session.provider + (session.credentialSource === "environment" ? tr("\uFF08\u73AF\u5883\u53D8\u91CF\u51ED\u636E\uFF09", " (environment credentials)") : session.credentialSource === "saved" ? tr("\uFF08\u5DF2\u4FDD\u5B58\u8FDE\u63A5\uFF09", " (saved connection)") : session.credentialSource === "desktop" ? tr("\uFF08\u684C\u9762\u8FDE\u63A5\uFF09", " (desktop connection)") : "") + "\n" : "") + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
       } else if (command === "/queue") {
         if (ui) void openQueue();
         else {
@@ -37825,29 +37953,32 @@ async function runInteractive(worker, options, request, ui) {
             }
             respond(answers, item);
           } else {
-            const description = pending.kind === "permission" ? pending.request.description + "\n" + (pending.request.editPreview ?? JSON.stringify(pending.request.toolInput, null, 2)) + "\n" + (pending.request.decisionReason ?? "") : pending.request.plan;
+            const description = pending.kind === "permission" ? approvalDetails(pending.request) : pending.request.plan;
             const session2 = pending.kind === "permission" && pending.request.allowAlways !== false;
             const remembered = pending.kind === "permission" && pending.request.toolName === "Bash" ? clean(extractBaseCommand(String(pending.request.toolInput.command ?? ""))) : "";
-            const scope = pending.kind !== "permission" ? "" : remembered ? tr("\u672C\u4F1A\u8BDD\u5185\u4E0D\u518D\u8BE2\u95EE " + remembered + " \u547D\u4EE4", "Don\u2019t ask again for \u201C" + remembered + "\u201D commands this session") : tr("\u672C\u4F1A\u8BDD\u5185\u4E0D\u518D\u8BE2\u95EE " + pending.request.toolName, "Don\u2019t ask again for " + pending.request.toolName + " this session");
-            const feedback = { value: "feedback", label: tr("\u62D2\u7EDD\u5E76\u8BF4\u660E\u539F\u56E0\u2026", "Deny and explain\u2026") };
-            const deny = { value: "deny", label: tr("\u62D2\u7EDD", "Deny") };
+            const scope = pending.kind !== "permission" ? "" : remembered ? tr(" \xB7 \u4E0D\u518D\u8BE2\u95EE " + remembered + " \u547D\u4EE4", " \xB7 " + remembered + " commands won\u2019t ask again") : tr(" \xB7 \u4E0D\u518D\u8BE2\u95EE " + pending.request.toolName, " \xB7 " + pending.request.toolName + " won\u2019t ask again");
+            const feedback = { value: "feedback", key: "e", label: tr("\u62D2\u7EDD\u5E76\u8BF4\u660E\u539F\u56E0\u2026", "Deny and explain\u2026") };
+            const deny = { value: "deny", key: "n", label: tr("\u62D2\u7EDD", "Deny") };
             const items = pending.kind === "permission" ? [
-              { value: "allow", label: tr("\u5141\u8BB8\u672C\u6B21", "Allow once") },
-              ...session2 ? [{
-                value: "allow_session",
-                label: tr("\u672C\u4F1A\u8BDD\u5185\u5141\u8BB8", "Allow for this session"),
-                description: scope
-              }] : [],
+              { value: "allow", key: "y", label: tr("\u5141\u8BB8\u672C\u6B21", "Allow once") },
+              ...session2 ? [{ value: "allow_session", key: "a", label: tr("\u672C\u4F1A\u8BDD\u5185\u5141\u8BB8", "Allow for this session") + scope }] : [],
               deny,
               feedback
-            ] : [{ value: "approve_edit", label: tr("\u6279\u51C6\u8BA1\u5212", "Approve plan") }, deny, feedback];
+            ] : [{ value: "approve_edit", key: "y", label: tr("\u6279\u51C6\u8BA1\u5212", "Approve plan") }, deny, feedback];
             const shortcuts = { y: items[0].value, n: "deny", e: "feedback", ...session2 && { a: "allow_session" } };
-            const hint = pending.kind === "plan" ? tr("y \u6279\u51C6  n \u62D2\u7EDD  e \u8BF4\u660E  \u2191\u2193 Enter", "y approve  n deny  e explain  \u2191\u2193 Enter") : session2 ? tr("y \u5141\u8BB8  a \u672C\u4F1A\u8BDD  n \u62D2\u7EDD  e \u8BF4\u660E  \u2191\u2193 Enter", "y allow  a session  n deny  e explain  \u2191\u2193 Enter") : tr("y \u5141\u8BB8  n \u62D2\u7EDD  e \u8BF4\u660E  \u2191\u2193 Enter", "y allow  n deny  e explain  \u2191\u2193 Enter");
+            const hint = tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 \u5B57\u6BCD\u76F4\u63A5\u9009", "\u2191\u2193 select \xB7 Enter confirm \xB7 or press a letter");
             for (; ; ) {
               const answer = await screen.select(
-                pending.kind === "permission" ? tr("\u8BF7\u6C42\u6267\u884C\uFF08\u5C1A\u672A\u6267\u884C\uFF09", "Permission request (not run yet)") : tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?"),
+                pending.kind === "permission" ? tr("\u9700\u8981\u786E\u8BA4 \xB7 \u5C1A\u672A\u6267\u884C", "Approval needed \xB7 not run yet") : tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?"),
                 items,
-                { initial: "deny", search: false, description: clean(description), hint, shortcuts }
+                {
+                  initial: items[0].value,
+                  search: false,
+                  description: clean(description),
+                  hint,
+                  shortcuts,
+                  ...pending.kind === "permission" && pending.request.dangerLevel === "dangerous" && { tag: tr("\u9AD8\u98CE\u9669", "High risk") }
+                }
               );
               if (answer !== "feedback") {
                 respond(answer, item);
@@ -37988,6 +38119,29 @@ async function runInteractive(worker, options, request, ui) {
         }
         submit("/permissions " + (current2.session.mode === "auto" ? "plan" : "auto"));
       };
+      screen.onDial = () => {
+        const current2 = store.get(state);
+        const thinking = current2.session?.thinking;
+        if (!current2.session || commandContext().busy) {
+          entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u8C03\u6574\u601D\u8003\u5F3A\u5EA6\u3002", "Wait for the current operation before changing thinking."));
+          return;
+        }
+        if (!thinking?.levels.some((level) => level !== "off")) {
+          screen.notify(tr("\u5F53\u524D\u6A21\u578B\u6CA1\u6709\u53EF\u8C03\u7684\u601D\u8003\u5F3A\u5EA6\u3002", "This model has no adjustable thinking levels."));
+          return;
+        }
+        void screen.dial(
+          tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"),
+          thinking.levels.map((level) => ({ value: level, label: thinkingLabel(level) })),
+          thinking.value,
+          [tr("\u6A21\u578B  ", "Model  ") + current2.session.model, tr("\u8303\u56F4  \u5F53\u524D\u4F1A\u8BDD", "Scope  This session")]
+        ).then((value) => {
+          if (value === ":list") submit("/thinking");
+          else if (value !== thinking.value) submit("/thinking " + value);
+        }).catch((error) => {
+          if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
+        });
+      };
       screen.onError = (error) => entry(error.message, void 0, "error");
       screen.onAgentControl = async (action, text) => {
         const current2 = store.get(state);
@@ -38057,7 +38211,7 @@ async function runInteractive(worker, options, request, ui) {
 }
 
 // src/args.ts
-var import_node_os6 = require("node:os");
+var import_node_os7 = require("node:os");
 var import_node_path16 = require("node:path");
 var import_node_crypto9 = require("node:crypto");
 var import_node_util6 = require("node:util");
@@ -38158,7 +38312,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   if (command === "interactive" && (options.stdin || format !== "text")) {
     throw new Error(tr("\u4EA4\u4E92\u6A21\u5F0F\u4E0D\u63A5\u53D7 --stdin \u6216\u673A\u5668\u8F93\u51FA\uFF1B\u8BF7\u4F7F\u7528 exec", "Interactive mode doesn\u2019t accept --stdin or machine output. Use exec."));
   }
-  values["config-dir"] ??= (0, import_node_path16.join)((0, import_node_os6.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
+  values["config-dir"] ??= (0, import_node_path16.join)((0, import_node_os7.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
   if (!values["config-dir"]?.trim()) {
     throw new Error(tr(
       "\u9884\u89C8\u5FC5\u987B\u7528 --config-dir \u6307\u5B9A\u72EC\u7ACB\u76EE\u5F55\uFF0C\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55",
