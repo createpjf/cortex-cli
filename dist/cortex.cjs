@@ -34098,11 +34098,6 @@ function resultEntries(result) {
     text: errorSummary(error.message) + (error.code === "EXECUTION_ERROR" ? tr("\nCtrl+O \u67E5\u770B\u9519\u8BEF\u8BE6\u60C5", "\nCtrl+O view error details") : ""),
     detail: error.message
   });
-  if (result.status === "cancelled") entries.push({
-    id: result.runId + ":cancelled",
-    kind: "notice",
-    text: tr("\u5DF2\u53D6\u6D88", "Cancelled") + (result.durationMs !== void 0 ? "  " + tr("\u7528\u65F6 ", "Duration ") + formatDuration(result.durationMs) : "")
-  });
   if (result.status === "unknown" || result.status === "failed" && !errors.length) entries.push({
     id: result.runId + ":incomplete",
     kind: "error",
@@ -34125,11 +34120,13 @@ function resultEntries(result) {
     kind: "notice",
     text: tr("\u6B64\u5904\u663E\u793A\u524D 50 \u4E2A\u6539\u52A8\u6587\u4EF6\uFF1B\u5176\u4F59\u8BB0\u5F55\u4FDD\u7559\u5728\u4F1A\u8BDD\u6539\u52A8\u65E5\u5FD7\u3002", "Showing the first 50 changed files; the rest are in the session change log.")
   });
-  if (result.durationMs !== void 0 && result.status !== "cancelled") entries.push({
-    id: result.runId + ":duration",
+  if (result.runId) entries.push({
+    id: result.runId + ":end",
     kind: "notice",
-    runId: result.runId ?? void 0,
-    text: tr("\u7528\u65F6 ", "Duration ") + formatDuration(result.durationMs)
+    runId: result.runId,
+    text: "",
+    turnStatus: result.status,
+    ...result.durationMs !== void 0 && { turnMs: result.durationMs }
   });
   for (const [index, artifact] of result.artifacts.entries()) entries.push({
     id: result.runId + ":artifact:" + index,
@@ -35337,7 +35334,7 @@ var TerminalUI = class {
     this.tui.requestRender();
   }
   async showTranscript() {
-    const entries = this.visibleEntries();
+    const entries = this.visibleEntries().filter((entry) => entry.text || entry.kind !== "notice");
     let initial = entries.at(-1)?.id;
     while (true) {
       if (!entries.length) {
@@ -35527,6 +35524,7 @@ var TerminalUI = class {
           lines.push("");
           continue;
         }
+        if (!text && !entry.detail) continue;
         const color2 = entry.kind === "error" ? theme.error : theme.muted;
         lines.push(...new import_pi_tui3.Text(color2(text), 0, 0).render(width));
         if (this.isOpen(entry.id) && entry.detail) {
@@ -36787,7 +36785,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.14";
+var version = "0.1.15";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -38054,19 +38052,15 @@ async function runInteractive(worker, options, request, ui) {
       if (result.answer && !store.get(state).entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === result.runId)) {
         entry(result.answer, void 0, "assistant");
       }
-      const entries = store.get(state).entries.map((item) => {
-        if (item.runId !== result.runId || item.kind === "user") return item;
-        const settled2 = item.kind === "tool" && ["requested", "running"].includes(item.status ?? "") ? toolEntry({
-          type: "tool.updated",
-          sessionId: result.sessionId,
-          runId: result.runId,
-          sequence: 0,
-          timestamp: Date.now(),
-          messageId: item.id.split(":tool:")[1],
-          toolStatus: result.status === "cancelled" ? "cancelled" : "unknown"
-        }, item) : item;
-        return { ...settled2, ...result.durationMs !== void 0 && { turnMs: result.durationMs }, turnStatus: result.status };
-      });
+      const entries = store.get(state).entries.map((item) => item.kind === "tool" && item.runId === result.runId && ["requested", "running"].includes(item.status ?? "") ? toolEntry({
+        type: "tool.updated",
+        sessionId: result.sessionId,
+        runId: result.runId,
+        sequence: 0,
+        timestamp: Date.now(),
+        messageId: item.id.split(":tool:")[1],
+        toolStatus: result.status === "cancelled" ? "cancelled" : "unknown"
+      }, item) : item);
       const visibleResult = {
         ...result,
         errors: result.errors.filter((error) => error.code !== "TOOL_DENIED" || !entries.some((item) => item.kind === "tool" && item.status === "denied" && item.runId === result.runId && error.message.includes(item.detail?.split("\n").at(-1) ?? "\0")))
