@@ -49,6 +49,16 @@ cortex exec "总结当前项目" --output-format json
 cortex "总结当前项目" > 总结.txt
 ```
 
+**MCP 服务器**两种模式都能用。共享模式沿用桌面里配置的服务器；独立模式自己添加，对话里 `/mcp` 查看，工具调用会先请你确认：
+
+```shell
+cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
+cortex mcp add docs --url https://example.com/mcp --header "Authorization: Bearer $TOKEN"
+cortex mcp list
+```
+
+**操作电脑**在共享模式里、你正看着的对话中可用，需先在桌面扩展中心打开。首次使用某个应用、每次点击或输入都会在终端里请你确认，`exec` 不能使用。
+
 对话里按 `?` 查看快捷键，按 `/` 打开命令与 Skills。`cortex --help` 查看全部参数。
 
 <details>

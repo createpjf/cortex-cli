@@ -48809,6 +48809,9 @@ var init_pi_message_adapter = __esm({
 function defineTool(name2, description, readOnly, idempotent, destructive, requiresNetwork, pathRules = []) {
   return { name: name2, description, readOnly, idempotent, destructive, requiresNetwork, pathRules };
 }
+function hostAllowsTool(allowed, toolName) {
+  return allowed.has(toolName) || toolName.startsWith("mcp__") && allowed.has(MCP_TOOL_WILDCARD);
+}
 function getToolMetadata(toolName, annotations) {
   const builtin = BUILTIN_TOOL_METADATA[toolName];
   if (builtin) return builtin;
@@ -48823,7 +48826,7 @@ function getToolMetadata(toolName, annotations) {
     external
   );
 }
-var WAIT_AGENT_UPDATES, BUILTIN_TOOL_METADATA;
+var WAIT_AGENT_UPDATES, BUILTIN_TOOL_METADATA, MCP_TOOL_WILDCARD;
 var init_agent_tool_registry = __esm({
   "../electron/src/main/lib/agent-tool-registry.ts"() {
     "use strict";
@@ -48896,6 +48899,7 @@ var init_agent_tool_registry = __esm({
       creative_generate_image: defineTool("creative_generate_image", "\u6267\u884C\u753B\u5E03\u56FE\u7247\u751F\u6210\u8282\u70B9", false, false, false, true),
       FetchFeishuGroupHistory: defineTool("FetchFeishuGroupHistory", "\u8BFB\u53D6\u98DE\u4E66\u7FA4\u804A\u5386\u53F2", true, true, false, true)
     };
+    MCP_TOOL_WILDCARD = "mcp__*";
   }
 });
 
@@ -49741,6 +49745,12 @@ var init_attachment_service = __esm({
 });
 
 // ../electron/src/main/runtime/protocol.ts
+function describeMcpServer(name2, entry, standalone2) {
+  const target = entry.type === "stdio" ? [entry.command, ...entry.args ?? []].join(" ") : entry.url ?? "";
+  const secrets = Object.keys(entry.type === "stdio" ? entry.env ?? {} : entry.headers ?? {});
+  const note = !entry.enabled ? tr("  \u5DF2\u505C\u7528", "  disabled") : entry.integrationRef && standalone2 ? tr("  \u9700\u8981\u684C\u9762\u6388\u6743\uFF0C\u72EC\u7ACB\u6A21\u5F0F\u4E0D\u4F7F\u7528", "  needs desktop authorization; not used in standalone mode") : "";
+  return name2 + "  " + entry.type + (target ? "  " + target : "") + (secrets.length ? "  (" + secrets.join(", ") + ")" : "") + note;
+}
 function runtimeAttachmentRefs(value2, sessionId) {
   if (value2 === void 0) return [];
   if (!Array.isArray(value2) || value2.length > 8) throw new Error(tr("\u6700\u591A\u6DFB\u52A0 8 \u4E2A\u9644\u4EF6", "You can add up to 8 attachments"));
@@ -49792,12 +49802,37 @@ function failure(code2, message7, exitCode = 2) {
     exitCode
   };
 }
-var MAX_ATTACHMENT_BYTES;
+var MAX_ATTACHMENT_BYTES, TERMINAL_TOOLS;
 var init_protocol = __esm({
   "../electron/src/main/runtime/protocol.ts"() {
     "use strict";
     init_src();
     MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+    TERMINAL_TOOLS = /* @__PURE__ */ new Set([
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "LS",
+      "Glob",
+      "Grep",
+      "Bash",
+      "DiscoverCapabilities",
+      "TaskCreate",
+      "TaskUpdate",
+      "TodoWrite",
+      "DeliverFile",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "AskUserQuestion",
+      "Agent",
+      "WaitAgentUpdates",
+      "WebSearch",
+      "WebFetch",
+      "mcp__*",
+      "ListMcpTools",
+      "CallMcpTool"
+    ]);
   }
 });
 
@@ -613975,7 +614010,7 @@ var init_pi_agent_adapter = __esm({
             extract: (page, question, signal) => extractPage ? extractPage(page, question, signal) : Promise.reject(new Error("\u63D0\u70BC\u5C1A\u672A\u5C31\u7EEA")),
             recordUsage: (usage) => sessionManager.appendCustomEntry("cortex_search_usage", { runId: presentationRunId, ...usage })
           });
-          const hostAllows = (tool) => !input.allowedTools || input.allowedTools.has(displayToolName(tool.name));
+          const hostAllows = (tool) => !input.allowedTools || hostAllowsTool(input.allowedTools, displayToolName(tool.name));
           const customTools = [
             ...buildBuiltinToolDefinitions(
               sdk,
@@ -675806,6 +675841,10 @@ async function startDesktopRuntime(options2) {
         send2(client, { type: "attachment", id: id18, sessionId: meta3.id, attachment: importRuntimeAttachment(meta3.id, payload.path, payload.filename) });
         return;
       }
+      if (payload.type === "mcp") {
+        send2(client, { type: "mcp", id: id18, servers: Object.entries(resolveMcpServerEntries()).filter(([, entry]) => !entry.isBuiltin).map(([name2, entry]) => describeMcpServer(name2, entry, false)) });
+        return;
+      }
       if (payload.type === "sessions") {
         send2(client, { type: "sessions", id: id18, sessions: listAgentSessions().map((meta4) => {
           let cwd;
@@ -676137,28 +676176,7 @@ var init_desktop_service = __esm({
     init_local_transport();
     init_request_ledger();
     init_protocol();
-    TOOLS = /* @__PURE__ */ new Set([
-      "Read",
-      "Write",
-      "Edit",
-      "MultiEdit",
-      "LS",
-      "Glob",
-      "Grep",
-      "Bash",
-      "DiscoverCapabilities",
-      "TaskCreate",
-      "TaskUpdate",
-      "TodoWrite",
-      "DeliverFile",
-      "EnterPlanMode",
-      "ExitPlanMode",
-      "AskUserQuestion",
-      "Agent",
-      "WaitAgentUpdates",
-      "WebSearch",
-      "WebFetch"
-    ]);
+    TOOLS = /* @__PURE__ */ new Set([...TERMINAL_TOOLS, "ComputerUse"]);
     UUID3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   }
 });
@@ -678466,6 +678484,7 @@ var init_agent_orchestrator = __esm({
     init_proxy_fetch();
     init_proxy_settings_service();
     init_browser_permissions();
+    init_agent_tool_registry();
     init_agent_session_manager();
     init_agent_workspace_manager();
     init_config_paths();
@@ -679415,13 +679434,15 @@ ${sessionTitleCharacters(message7).slice(0, 1e3).join("")}
           const resultRoot = await awaitRun((0, import_promises46.realpath)(agentCwd));
           ensureActive();
           const resultDirectory = (0, import_node_path104.join)(resultRoot, ".tool-results", runId);
-          const piMcpTools = sealed ? [] : await awaitRun(buildPiMcpTools(mcpServers, resultDirectory));
+          const mcpAllowed = !callbacks.allowedTools || callbacks.allowedTools.has(MCP_TOOL_WILDCARD);
+          const piMcpTools = sealed || !mcpAllowed ? [] : await awaitRun(buildPiMcpTools(mcpServers, resultDirectory));
           recordResponseTiming("tools_ready");
           ensureActive();
+          const unattended = callbacks.headless === true && !callbacks.interactive;
           const computerUseRegistry = new SnapshotRegistry();
           const computerUseModelLabel = `${channel2.provider} / ${selectedModelId}`;
-          const computerUseGate = { supported: COMPUTER_USE_SUPPORTED, enabled: appSettings.computerUse?.enabled === true, headless: callbacks.headless === true };
-          const computerUseUnavailable = sealed ? "\u8FD9\u6761\u5BF9\u8BDD\u5C5E\u4E8E\u5C01\u95ED\u7EC4\uFF08\u4E0D\u8054\u7F51\u3001\u4E0D\u628A\u5185\u5BB9\u5E26\u51FA\u672C\u673A\uFF09\uFF0C\u4E0D\u80FD\u64CD\u4F5C\u7535\u8111\uFF1B\u9700\u8981\u65F6\u8BF7\u7528\u6237\u6362\u5230\u666E\u901A\u5BF9\u8BDD" : computerUseUnavailableReason({
+          const computerUseGate = { supported: COMPUTER_USE_SUPPORTED, enabled: appSettings.computerUse?.enabled === true, headless: unattended };
+          const computerUseUnavailable = sealed ? "\u8FD9\u6761\u5BF9\u8BDD\u5C5E\u4E8E\u5C01\u95ED\u7EC4\uFF08\u4E0D\u8054\u7F51\u3001\u4E0D\u628A\u5185\u5BB9\u5E26\u51FA\u672C\u673A\uFF09\uFF0C\u4E0D\u80FD\u64CD\u4F5C\u7535\u8111\uFF1B\u9700\u8981\u65F6\u8BF7\u7528\u6237\u6362\u5230\u666E\u901A\u5BF9\u8BDD" : callbacks.allowedTools && !hostAllowsTool(callbacks.allowedTools, "ComputerUse") ? "\u7EC8\u7AEF\u72EC\u7ACB\u6A21\u5F0F\u6CA1\u6709\u64CD\u4F5C\u7535\u8111\u7EC4\u4EF6\uFF1B\u9700\u8981\u65F6\u8BF7\u7528\u6237\u7528 cortex --desktop \u8FDE\u63A5 Cortex \u684C\u9762\uFF0C\u5728\u4EA4\u4E92\u5BF9\u8BDD\u91CC\u4F7F\u7528" : computerUseUnavailableReason({
             ...computerUseGate,
             // 前面任一项不满足就不解析模型能力
             imageInput: computerUseGate.supported && computerUseGate.enabled && !computerUseGate.headless && await awaitRun(channelModelAcceptsImages(channel2, selectedModelId)),
@@ -679576,7 +679597,7 @@ ${inbox.prompt}${callbacks.peerMessage ? "" : mentionedSessionsContext(userMessa
           };
           let planModeEntered = initialPermissionMode === "plan";
           const decideToolUse = async (toolName, input2, options2) => {
-            if (callbacks.allowedTools && !callbacks.allowedTools.has(toolName)) return { behavior: "deny", message: tr("\u672C\u6B21\u8FD0\u884C\u4E0D\u63D0\u4F9B\u6B64\u5DE5\u5177", "This tool isn\u2019t available in this run") };
+            if (callbacks.allowedTools && !hostAllowsTool(callbacks.allowedTools, toolName)) return { behavior: "deny", message: tr("\u672C\u6B21\u8FD0\u884C\u4E0D\u63D0\u4F9B\u6B64\u5DE5\u5177", "This tool isn\u2019t available in this run") };
             const currentMode = getPermissionMode();
             const validationFailure = validateToolInput(toolName, input2);
             if (validationFailure) {
@@ -679671,7 +679692,7 @@ ${inbox.prompt}${callbacks.peerMessage ? "" : mentionedSessionsContext(userMessa
                 app: app14,
                 sessionId,
                 mode: currentMode,
-                headless: callbacks.headless === true,
+                headless: unattended,
                 appGranted: app14 ? permissionService.hasWhitelist(sessionId, "ComputerUse", app14) : false,
                 modelLabel: computerUseModelLabel,
                 summary: batchSteps ? tr(`\u5728 ${app14} \u8FDE\u7EED\u6267\u884C ${batchSteps.length} \u6B65`, `Run ${batchSteps.length} steps in ${app14}`) : summarizeAction(cuInput, describe3, secure)
@@ -685039,28 +685060,7 @@ function sessionLeaseOwner(directory, sessionId) {
 
 // ../electron/src/main/runtime/worker.ts
 init_protocol();
-var allowedTools = /* @__PURE__ */ new Set([
-  "Read",
-  "Write",
-  "Edit",
-  "MultiEdit",
-  "LS",
-  "Glob",
-  "Grep",
-  "Bash",
-  "DiscoverCapabilities",
-  "TaskCreate",
-  "TaskUpdate",
-  "TodoWrite",
-  "DeliverFile",
-  "EnterPlanMode",
-  "ExitPlanMode",
-  "AskUserQuestion",
-  "Agent",
-  "WaitAgentUpdates",
-  "WebSearch",
-  "WebFetch"
-]);
+var allowedTools = TERMINAL_TOOLS;
 var cancel;
 var stopping = false;
 var closingRequested = false;
@@ -685412,6 +685412,11 @@ async function execute(request2) {
         if (message7.type === "attachment") {
           if (message7.sessionId !== session2.id) throw new Error(tr("\u9644\u4EF6\u4E0A\u4F20\u4F1A\u8BDD\u5DF2\u8FC7\u671F", "The attachment upload session has expired."));
           await send({ type: "attachment", id: id18, sessionId: session2.id, attachment: importRuntimeAttachment(session2.id, message7.path, message7.filename) });
+          return;
+        }
+        if (message7.type === "mcp") {
+          const { resolveMcpServerEntries: resolveMcpServerEntries2 } = await Promise.resolve().then(() => (init_agent_workspace_manager(), agent_workspace_manager_exports));
+          await send({ type: "mcp", id: id18, servers: Object.entries(resolveMcpServerEntries2()).filter(([, entry]) => !entry.isBuiltin).map(([name2, entry]) => describeMcpServer(name2, entry, true)) });
           return;
         }
         if (message7.type === "sessions") {

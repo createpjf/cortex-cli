@@ -49,6 +49,16 @@ cortex exec "Summarize this project" --output-format json
 cortex "Summarize this project" > summary.txt
 ```
 
+**MCP servers** work in both modes. Desktop mode uses the servers set up in the desktop app. In standalone mode, add your own; `/mcp` in a conversation lists them, and tool calls ask for approval first:
+
+```shell
+cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
+cortex mcp add docs --url https://example.com/mcp --header "Authorization: Bearer $TOKEN"
+cortex mcp list
+```
+
+**Computer use** is available in desktop mode, in conversations you're watching, when it's turned on in the desktop app's extension center. The first use of each app and every click or keystroke ask for approval in the terminal, and `exec` runs can't use it.
+
 In a conversation, press `?` for keyboard shortcuts and `/` for commands and skills. Run `cortex --help` for every option.
 
 <details>

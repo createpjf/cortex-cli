@@ -1,6 +1,6 @@
 {
   "name": "cortex-cli",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "private": true,
   "description": "Cortex Agent in your terminal (preview build)",
   "bin": {
