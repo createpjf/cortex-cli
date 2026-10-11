@@ -34865,7 +34865,7 @@ function validateAppearance(value) {
   if (data.version !== 1 || !themeNames.includes(String(data.theme)) || typeof data.reducedMotion !== "boolean") {
     throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   }
-  if (data.language !== void 0 && !isLanguage(data.language) || data.notifications !== void 0 && typeof data.notifications !== "boolean" || data.expandDetails !== void 0 && typeof data.expandDetails !== "boolean") {
+  if (data.language !== void 0 && !isLanguage(data.language) || data.notifications !== void 0 && typeof data.notifications !== "boolean" || data.expandDetails !== void 0 && typeof data.expandDetails !== "boolean" || data.predictions !== void 0 && typeof data.predictions !== "boolean") {
     throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   }
   return {
@@ -34873,7 +34873,8 @@ function validateAppearance(value) {
     reducedMotion: data.reducedMotion,
     ...data.language !== void 0 && { language: data.language },
     ...data.notifications !== void 0 && { notifications: data.notifications },
-    ...data.expandDetails !== void 0 && { expandDetails: data.expandDetails }
+    ...data.expandDetails !== void 0 && { expandDetails: data.expandDetails },
+    ...data.predictions !== void 0 && { predictions: data.predictions }
   };
 }
 function readAppearance(path = appearancePath()) {
@@ -35325,14 +35326,14 @@ function markTurnEnds(entries, liveRunId) {
     if (runId === void 0) return [entry];
     const { turnMs, turnStatus } = info.get(runId);
     const outcome = {
-      completed: tr("\u672C\u8F6E\u7ED3\u675F", "Turn ended"),
+      completed: tr("\u5B8C\u6210", "Done"),
       cancelled: tr("\u5DF2\u505C\u6B62", "Stopped"),
       failed: tr("\u5931\u8D25", "Failed"),
       blocked: tr("\u5DF2\u963B\u6B62", "Blocked"),
       unknown: tr("\u7ED3\u679C\u672A\u77E5", "Unknown result")
     }[turnStatus];
     const took = turnMs === void 0 ? "" : formatDuration(turnMs);
-    const text2 = !took ? outcome : turnStatus === "completed" ? tr("\u672C\u8F6E\u7528\u65F6 ", "Turn took ") + took : outcome + tr(" \xB7 \u7528\u65F6 ", " \xB7 ") + took;
+    const text2 = took ? outcome + " \xB7 " + took : outcome;
     return [entry, { id: "end:" + runId, kind: "divider", runId, text: text2, turnStatus }];
   });
 }
@@ -35731,6 +35732,12 @@ function commandCatalog(context) {
       shortcut: "Ctrl+O"
     },
     {
+      name: "predictions",
+      label: tr("\u4E0B\u4E00\u6B65\u9884\u6D4B Beta", "Next-message prediction Beta"),
+      description: tr("\u731C\u4F60\u4E0B\u4E00\u53E5\uFF0CTab \u586B\u5165", "Suggest your next message; Tab fills it in"),
+      group: settings2
+    },
+    {
       name: "details",
       label: tr("\u9ED8\u8BA4\u5C55\u5F00\u65B9\u5F0F", "Default expansion"),
       description: tr("\u5DE5\u5177\u4E0E\u62A5\u544A\u9ED8\u8BA4\u5C55\u5F00\u6216\u6536\u8D77", "Expand or collapse tools and reports by default"),
@@ -36029,7 +36036,17 @@ var Composer = class extends import_pi_tui3.Editor {
     this.reserved = reserved;
     this.frame = frame;
   }
+  /** 下一步预测：输入框空着时以灰字显示在光标后，Tab 填入（不发送），按其他键即消失 */
+  prediction = "";
   handleInput(data) {
+    if (this.prediction) {
+      const text2 = this.prediction;
+      this.prediction = "";
+      if ((0, import_pi_tui3.matchesKey)(data, "tab") && !this.getText()) {
+        this.setText(text2);
+        return;
+      }
+    }
     if (this.isShowingAutocomplete() && (0, import_pi_tui3.matchesKey)(data, "enter")) {
       super.handleInput("	");
       const text2 = this.getText().trim();
@@ -36054,8 +36071,9 @@ var Composer = class extends import_pi_tui3.Editor {
     const cursor = Math.max(0, content.findIndex((line) => line.includes(import_pi_tui3.CURSOR_MARKER)));
     const start = Math.max(0, Math.min(cursor - available + 1, content.length - available));
     const frame = this.frame(width);
+    const ghost = this.prediction && !this.getText() ? theme.muted((0, import_pi_tui3.truncateToWidth)(clean(this.prediction), Math.max(0, inner - 2))) : "";
     const body = content.slice(start, start + available).map((line, index) => {
-      const text2 = (index ? "  " : theme.accent("\u203A ")) + line;
+      const text2 = (index ? "  " : theme.accent("\u203A ")) + (ghost && !index ? (0, import_pi_tui3.truncateToWidth)(line.trimEnd() + ghost, inner) : line);
       return theme.muted("\u2502") + " " + text2 + " ".repeat(Math.max(0, inner + 2 - (0, import_pi_tui3.visibleWidth)(text2))) + " " + theme.muted("\u2502");
     });
     return [...menu, border(width, "\u256D\u256E", "", frame.top), ...body, border(width, "\u2570\u256F", frame.left, frame.right)];
@@ -36315,6 +36333,13 @@ var TerminalUI = class {
           { value: "off", label: tr("\u5173\u95ED", "Off") }
         ], { initial: before.notifications === false ? "off" : "on", search: false });
         next = { ...before, notifications: selected === "on" };
+      } else if (command === "/predictions") {
+        const selected = await this.select(tr("\u4E0B\u4E00\u6B65\u9884\u6D4B\uFF08Beta\uFF09", "Next-message prediction (Beta)"), [
+          { value: "on", label: tr("\u5F00\u542F", "On"), description: tr("\u6BCF\u8F6E\u7ED3\u675F\u540E\u731C\u4F60\u4E0B\u4E00\u53E5\uFF0CTab \u586B\u5165\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u53D1\u9001\uFF1B\u6BCF\u8F6E\u591A\u4E00\u6B21\u5C0F\u8BF7\u6C42", "Suggests your next message after each turn; Tab fills it in and never sends. One extra small request per turn") },
+          { value: "off", label: tr("\u5173\u95ED", "Off") }
+        ], { initial: before.predictions === false ? "off" : "on", search: false });
+        next = { ...before, predictions: selected === "on" };
+        if (!next.predictions) this.editor.prediction = "";
       } else if (command === "/details") {
         const selected = await this.select(tr("\u9ED8\u8BA4\u5C55\u5F00\u65B9\u5F0F", "Default expansion"), [
           { value: "collapsed", label: tr("\u6536\u8D77", "Collapsed"), description: tr("\u53EA\u663E\u793A\u6458\u8981\uFF0CCtrl+O \u9010\u6761\u5C55\u5F00", "Summaries only; Ctrl+O expands one at a time") },
@@ -36414,6 +36439,11 @@ var TerminalUI = class {
   }
   setAttachments(files) {
     this.attachments = files;
+    this.tui.requestRender();
+  }
+  /** 下一步预测：只在输入框空着时显示；传空字符串清除 */
+  setPrediction(text2) {
+    this.editor.prediction = text2;
     this.tui.requestRender();
   }
   /** 一行代理状态统计；查看与控制统一走 /agents 看板。 */
@@ -36556,7 +36586,7 @@ var TerminalUI = class {
     const [status = "", ...queue] = clean(this.state).trim().split(/\s{2,}/);
     const state = [status, ...queue].join(" \xB7 ");
     const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
-    const detail = this.pending ? "" : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
+    const detail = this.pending ? "" : this.editor.prediction && !this.editor.getText() ? theme.muted(tr("Tab \u63A5\u53D7\u9884\u6D4B", "Tab accept")) + theme.muted(" \xB7 Beta") : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
       { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
     ) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
       status + (tool?.tool ? " " + clean(tool.tool) : ""),
@@ -36808,8 +36838,8 @@ var TerminalUI = class {
       }
       if (group[0].kind === "divider") {
         const end = group[0], paint = end.turnStatus === "completed" ? theme.muted : end.turnStatus === "cancelled" ? theme.warning : theme.error;
-        const label = " " + clean(end.text) + " \u2500";
-        lines.push(theme.muted("\u2500".repeat(Math.max(1, width - (0, import_pi_tui3.visibleWidth)(label)))) + paint(label), "");
+        const label = (0, import_pi_tui3.truncateToWidth)(clean(end.text), width);
+        lines.push(" ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(label))) + paint(label), "", "");
         continue;
       }
       const grouped = group.length > 1;
@@ -37401,7 +37431,21 @@ function providerLabel(id) {
   };
   return labels[id] ?? PROVIDER_LABELS[id];
 }
-async function chooseModel(ui, load2, current2 = "", saveScope) {
+function savedConnections(settings2, current2) {
+  if (!settings2) return [];
+  const seen = /* @__PURE__ */ new Set([current2.provider + ":" + current2.baseUrl]);
+  return [settings2.provider + ":" + settings2.baseUrl, ...Object.keys(settings2.credentials ?? {})].flatMap((key) => {
+    if (seen.has(key)) return [];
+    seen.add(key);
+    const at = key.indexOf(":");
+    const provider = key.slice(0, at), baseUrl = key.slice(at + 1);
+    if (!Object.hasOwn(PROVIDER_LABELS, provider)) return [];
+    const host = baseUrl === PROVIDER_DEFAULT_URLS[provider] ? "" : " \xB7 " + new URL(baseUrl).host;
+    const model = provider === settings2.provider && baseUrl === settings2.baseUrl ? " \xB7 " + settings2.model : "";
+    return [{ provider, baseUrl, label: providerLabel(provider) + host + model }];
+  });
+}
+async function chooseModel(ui, load2, current2 = "", saveScope, heading, extra = []) {
   while (true) {
     let models = [];
     let error = "";
@@ -37416,9 +37460,10 @@ async function chooseModel(ui, load2, current2 = "", saveScope) {
     const selection = await ui.select(
       tr("\u9009\u62E9\u6A21\u578B", "Select model"),
       [
-        ...available.map((id) => ({ value: id, label: id + (id === current2 ? " \u2713" : "") })),
+        ...available.map((id, index) => ({ value: id, label: id + (id === current2 ? " \u2713" : ""), ...heading && { group: index ? "" : heading } })),
         { value: ":manual", label: tr("\u624B\u52A8\u8F93\u5165\u6A21\u578B ID", "Enter model ID") },
-        { value: ":retry", label: tr("\u91CD\u65B0\u83B7\u53D6\u5217\u8868", "Reload models") }
+        { value: ":retry", label: tr("\u91CD\u65B0\u83B7\u53D6\u5217\u8868", "Reload models") },
+        ...extra
       ],
       {
         initial: current2 || void 0,
@@ -37436,6 +37481,7 @@ async function chooseModel(ui, load2, current2 = "", saveScope) {
       }
     );
     if (selection === ":retry") continue;
+    if (extra.some((item) => item.value === selection)) return selection;
     const model = selection === ":manual" ? await ui.ask(tr("\u6A21\u578B ID", "Model ID"), { value: current2, validate: (model2) => {
       if (!model2 || model2.length > 256 || /[\s\x00-\x1f\x7f-\x9f]/.test(model2)) throw new Error(tr("\u8BF7\u8F93\u5165\u4E0D\u542B\u7A7A\u767D\u7684\u6A21\u578B ID", "Enter a model ID without spaces"));
     } }) : selection;
@@ -38167,7 +38213,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.19";
+var version = "0.1.20";
 
 // src/interactive.ts
 var import_node_fs18 = require("node:fs");
@@ -38825,6 +38871,7 @@ async function runInteractive(worker, options, request, ui) {
       return;
     }
     editing = true;
+    let next;
     const session = current2.session;
     const connection = { version: 1, provider: session.provider, baseUrl: session.baseUrl, model: session.model };
     const actions = {
@@ -38861,22 +38908,57 @@ async function runInteractive(worker, options, request, ui) {
           description: appearanceStore.get(appearanceAtom).expandDetails ? tr("\u5C55\u5F00", "Expanded") : tr("\u6536\u8D77", "Collapsed")
         },
         {
+          value: "/predictions",
+          label: tr("\u4E0B\u4E00\u6B65\u9884\u6D4B Beta", "Next-message prediction Beta"),
+          description: appearanceStore.get(appearanceAtom).predictions === false ? tr("\u5173\u95ED", "Off") : tr("\u5F00\u542F", "On")
+        },
+        {
           value: "/notifications",
           label: tr("\u5B8C\u6210\u4E0E\u786E\u8BA4\u63D0\u9192", "Notifications"),
           description: appearanceStore.get(appearanceAtom).notifications === false ? tr("\u5173\u95ED", "Off") : tr("\u5F00\u542F", "On")
         },
         { value: "/language", label: tr("\u8BED\u8A00", "Language"), description: getLanguage() === "en" ? "English" : "\u7B80\u4F53\u4E2D\u6587" }
       ], { description: options.desktop ? tr("\u4F9B\u5E94\u5546\u8FDE\u63A5\u8BF7\u5728 Cortex \u684C\u9762\u4FEE\u6539\u3002", "Change the provider connection in Cortex desktop.") : void 0 });
-      if (command === "/theme" || command === "/motion" || command === "/notifications" || command === "/details") await ui.showAppearance(command);
+      if (command === "/theme" || command === "/motion" || command === "/notifications" || command === "/details" || command === "/predictions") await ui.showAppearance(command);
       else if (command === "/language") {
         await ui.showAppearance(command);
         entry(tr("\u754C\u9762\u8BED\u8A00\u5DF2\u5207\u6362\uFF1B\u5BBF\u4E3B\u6D88\u606F\u5728\u4E0B\u6B21\u542F\u52A8\u65F6\u5207\u6362\u3002", "Language changed. Host messages switch on next launch."));
       } else if (command === "/model") {
         let selectedScope = "default";
-        const model = await chooseModel(ui, (signal) => actions.models(connection, signal), session.model, (value) => {
-          selectedScope = value;
-        });
-        const change = !options.desktop && !(store.get(state).session?.models ?? []).includes(model) ? { connection: { ...connection, model } } : { model };
+        let settings2;
+        try {
+          settings2 = options.desktop ? void 0 : readCliSettings(request.configDir);
+        } catch {
+          settings2 = void 0;
+        }
+        const saved = savedConnections(settings2, connection);
+        const extra = options.desktop ? [] : [
+          ...saved.map((item, index) => ({ value: ":conn:" + index, label: item.label, ...index === 0 && { group: tr("\u5176\u4ED6\u8FDE\u63A5", "Other") } })),
+          { value: ":edit", label: tr("\uFF0B \u6DFB\u52A0\u6216\u4FEE\u6539\u8FDE\u63A5\u2026", "+ Add or change connection\u2026") }
+        ];
+        let target = connection;
+        let model = await chooseModel(
+          ui,
+          (signal) => actions.models(connection, signal),
+          session.model,
+          (value) => {
+            selectedScope = value;
+          },
+          options.desktop ? void 0 : providerLabel(connection.provider),
+          extra
+        );
+        if (model === ":edit") {
+          next = "/config";
+          return;
+        }
+        if (model.startsWith(":conn:")) {
+          const picked = saved[Number(model.slice(6))];
+          target = { version: 1, provider: picked.provider, baseUrl: picked.baseUrl, model: "" };
+          model = await chooseModel(ui, (signal) => actions.models({ ...target, model: "pending" }, signal), "", (value) => {
+            selectedScope = value;
+          });
+        }
+        const change = target !== connection ? { connection: { ...target, model } } : !options.desktop && !(store.get(state).session?.models ?? []).includes(model) ? { connection: { ...connection, model } } : { model };
         tracked({ type: "settings", id: (0, import_node_crypto8.randomUUID)(), ...change, scope: selectedScope }, {
           notice: model + (selectedScope === "default" ? tr("  \u5F53\u524D\u4F1A\u8BDD\u53CA\u4EE5\u540E\u9ED8\u8BA4", "  This session and future sessions") : tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only"))
         });
@@ -38921,6 +39003,7 @@ async function runInteractive(worker, options, request, ui) {
       editing = false;
       dispatchQueue();
     }
+    if (next) await openSettings(next);
   };
   const addAttachment = async (path) => {
     const current2 = store.get(state);
@@ -38963,7 +39046,28 @@ async function runInteractive(worker, options, request, ui) {
     draftAttachments = draftAttachments.filter((file) => file.id !== id);
     ui.setAttachments?.(draftAttachments);
   };
+  let predicting;
+  const requestPrediction = () => {
+    predicting?.abort();
+    predicting = void 0;
+    const current2 = store.get(state);
+    if (!ui?.setPrediction || appearanceStore.get(appearanceAtom).predictions === false || !current2.session || current2.running || current2.starting || current2.queue.length || current2.requests.length || ui.editor.getText()) return;
+    const user = current2.entries.findLast((item) => item.kind === "user" && !item.agentId)?.text ?? "";
+    const assistant = current2.entries.findLast((item) => item.kind === "assistant" && !item.agentId)?.text ?? "";
+    if (!user || !assistant) return;
+    const controller = predicting = new AbortController();
+    const screen = ui;
+    void query({ type: "predict", id: (0, import_node_crypto8.randomUUID)(), user: user.slice(-2e3), assistant: assistant.slice(-2e3) }, controller.signal).then((reply) => {
+      const now = store.get(state);
+      if (controller.signal.aborted || reply.type !== "prediction" || !reply.text || now.running || now.starting || screen.editor.getText()) return;
+      screen.setPrediction?.(reply.text);
+    }).catch(() => {
+    });
+  };
   const submit = (text2) => {
+    predicting?.abort();
+    predicting = void 0;
+    ui?.setPrediction?.("");
     if (!text2.trim() && !draftAttachments.length) {
       if (store.get(state).running && store.get(state).queue.length) steerQueued();
       else if (store.get(state).queue.length && resumeQueue()) dispatchQueue();
@@ -39010,7 +39114,7 @@ async function runInteractive(worker, options, request, ui) {
         void action?.catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
-      } else if (command === "/theme" || command === "/motion" || command === "/details") {
+      } else if (command === "/theme" || command === "/motion" || command === "/details" || command === "/predictions") {
         if (ui) void ui.showAppearance(command).catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
@@ -39299,7 +39403,7 @@ async function runInteractive(worker, options, request, ui) {
     } else if (message.type === "receipt") {
     } else if (message.type === "resolved") {
       update({ requests: store.get(state).requests.filter((item) => item.interaction.request.requestId !== message.requestId), answers: {} });
-    } else if (message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff") {
+    } else if (message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "prediction" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff") {
       const pending = queries.get(message.id);
       queries.delete(message.id);
       if ("error" in message && message.error) pending?.reject(new Error(message.error));
@@ -39494,6 +39598,7 @@ async function runInteractive(worker, options, request, ui) {
       activeAttachments = [];
       if (result.recovery) entry(JSON.stringify({ recovery: result.recovery }));
       dispatchQueue();
+      if (result.status === "completed") requestPrediction();
     } else if (message.type === "closed") closed = true;
   });
   try {

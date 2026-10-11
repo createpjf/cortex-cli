@@ -59,6 +59,8 @@ cortex mcp list
 
 **Computer use** is available in desktop mode, in conversations you're watching, when it's turned on in the desktop app's extension center. The first use of each app and every click or keystroke ask for approval in the terminal, and `exec` runs can't use it.
 
+**Predictions (beta):** after each turn, a grey suggestion for your next message appears in the empty input box. Press Tab to fill it in; it never sends on its own. Each turn makes one extra small request with your current model. Turn it off in `/settings`.
+
 In a conversation, press `?` for keyboard shortcuts and `/` for commands and skills. Run `cortex --help` for every option.
 
 <details>

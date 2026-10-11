@@ -674865,6 +674865,42 @@ var init_tray = __esm({
   }
 });
 
+// ../electron/src/main/lib/next-input-prediction.ts
+var next_input_prediction_exports = {};
+__export(next_input_prediction_exports, {
+  cleanPrediction: () => cleanPrediction,
+  predictNextInput: () => predictNextInput
+});
+function cleanPrediction(text6) {
+  const line = (text6 ?? "").trim().split("\n")[0].trim().replace(/^["'“‘「]+|["'”’」]+$/g, "").trim();
+  return !line || /^(无|none|n\/a)[。.]?$/i.test(line) || line.length > PREDICTION_MAX ? "" : line;
+}
+async function predictNextInput(input) {
+  const prompt2 = "\u6839\u636E\u4E0B\u9762\u8FD9\u6BB5\u5BF9\u8BDD\uFF0C\u9884\u6D4B\u7528\u6237\u63A5\u4E0B\u6765\u6700\u53EF\u80FD\u8F93\u5165\u7684\u4E00\u53E5\u8BDD\u3002\u53EA\u8F93\u51FA\u8FD9\u53E5\u8BDD\u672C\u8EAB\uFF0C\u4E0D\u52A0\u5F15\u53F7\u6216\u89E3\u91CA\uFF1B\u7528\u7528\u6237\u7684\u53E3\u543B\u548C\u7528\u6237\u4F7F\u7528\u7684\u8BED\u8A00\uFF0C30 \u5B57\u4EE5\u5185\u3002\u6CA1\u6709\u660E\u786E\u7684\u4E0B\u4E00\u6B65\u65F6\u53EA\u8F93\u51FA\u300C\u65E0\u300D\u3002\n\n<user>\n" + input.user + "\n</user>\n<assistant>\n" + input.assistant + "\n</assistant>";
+  try {
+    const fetchFn = getFetchFn(await getEffectiveProxyUrl());
+    return cleanPrediction(await fetchModelTitle(input.provider, {
+      baseUrl: input.baseUrl,
+      apiKey: input.apiKey,
+      modelId: input.modelId,
+      prompt: prompt2,
+      signal: input.signal
+    }, fetchFn));
+  } catch {
+    return "";
+  }
+}
+var PREDICTION_MAX;
+var init_next_input_prediction = __esm({
+  "../electron/src/main/lib/next-input-prediction.ts"() {
+    "use strict";
+    init_model_transport();
+    init_proxy_fetch();
+    init_proxy_settings_service();
+    PREDICTION_MAX = 120;
+  }
+});
+
 // ../electron/src/main/runtime/local-transport.ts
 function failure3(message7) {
   return new Error(tr("\u672C\u673A\u8FD0\u884C\u670D\u52A1\uFF1A", "Local runtime service: ") + message7);
@@ -675841,6 +675877,21 @@ async function startDesktopRuntime(options2) {
         send2(client, { type: "attachment", id: id18, sessionId: meta3.id, attachment: importRuntimeAttachment(meta3.id, payload.path, payload.filename) });
         return;
       }
+      if (payload.type === "predict") {
+        const target = targetOf(meta3);
+        const channel2 = getChannelById(target.channelId);
+        const text6 = !channel2 || currentRunId || typeof payload.user !== "string" || typeof payload.assistant !== "string" ? "" : await predictNextInput({
+          provider: channel2.provider,
+          baseUrl: channel2.baseUrl,
+          apiKey: decryptApiKey(channel2.id),
+          modelId: target.modelId,
+          user: payload.user.slice(-2e3),
+          assistant: payload.assistant.slice(-2e3),
+          signal: AbortSignal.timeout(2e4)
+        });
+        send2(client, { type: "prediction", id: id18, text: text6 });
+        return;
+      }
       if (payload.type === "mcp") {
         send2(client, { type: "mcp", id: id18, servers: Object.entries(resolveMcpServerEntries()).filter(([, entry]) => !entry.isBuiltin).map(([name2, entry]) => describeMcpServer(name2, entry, false)) });
         return;
@@ -676166,6 +676217,7 @@ var init_desktop_service = __esm({
     init_agent_workspace_manager();
     init_config_paths();
     init_channel_manager();
+    init_next_input_prediction();
     init_agent_permission_service();
     init_agent_ask_user_service();
     init_agent_exit_plan_service();
@@ -685412,6 +685464,20 @@ async function execute(request2) {
         if (message7.type === "attachment") {
           if (message7.sessionId !== session2.id) throw new Error(tr("\u9644\u4EF6\u4E0A\u4F20\u4F1A\u8BDD\u5DF2\u8FC7\u671F", "The attachment upload session has expired."));
           await send({ type: "attachment", id: id18, sessionId: session2.id, attachment: importRuntimeAttachment(session2.id, message7.path, message7.filename) });
+          return;
+        }
+        if (message7.type === "predict") {
+          const { predictNextInput: predictNextInput2 } = await Promise.resolve().then(() => (init_next_input_prediction(), next_input_prediction_exports));
+          const text6 = active3 || typeof message7.user !== "string" || typeof message7.assistant !== "string" ? "" : await predictNextInput2({
+            provider: selectedChannel.provider,
+            baseUrl: selectedChannel.baseUrl,
+            apiKey: secret,
+            modelId: model,
+            user: message7.user.slice(-2e3),
+            assistant: message7.assistant.slice(-2e3),
+            signal: AbortSignal.timeout(2e4)
+          });
+          await send({ type: "prediction", id: id18, text: text6 });
           return;
         }
         if (message7.type === "mcp") {
