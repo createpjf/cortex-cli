@@ -48,3 +48,7 @@ source <(cortex completions zsh)
 - 预览版，命令和配置格式可能变化。
 - 知识库相关的本地模型（ONNX、tokenizers）不随本包安装。
 - Windows 不支持共享模式；Linux 的共享模式尚未验收。
+
+## 第三方许可
+
+终端符号的 ASCII 降级规则改写自 [termcn](https://github.com/shadcn-labs/termcn)（MIT License，Copyright (c) 2026 Aniket Pawar）。

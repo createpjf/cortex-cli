@@ -33583,6 +33583,52 @@ function brandGradient(position, text) {
   const rgb = from.map((value, index) => Math.round(value + (to[index] - value) * Math.min(1, Math.max(0, position))));
   return style(/^(truecolor|24bit)$/i.test(process.env.COLORTERM ?? "") ? "38;2;" + rgb.join(";") : "38;5;" + (16 + rgb.reduce((sum, value) => sum * 6 + Math.round(value / 255 * 5), 0)), text);
 }
+function unicodeSupported(env = process.env) {
+  if (env.NO_UNICODE === "1" || env.NO_UNICODE === "true") return false;
+  if (env.WSL_DISTRO_NAME || env.WT_SESSION || env.TERM_PROGRAM === "vscode") return true;
+  return !env.MSYSTEM;
+}
+var asciiSymbols = {
+  "\u256D": "+",
+  "\u256E": "+",
+  "\u2570": "+",
+  "\u256F": "+",
+  "\u250C": "+",
+  "\u2510": "+",
+  "\u2514": "+",
+  "\u2518": "+",
+  "\u251C": "+",
+  "\u2524": "+",
+  "\u2500": "-",
+  "\u2502": "|",
+  "\u258E": "|",
+  "\u203A": ">",
+  "\u25B8": ">",
+  "\u25BE": "v",
+  "\u25CF": "*",
+  "\u2022": "*",
+  "\xB7": "-",
+  "\u2713": "v",
+  "\u2717": "x",
+  "\u2715": "x",
+  "\u26A0": "!",
+  "\u2139": "i",
+  "\u2026": ".",
+  "\u2191": "^",
+  "\u2193": "v",
+  "\u2190": "<",
+  "\u2192": ">",
+  "\u2194": "-",
+  "\u21B3": ">",
+  "\u2248": "~",
+  "\u2588": "#",
+  "\u2591": ".",
+  "\u25D0": "o",
+  "\u2610": "o",
+  "\u23F8": "="
+};
+var asciiPattern = new RegExp("[" + Object.keys(asciiSymbols).join("") + "]", "g");
+var toAscii = (text) => text.replace(asciiPattern, (character) => asciiSymbols[character] ?? character);
 
 // src/terminal-text.ts
 var import_node_util = require("node:util");
@@ -34510,22 +34556,23 @@ var markdownTheme = {
   underline: theme.underline
 };
 var diffText = (text) => clean(text).split("\n").map((line) => line.startsWith("+") ? theme.success(line) : line.startsWith("-") ? theme.error(line) : line.startsWith("@@") ? theme.accent(line) : line).join("\n");
-function border(width, corners, left = "", right = "") {
+function border(width, corners, left = "", right = "", line = theme.muted) {
   const room = Math.max(0, width - 4);
   const r = right && (left ? (0, import_pi_tui3.visibleWidth)(left) + 2 : 0) + (0, import_pi_tui3.visibleWidth)(right) + 2 <= room ? right : "";
   const l = left ? (0, import_pi_tui3.truncateToWidth)(left, Math.max(0, room - (r ? (0, import_pi_tui3.visibleWidth)(r) + 2 : 0) - 2)) : "";
   const used = (l ? (0, import_pi_tui3.visibleWidth)(l) + 2 : 0) + (r ? (0, import_pi_tui3.visibleWidth)(r) + 2 : 0);
-  return theme.muted(corners[0] + "\u2500") + (l ? " " + l + " " : "") + theme.muted("\u2500".repeat(Math.max(0, room - used))) + (r ? " " + r + " " : "") + theme.muted("\u2500" + corners[1]);
+  return line(corners[0] + "\u2500") + (l ? " " + l + " " : "") + line("\u2500".repeat(Math.max(0, room - used))) + (r ? " " + r + " " : "") + line("\u2500" + corners[1]);
 }
 function boxed(width, title, body, hint = "", tag = "") {
   const inner = Math.max(1, width - 4);
+  const line = tag ? theme.error : theme.muted;
   return [
-    border(width, "\u256D\u256E", title, tag),
-    ...body.map((line) => {
-      const text = (0, import_pi_tui3.truncateToWidth)(line, inner);
-      return theme.muted("\u2502") + " " + text + " ".repeat(Math.max(0, inner - (0, import_pi_tui3.visibleWidth)(text))) + " " + theme.muted("\u2502");
+    border(width, "\u256D\u256E", title, tag, line),
+    ...body.map((row) => {
+      const text = (0, import_pi_tui3.truncateToWidth)(row, inner);
+      return line("\u2502") + " " + text + " ".repeat(Math.max(0, inner - (0, import_pi_tui3.visibleWidth)(text))) + " " + line("\u2502");
     }),
-    border(width, "\u2570\u256F", "", hint ? theme.muted(hint) : "")
+    border(width, "\u2570\u256F", "", hint ? theme.muted(hint) : "", line)
   ];
 }
 var UiCancelled = class extends Error {
@@ -34622,7 +34669,10 @@ var TerminalUI = class {
   pending;
   commands = { busy: false };
   notice = "";
+  noticeVariant = "info";
   noticeTimer;
+  /** 终端不支持 Unicode 时，所有输出行经 toAscii 换成单字符 ASCII */
+  unicode = unicodeSupported();
   clipboardTimer;
   clipboardAvailable = false;
   clipboardChecking = false;
@@ -34659,7 +34709,7 @@ var TerminalUI = class {
     appearanceStore.set(appearanceAtom, { ...appearance });
     this.terminal = terminal;
     this.tui = new import_pi_tui3.TuiAltScreen(terminal, true, void 0, {
-      scrollToEndIndicator: () => theme.selected(tr(" \u56DE\u5230\u6700\u65B0 \u2193 ", " Jump to latest \u2193 ")),
+      scrollToEndIndicator: () => theme.selected(this.ascii([tr(" \u56DE\u5230\u6700\u65B0 \u2193 ", " Jump to latest \u2193 ")])[0]),
       openUrl: (url) => {
         const cmd = openerCommand(url, process.platform);
         if (!cmd) return;
@@ -34679,14 +34729,14 @@ var TerminalUI = class {
     this.editor.onChange = () => this.clearNotice();
     const transcript = { invalidate: () => {
       this.entryCache = void 0;
-    }, render: (width) => this.renderEntries(width) };
+    }, render: (width) => this.ascii(this.renderEntries(width)) };
     const input = {
       invalidate() {
       },
-      render: (width) => [...this.renderActivity(width), ...this.renderAttachments(width), ...this.editor.render(width)]
+      render: (width) => this.ascii([...this.renderActivity(width), ...this.renderAttachments(width), ...this.editor.render(width)])
     };
     const footer = { invalidate() {
-    }, render: (width) => this.renderFooter(width) };
+    }, render: (width) => this.ascii(this.renderFooter(width)) };
     this.tui.addChild(transcript);
     this.tui.addChild(input);
     this.tui.addChild(footer);
@@ -34946,7 +34996,7 @@ var TerminalUI = class {
         failures.push(clean(agent.name) + "\uFF1A" + (error instanceof Error ? error.message : String(error)));
       }
     }
-    this.notify(tr("\u5DF2\u8BF7\u6C42\u505C\u6B62 ", "Requested stop for ") + stopped + tr(" \u4E2A\u5B50\u4EE3\u7406\u3002", " " + plural(stopped, "subagent") + "."));
+    this.notify(tr("\u5DF2\u8BF7\u6C42\u505C\u6B62 ", "Requested stop for ") + stopped + tr(" \u4E2A\u5B50\u4EE3\u7406\u3002", " " + plural(stopped, "subagent") + "."), "success");
     if (failures.length) throw new Error(tr("\u90E8\u5206\u4EE3\u7406\u672A\u53D7\u7406\u505C\u6B62\u8BF7\u6C42\uFF1A\n", "Some agents rejected the stop request:\n") + failures.join("\n"));
   }
   indicator() {
@@ -34954,7 +35004,7 @@ var TerminalUI = class {
   }
   syncAnimation() {
     this.loader.setIndicator({
-      frames: this.active && !appearanceStore.get(appearanceAtom).reducedMotion ? ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"] : ["\u2026"],
+      frames: !this.active || appearanceStore.get(appearanceAtom).reducedMotion ? ["\u2026"] : this.unicode ? ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"] : ["|", "/", "-", "\\"],
       intervalMs: 120
     });
     if (!this.active) this.loader.stop();
@@ -35015,7 +35065,12 @@ var TerminalUI = class {
     this.terminal.write("\x1B]52;c;" + Buffer.from(text).toString("base64") + "\x07");
     return true;
   }
-  notify(text) {
+  ascii(lines) {
+    return this.unicode === false ? lines.map(toAscii) : lines;
+  }
+  /** 下边框的短暂通知：图标与颜色按级别区分（参考 termcn Toast / StatusMessage） */
+  notify(text, variant = "info") {
+    this.noticeVariant = variant;
     this.clearNotice();
     this.notice = clean(text);
     this.noticeTimer = setTimeout(() => {
@@ -35032,16 +35087,22 @@ var TerminalUI = class {
   }
   /** 输入框边框：上边框右侧是上下文占用、模型与思考强度；下边框左侧是状态或模式，右侧是目录与分支 */
   inputFrame(width) {
-    const percent = Number(/(\d+)%/.exec(this.contextText)?.[1] ?? 0);
-    const paint = percent >= 90 ? theme.error : percent >= 70 ? theme.warning : theme.muted;
+    const percent = /(\d+)%/.exec(this.contextText)?.[1];
+    const meter = percent === void 0 ? theme.muted(clean(this.contextText)) : (() => {
+      const value = Math.min(100, Number(percent)), filled = Math.round(value / 100 * 8);
+      const paint = value >= 90 ? theme.error : value >= 75 ? theme.warning : theme.success;
+      return paint("\u2588".repeat(filled) + "\u2591".repeat(8 - filled) + " " + (/容量估计|estimated/.test(this.contextText) ? "\u2248" : "") + value + "%");
+    })();
     const thinking = this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value : "";
     const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join(" \xB7 ");
-    const top = [this.contextText && !this.pending ? paint(clean(this.contextText)) : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted(" \xB7 "));
+    const top = [this.contextText && !this.pending ? meter : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted(" \xB7 "));
     const mode = this.context ? { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[this.context.mode] : "";
     const [status = "", ...queue] = clean(this.state).trim().split(/\s{2,}/);
     const state = [status, ...queue].join(" \xB7 ");
     const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
-    const detail = this.pending ? "" : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? theme.accent(this.notice) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
+    const detail = this.pending ? "" : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
+      { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
+    ) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
       status + (tool?.tool ? " " + clean(tool.tool) : ""),
       clean(this.metrics),
       tr("Esc \u505C\u6B62", "Esc stop"),
@@ -35080,57 +35141,63 @@ var TerminalUI = class {
       this.tui.requestRender(true);
     }
     if (result.status === "complete") this.editor.setText(result.content);
-    else this.notify(result.message);
+    else this.notify(result.message, "warning");
   }
+  /** 快捷键：按类别分组的只读面板，宽终端两列（参考 termcn KeyboardShortcuts）；完整命令列表在 Ctrl+P */
   showHelp() {
+    const groups = [
+      [tr("\u8F93\u5165", "Input"), [
+        ["Enter", tr("\u53D1\u9001\u6216\u6392\u961F\uFF1B\u8FD0\u884C\u4E2D\u7A7A\u8F93\u5165\u65F6\u63D2\u8BDD", "Send or queue; empty input steers a run")],
+        ["Shift+Enter", tr("\u6362\u884C\uFF08\u4E5F\u53EF Ctrl+J\uFF09", "Newline (or Ctrl+J)")],
+        ["\u2191", tr("\u6539\u56DE\u5F85\u53D1\u9001 / \u6D4F\u89C8\u5386\u53F2", "Edit queued / browse history")],
+        ["Ctrl+R", tr("\u641C\u7D22\u8F93\u5165\u5386\u53F2", "Search prompt history")],
+        ["Ctrl+G", tr("\u5916\u90E8\u7F16\u8F91\u5668", "External editor")],
+        ["@", tr("\u5F15\u7528\u6587\u4EF6", "Mention a file")],
+        ["/", tr("\u547D\u4EE4\u4E0E Skills", "Commands and Skills")]
+      ]],
+      [tr("\u5BF9\u8BDD", "Conversation"), [
+        ["Esc", tr("\u505C\u6B62\u751F\u6210", "Stop")],
+        ["Esc Esc", tr("\u56DE\u9000", "Rewind")],
+        ["Ctrl+O", tr("\u5C55\u5F00\u5DE5\u5177\u8BE6\u60C5", "Expand tool details")],
+        ["Ctrl+T", tr("\u5BF9\u8BDD\u8BB0\u5F55", "Transcript")],
+        ["Ctrl+Shift+F", tr("\u641C\u7D22\u5BF9\u8BDD", "Search conversation")],
+        ["Ctrl+C", tr("\u590D\u5236\u9009\u4E2D / \u53D6\u6D88", "Copy selection / cancel")],
+        ["Ctrl+D", tr("\u7A7A\u8F93\u5165\u65F6\u9000\u51FA", "Quit when input is empty")]
+      ]],
+      [tr("\u547D\u4EE4\u4E0E\u8BBE\u7F6E", "Commands and settings"), [
+        ["Ctrl+P", tr("\u547D\u4EE4\u4E0E Skills", "Commands and Skills")],
+        ["Ctrl+S", tr("\u601D\u8003\u5F3A\u5EA6\u62E8\u76D8", "Thinking dial")],
+        ["Shift+Tab", tr("\u5207\u6362\u6743\u9650\u6A21\u5F0F", "Cycle permissions")],
+        ["F2", tr("\u8BBE\u7F6E", "Settings")]
+      ]],
+      [tr("\u4EE3\u7406\u4E0E\u9644\u4EF6", "Agents and attachments"), [
+        ["/agents", tr("\u4EE3\u7406\u770B\u677F", "Agents dashboard")],
+        ["/stop-agents", tr("\u505C\u6B62\u5168\u90E8\u5B50\u4EE3\u7406", "Stop all subagents")],
+        ["Ctrl+V", tr("\u7C98\u8D34\u56FE\u7247", "Paste image")],
+        ["/attach", tr("\u6DFB\u52A0\u9644\u4EF6", "Add attachment")],
+        ["/attachments", tr("\u7BA1\u7406\u9644\u4EF6", "Manage attachments")]
+      ]]
+    ];
+    const keyWidth = Math.max(...groups.flatMap(([, items]) => items.map(([key]) => (0, import_pi_tui3.visibleWidth)(key)))) + 2;
+    const column = (group, width) => [
+      theme.bold(group[0]),
+      ...group[1].map(([key, text]) => (0, import_pi_tui3.truncateToWidth)(theme.accent(key) + " ".repeat(keyWidth - (0, import_pi_tui3.visibleWidth)(key)) + theme.muted(text), width))
+    ];
+    const render = (inner) => {
+      if (inner < 76) return groups.flatMap((group, index) => [...index ? [""] : [], ...column(group, inner)]);
+      const half = Math.floor((inner - 2) / 2), lines = [];
+      for (let index = 0; index < groups.length; index += 2) {
+        const left = column(groups[index], half), right = groups[index + 1] ? column(groups[index + 1], half) : [];
+        if (index) lines.push("");
+        for (let row = 0; row < Math.max(left.length, right.length); row++) {
+          const cell = left[row] ?? "";
+          lines.push(cell + " ".repeat(Math.max(0, half - (0, import_pi_tui3.visibleWidth)(cell)) + 2) + (right[row] ?? ""));
+        }
+      }
+      return lines;
+    };
     this.launch(async () => {
-      await this.select(tr("\u5FEB\u6377\u952E", "Shortcuts"), [
-        {
-          value: "input",
-          label: tr("\u8F93\u5165 \xB7 \u53D1\u9001\u4E0E\u6362\u884C", "Input \xB7 send and newline"),
-          description: tr("Enter \u53D1\u9001\u6216\u6392\u961F\uFF1B\u8FD0\u884C\u4E2D\u7A7A\u8F93\u5165\u6309 Enter \u628A\u7B2C\u4E00\u6761\u5F85\u53D1\u9001\u6D88\u606F\u63D2\u5165\u672C\u8F6E\uFF1BCtrl+J / Shift+Enter / Option+Enter \u6362\u884C", "Enter send or queue; while running, Enter on empty input sends the first queued message into this run; Ctrl+J / Shift+Enter / Option+Enter newline")
-        },
-        {
-          value: "complete",
-          label: tr("\u8F93\u5165 \xB7 \u547D\u4EE4\u3001Skills \u4E0E\u8DEF\u5F84", "Input \xB7 commands, Skills and paths"),
-          description: tr(
-            "/ \u547D\u4EE4\u548C Skills\uFF1BEnter \u6253\u5F00\u547D\u4EE4\u6216\u63D2\u5165 Skill\uFF1BTab \u8865\u5168\uFF1B@ \u8DEF\u5F84\uFF1BEsc \u5173\u95ED",
-            "/ commands and Skills; Enter open command or insert Skill; Tab complete; @ paths; Esc close"
-          )
-        },
-        {
-          value: "scroll",
-          label: tr("\u5BF9\u8BDD \xB7 \u6EDA\u52A8\u4E0E\u641C\u7D22", "Conversation \xB7 scroll and search"),
-          description: tr("\u6EDA\u8F6E / PgUp / PgDn \u6D4F\u89C8\uFF1BCtrl+Shift+F \u641C\u7D22\uFF1BCtrl+T \u5BF9\u8BDD\u8BE6\u60C5", "Wheel / PgUp / PgDn browse; Ctrl+Shift+F search; Ctrl+T transcript details")
-        },
-        {
-          value: "stop",
-          label: tr("\u5BF9\u8BDD \xB7 \u505C\u6B62\u4E0E\u9000\u51FA", "Conversation \xB7 stop and quit"),
-          description: tr("Esc \u505C\u6B62\u751F\u6210\uFF1BCtrl+C \u590D\u5236\u9009\u4E2D\u5185\u5BB9\u6216\u53D6\u6D88\uFF1BCtrl+D \u7A7A\u8F93\u5165\u65F6\u9000\u51FA", "Esc stop; Ctrl+C copy selection or cancel; Ctrl+D quit when input is empty")
-        },
-        { value: "menu", label: tr("\u547D\u4EE4 \xB7 \u641C\u7D22\u9762\u677F", "Commands \xB7 search panel"), description: "Ctrl+P" },
-        { value: "dial", label: tr("\u6A21\u578B \xB7 \u601D\u8003\u5F3A\u5EA6", "Model \xB7 thinking"), description: tr("Ctrl+S \u62E8\u76D8\uFF1A\u2190\u2192 \u8C03\u6574\uFF0CEnter \u53EA\u6539\u5F53\u524D\u4F1A\u8BDD", "Ctrl+S dial: \u2190\u2192 adjust, Enter applies to this session") },
-        { value: "history", label: tr("\u8F93\u5165 \xB7 \u641C\u7D22\u5386\u53F2", "Input \xB7 search history"), description: tr("Ctrl+R \u641C\u7D22\u672C\u9879\u76EE\u7684\u8F93\u5165\u5386\u53F2\uFF1B\u2191\u2193 \u9010\u6761\u6D4F\u89C8\uFF1B\u6709\u5F85\u53D1\u9001\u6D88\u606F\u65F6 \u2191 \u5148\u628A\u6700\u540E\u4E00\u6761\u6539\u56DE\u8349\u7A3F", "Ctrl+R search this project\u2019s prompt history; \u2191\u2193 browse; with queued messages, \u2191 first brings the last one back to edit") },
-        { value: "editor", label: tr("\u8F93\u5165 \xB7 \u5916\u90E8\u7F16\u8F91\u5668", "Input \xB7 external editor"), description: tr("Ctrl+G \u7528 $VISUAL / $EDITOR \u7F16\u8F91\u8349\u7A3F\uFF0C\u4FDD\u5B58\u9000\u51FA\u540E\u56DE\u586B\uFF0C\u4E0D\u4F1A\u53D1\u9001", "Ctrl+G edit the draft in $VISUAL / $EDITOR; saved text returns to the input, not sent") },
-        {
-          value: "agents",
-          label: tr("\u4EE3\u7406 \xB7 \u67E5\u770B\u4E0E\u505C\u6B62", "Agents \xB7 view and stop"),
-          description: tr(
-            "/agents \u770B\u677F\uFF1A\u2191\u2193 \u9009\u62E9\u3001Enter \u8BB0\u5F55\u3001s \u505C\u6B62\u3001i \u63D2\u8BDD\uFF1B/stop-agents \u505C\u6B62\u5168\u90E8\u5B50\u4EE3\u7406",
-            "/agents dashboard: \u2191\u2193 select, Enter record, s stop, i message; /stop-agents stop all subagents"
-          )
-        },
-        {
-          value: "attachment",
-          label: tr("\u9644\u4EF6 \xB7 \u6DFB\u52A0\u4E0E\u5220\u9664", "Attachments \xB7 add and remove"),
-          description: tr("Ctrl+V \u7C98\u8D34\u56FE\u7247  /attach \u8DEF\u5F84  /attachments \u7BA1\u7406\u9644\u4EF6", "Ctrl+V paste image  /attach path  /attachments manage files")
-        },
-        ...commandCatalog(this.commands).map((command) => ({
-          value: command.name,
-          label: command.group + " \xB7 " + command.label,
-          description: "/" + command.name + (command.shortcut ? "  " + command.shortcut : "") + "  " + command.description
-        }))
-      ]);
+      await this.view(tr("\u5FEB\u6377\u952E", "Shortcuts"), render, false, tr("\u5168\u90E8\u547D\u4EE4\uFF1ACtrl+P", "All commands: Ctrl+P"));
     });
   }
   async showCommands() {
@@ -35261,7 +35328,7 @@ var TerminalUI = class {
       ];
       const greetingWidth = Math.max(...greeting.map((line) => (0, import_pi_tui3.visibleWidth)(line)));
       const welcome = [];
-      if (this.terminal.rows >= 24 && width >= dotLogoWidth + 4) {
+      if (this.unicode && this.terminal.rows >= 24 && width >= dotLogoWidth + 4) {
         const logo = dotLogo(this.logoFrame, (position, level, text) => level === 2 ? brandGradient(position, text) : theme.dim(brandGradient(position, text)));
         if (width >= dotLogoWidth + greetingWidth + 8) {
           const pad = " ".repeat(Math.max(0, Math.floor((width - dotLogoWidth - greetingWidth - 6) / 2)));
@@ -35389,6 +35456,8 @@ var TerminalUI = class {
     this.clearNotice();
     this.cancelForm();
     if (this.editor.isShowingAutocomplete()) this.editor.handleInput("\x1B");
+    const render = component.render.bind(component);
+    component.render = (width2) => this.ascii(render(width2));
     return new Promise((resolve6, reject) => {
       let finished = false;
       const finish = (run) => {
@@ -35583,7 +35652,8 @@ var TerminalUI = class {
       cancel = reject;
     }, Math.min(64, this.terminal.columns));
   }
-  view(title, text, markdown = false) {
+  /** text 可以是一个按正文宽度返回已排版行的函数；note 写在下边框提示前 */
+  view(title, text, markdown = false, note = "") {
     let offset = 0;
     let page = 1;
     let count = 0;
@@ -35594,9 +35664,8 @@ var TerminalUI = class {
       invalidate() {
       },
       render: (width) => {
-        const rewritten = markdown ? rewriteMentionLinks(clean(text), this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks) : clean(text);
         const inner = Math.max(1, width - 4);
-        const lines = markdown ? new import_pi_tui3.Markdown(rewritten, 0, 0, markdownTheme).render(inner) : new import_pi_tui3.Text(diffText(text), 0, 0).render(inner);
+        const lines = typeof text === "function" ? text(inner) : markdown ? new import_pi_tui3.Markdown(rewriteMentionLinks(clean(text), this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks), 0, 0, markdownTheme).render(inner) : new import_pi_tui3.Text(diffText(text), 0, 0).render(inner);
         count = lines.length;
         page = Math.max(1, this.terminal.rows - 8);
         offset = Math.min(offset, Math.max(0, count - page));
@@ -35604,7 +35673,7 @@ var TerminalUI = class {
           width,
           theme.warning(theme.bold(clean(title))),
           lines.slice(offset, offset + page),
-          tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
+          (note ? note + " \xB7 " : "") + tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
         );
       },
       handleInput: (data) => {
@@ -36575,7 +36644,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.11";
+var version = "0.1.12";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -36935,19 +37004,19 @@ async function runInteractive(worker, options, request, ui) {
     const current2 = store.get(state);
     if (!item) return;
     if (!current2.running || current2.stopping || current2.closing) {
-      ui?.notify(tr("\u5F53\u524D\u6CA1\u6709\u8FD0\u884C\uFF0C\u6D88\u606F\u4F1A\u6309\u987A\u5E8F\u53D1\u9001\u3002", "Nothing is running; queued messages send in order."));
+      ui?.notify(tr("\u5F53\u524D\u6CA1\u6709\u8FD0\u884C\uFF0C\u6D88\u606F\u4F1A\u6309\u987A\u5E8F\u53D1\u9001\u3002", "Nothing is running; queued messages send in order."), "warning");
       return;
     }
     if (item.state !== "waiting") {
-      ui?.notify(tr("\u8FD9\u6761\u6D88\u606F\u6B63\u5728\u63D0\u4EA4\u6216\u9700\u8981\u6838\u5BF9\uFF0C\u4E0D\u80FD\u63D2\u8BDD\u3002", "This message is being submitted or needs checking; it can\u2019t be sent now."));
+      ui?.notify(tr("\u8FD9\u6761\u6D88\u606F\u6B63\u5728\u63D0\u4EA4\u6216\u9700\u8981\u6838\u5BF9\uFF0C\u4E0D\u80FD\u63D2\u8BDD\u3002", "This message is being submitted or needs checking; it can\u2019t be sent now."), "warning");
       return;
     }
     if (item.attachments?.length) {
-      ui?.notify(tr("\u5E26\u9644\u4EF6\u7684\u6D88\u606F\u8981\u7B49\u672C\u8F6E\u7ED3\u675F\u540E\u53D1\u9001\u3002", "Messages with attachments send after this run."));
+      ui?.notify(tr("\u5E26\u9644\u4EF6\u7684\u6D88\u606F\u8981\u7B49\u672C\u8F6E\u7ED3\u675F\u540E\u53D1\u9001\u3002", "Messages with attachments send after this run."), "warning");
       return;
     }
     if (Object.keys(current2.submissions).length) {
-      ui?.notify(tr("\u4E0A\u4E00\u6761\u8FD8\u5728\u63D0\u4EA4\uFF0C\u8BF7\u7A0D\u540E\u518D\u63D2\u8BDD\u3002", "The previous message is still submitting; try again shortly."));
+      ui?.notify(tr("\u4E0A\u4E00\u6761\u8FD8\u5728\u63D0\u4EA4\uFF0C\u8BF7\u7A0D\u540E\u518D\u63D2\u8BDD\u3002", "The previous message is still submitting; try again shortly."), "warning");
       return;
     }
     try {
@@ -37154,7 +37223,7 @@ async function runInteractive(worker, options, request, ui) {
       }
       rewindDraft = void 0;
       restoreDraft(result.type === "ack" && typeof result.text === "string" ? result.text : known ?? excerpt);
-      ui.notify(action === "files" ? tr("\u5BF9\u8BDD\u548C\u6587\u4EF6\u6539\u52A8\u5DF2\u56DE\u9000\u3002", "Conversation and file changes rewound.") : tr("\u5BF9\u8BDD\u5DF2\u56DE\u9000\u3002", "Conversation rewound."));
+      ui.notify(action === "files" ? tr("\u5BF9\u8BDD\u548C\u6587\u4EF6\u6539\u52A8\u5DF2\u56DE\u9000\u3002", "Conversation and file changes rewound.") : tr("\u5BF9\u8BDD\u5DF2\u56DE\u9000\u3002", "Conversation rewound."), "success");
     } catch (error) {
       if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
     } finally {
@@ -37328,7 +37397,7 @@ async function runInteractive(worker, options, request, ui) {
       }
       draftAttachments = runtimeAttachmentRefs([...draftAttachments, reply.attachment], reply.sessionId);
       ui.setAttachments?.(draftAttachments);
-      ui.notify(tr("\u5DF2\u6DFB\u52A0 ", "Added ") + reply.attachment.filename);
+      ui.notify(tr("\u5DF2\u6DFB\u52A0 ", "Added ") + reply.attachment.filename, "success");
     } finally {
       uploading = false;
       if (staged) {
@@ -37414,7 +37483,7 @@ async function runInteractive(worker, options, request, ui) {
             return;
           }
           const reply = await query({ type: "rename", id: (0, import_node_crypto8.randomUUID)(), sessionId, title }, AbortSignal.timeout(1e4));
-          if (reply.type === "ack") ui?.notify(tr("\u4F1A\u8BDD\u5DF2\u6539\u540D\u3002", "Session renamed."));
+          if (reply.type === "ack") ui?.notify(tr("\u4F1A\u8BDD\u5DF2\u6539\u540D\u3002", "Session renamed."), "success");
         })().catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
@@ -37440,7 +37509,7 @@ async function runInteractive(worker, options, request, ui) {
           entry(tr("\u8FD8\u6CA1\u6709\u53EF\u590D\u5236\u7684\u56DE\u590D\u3002", "No reply to copy yet."));
           return;
         }
-        void (ui?.copyText(clean(rewriteMentionLinks(reply.text, current2.session.cwd, false))) ?? Promise.resolve(false)).then((ok) => ok ? ui?.notify(tr("\u5DF2\u590D\u5236", "Copied")) : entry(tr("\u590D\u5236\u5931\u8D25\u3002", "Couldn\u2019t copy."), void 0, "error"));
+        void (ui?.copyText(clean(rewriteMentionLinks(reply.text, current2.session.cwd, false))) ?? Promise.resolve(false)).then((ok) => ok ? ui?.notify(tr("\u5DF2\u590D\u5236", "Copied"), "success") : (ui?.notify(tr("\u590D\u5236\u5931\u8D25", "Couldn\u2019t copy"), "error"), entry(tr("\u590D\u5236\u5931\u8D25\u3002", "Couldn\u2019t copy."), void 0, "error")));
       } else if (command === "/todos") {
         const tasks = currentTasks(current2);
         const body = tasks.length ? taskLines(tasks) : tr("\u5F53\u524D\u6CA1\u6709\u4EFB\u52A1\u6E05\u5355\u3002", "No tasks yet.");
@@ -37709,7 +37778,7 @@ async function runInteractive(worker, options, request, ui) {
       if (message.accepted) {
         if (message.message && message.message !== "\u5DF2\u6392\u961F") entry(message.message);
         else if (submission?.notice) {
-          if (ui) ui.notify(submission.notice);
+          if (ui) ui.notify(submission.notice, "success");
           else entry(submission.notice);
         }
         if (submission?.text) {
