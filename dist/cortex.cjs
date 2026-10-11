@@ -1109,6 +1109,104 @@ var init_safe_file = __esm({
   }
 });
 
+// ../electron/src/main/lib/file-lock.ts
+function withFileLock(targetPath, operation, options = {}) {
+  const lockPath = `${targetPath}.lock`;
+  (0, import_node_fs2.mkdirSync)((0, import_node_path.dirname)(targetPath), { recursive: true });
+  const deadline = Date.now() + DEFAULT_LOCK_TIMEOUT_MS;
+  let descriptor;
+  while (descriptor == null) {
+    try {
+      descriptor = options.recoverDeadOwner ? openProcessLock(lockPath) : (0, import_node_fs2.openSync)(lockPath, "wx");
+    } catch (error) {
+      if (!isLockContentionError(error)) throw error;
+      if (!options.recoverDeadOwner || !recoverProcessLock(lockPath)) removeStaleLock(lockPath);
+      if (Date.now() >= deadline) throw new Error(tr(`\u7B49\u5F85\u6587\u4EF6\u9501\u8D85\u65F6\uFF1A${targetPath}`, `Timed out waiting for the file lock: ${targetPath}`));
+      waitSynchronously(LOCK_RETRY_MS);
+    }
+  }
+  try {
+    return operation();
+  } finally {
+    releaseLock(lockPath, descriptor, options.recoverDeadOwner);
+  }
+}
+function releaseLock(lockPath, descriptor, checkOwner = false) {
+  const owned = checkOwner ? (0, import_node_fs2.fstatSync)(descriptor) : void 0;
+  (0, import_node_fs2.closeSync)(descriptor);
+  if (!owned) (0, import_node_fs2.rmSync)(lockPath, { force: true });
+  else {
+    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
+    if (current2?.dev === owned.dev && current2.ino === owned.ino) (0, import_node_fs2.rmSync)(lockPath);
+  }
+}
+function openProcessLock(lockPath) {
+  const temporary = `${lockPath}.${(0, import_node_crypto.randomUUID)()}.tmp`;
+  const descriptor = (0, import_node_fs2.openSync)(temporary, "wx", 384);
+  try {
+    (0, import_node_fs2.writeFileSync)(descriptor, JSON.stringify({ pid: process.pid }));
+    (0, import_node_fs2.linkSync)(temporary, lockPath);
+    return descriptor;
+  } catch (error) {
+    (0, import_node_fs2.closeSync)(descriptor);
+    throw error;
+  } finally {
+    (0, import_node_fs2.rmSync)(temporary, { force: true });
+  }
+}
+function recoverProcessLock(lockPath) {
+  const stat = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
+  if (!stat) return true;
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
+  if (!stat.size) return false;
+  let owner;
+  try {
+    owner = JSON.parse((0, import_node_fs2.readFileSync)(lockPath, "utf8"));
+  } catch {
+    throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
+  }
+  if (!owner || typeof owner !== "object" || !("pid" in owner) || typeof owner.pid !== "number" || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
+  try {
+    process.kill(owner.pid, 0);
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") throw error;
+    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
+    if (current2?.dev === stat.dev && current2.ino === stat.ino) (0, import_node_fs2.rmSync)(lockPath, { force: true });
+  }
+  return true;
+}
+function removeStaleLock(lockPath) {
+  if (!(0, import_node_fs2.existsSync)(lockPath)) return;
+  try {
+    if (Date.now() - (0, import_node_fs2.statSync)(lockPath).mtimeMs > DEFAULT_STALE_LOCK_MS) {
+      (0, import_node_fs2.rmSync)(lockPath, { force: true });
+      console.warn(`[\u6587\u4EF6\u9501] \u5DF2\u6E05\u7406\u8D85\u65F6\u9501: ${lockPath}`);
+    }
+  } catch {
+  }
+}
+function waitSynchronously(milliseconds) {
+  const signal = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+  Atomics.wait(signal, 0, 0, milliseconds);
+}
+function isLockContentionError(error) {
+  if (!(error instanceof Error) || !("code" in error)) return false;
+  return error.code === "EEXIST" || process.platform === "win32" && error.code === "EPERM";
+}
+var import_node_crypto, import_node_fs2, import_node_path, DEFAULT_LOCK_TIMEOUT_MS, DEFAULT_STALE_LOCK_MS, LOCK_RETRY_MS;
+var init_file_lock = __esm({
+  "../electron/src/main/lib/file-lock.ts"() {
+    "use strict";
+    import_node_crypto = require("node:crypto");
+    import_node_fs2 = require("node:fs");
+    import_node_path = require("node:path");
+    init_src();
+    DEFAULT_LOCK_TIMEOUT_MS = 1e4;
+    DEFAULT_STALE_LOCK_MS = 6e4;
+    LOCK_RETRY_MS = 10;
+  }
+});
+
 // ../../packages/core/src/providers/model-capabilities.ts
 function claudeThinkingBinding(provider, modelId, baseUrl) {
   if (provider !== "anthropic" || !/^claude-fable-5-1(?:-latest)?$/i.test(modelId) || !baseUrl) return void 0;
@@ -32258,6 +32356,9 @@ function migrateLegacyImageFlag(config) {
   }
   return changed;
 }
+function withChannelsLock(run) {
+  return withFileLock(getChannelsPath(), run);
+}
 function writeConfig(config) {
   const configPath = getChannelsPath();
   try {
@@ -32312,77 +32413,83 @@ function userModel({ nativeSearch: _search, imageInputCheck: _check, imageInput,
   return typeof imageInput === "boolean" ? { ...model, imageInput } : model;
 }
 function createChannel(input) {
-  assertLocalFlag(input.local);
-  const config = readConfig();
-  const now = Date.now();
-  const channel2 = {
-    id: (0, import_node_crypto4.randomUUID)(),
-    name: input.name,
-    provider: input.provider,
-    baseUrl: input.baseUrl,
-    apiKey: encryptApiKey(input.apiKey),
-    models: assertModelOverrides(input.models).map(userModel),
-    ...input.imageModelId !== void 0 ? { imageModelId: input.imageModelId } : {},
-    ...input.local !== void 0 && { local: input.local },
-    enabled: input.enabled,
-    createdAt: now,
-    updatedAt: now
-  };
-  config.channels.push(channel2);
-  writeConfig(config);
-  console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u521B\u5EFA\u6E20\u9053: ${channel2.name} (${channel2.id})`);
-  return channel2;
+  return withChannelsLock(() => {
+    assertLocalFlag(input.local);
+    const config = readConfig();
+    const now = Date.now();
+    const channel2 = {
+      id: (0, import_node_crypto4.randomUUID)(),
+      name: input.name,
+      provider: input.provider,
+      baseUrl: input.baseUrl,
+      apiKey: encryptApiKey(input.apiKey),
+      models: assertModelOverrides(input.models).map(userModel),
+      ...input.imageModelId !== void 0 ? { imageModelId: input.imageModelId } : {},
+      ...input.local !== void 0 && { local: input.local },
+      enabled: input.enabled,
+      createdAt: now,
+      updatedAt: now
+    };
+    config.channels.push(channel2);
+    writeConfig(config);
+    console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u521B\u5EFA\u6E20\u9053: ${channel2.name} (${channel2.id})`);
+    return channel2;
+  });
 }
 function updateChannel(id, input) {
-  assertLocalFlag(input.local);
-  const config = readConfig();
-  const index = config.channels.findIndex((c) => c.id === id);
-  if (index === -1) {
-    throw new Error(tr(`\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728\uFF1A${id}`, `Provider not found: ${id}`));
-  }
-  const existing = config.channels[index];
-  const keyChanged = () => {
-    try {
-      return input.apiKey !== decryptKey(existing.apiKey);
-    } catch {
-      return true;
+  return withChannelsLock(() => {
+    assertLocalFlag(input.local);
+    const config = readConfig();
+    const index = config.channels.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new Error(tr(`\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728\uFF1A${id}`, `Provider not found: ${id}`));
     }
-  };
-  const connectionChanged = input.provider !== void 0 && input.provider !== existing.provider || input.baseUrl !== void 0 && input.baseUrl !== existing.baseUrl || Boolean(input.apiKey) && existing.models.some((model) => model.nativeSearch || model.imageInputCheck) && keyChanged();
-  const updated = {
-    ...existing,
-    name: input.name ?? existing.name,
-    provider: input.provider ?? existing.provider,
-    baseUrl: input.baseUrl ?? existing.baseUrl,
-    apiKey: input.apiKey ? encryptApiKey(input.apiKey) : existing.apiKey,
-    models: (input.models ? assertModelOverrides(input.models) : existing.models).map((item) => {
-      const model = userModel(item);
-      const saved = connectionChanged ? void 0 : existing.models.find((entry) => entry.id === model.id);
-      const imageInputCheck = matchingImageInputCheck(saved?.imageInputCheck, existing.provider, existing.baseUrl, model.id);
-      return { ...model, ...saved?.nativeSearch ? { nativeSearch: saved.nativeSearch } : {}, ...imageInputCheck ? { imageInputCheck } : {} };
-    }),
-    imageModelId: input.imageModelId !== void 0 ? input.imageModelId : existing.imageModelId,
-    enabled: input.enabled ?? existing.enabled,
-    ...input.local !== void 0 && { local: input.local },
-    updatedAt: Date.now()
-  };
-  if (input.imageModelId !== void 0 && input.imageModelId !== existing.imageModelId || input.provider !== void 0 && input.provider !== existing.provider) {
-    delete updated.imageModelProtocol;
-  }
-  config.channels[index] = updated;
-  writeConfig(config);
-  console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u66F4\u65B0\u6E20\u9053: ${updated.name} (${updated.id})`);
-  return updated;
+    const existing = config.channels[index];
+    const keyChanged = () => {
+      try {
+        return input.apiKey !== decryptKey(existing.apiKey);
+      } catch {
+        return true;
+      }
+    };
+    const connectionChanged = input.provider !== void 0 && input.provider !== existing.provider || input.baseUrl !== void 0 && input.baseUrl !== existing.baseUrl || Boolean(input.apiKey) && existing.models.some((model) => model.nativeSearch || model.imageInputCheck) && keyChanged();
+    const updated = {
+      ...existing,
+      name: input.name ?? existing.name,
+      provider: input.provider ?? existing.provider,
+      baseUrl: input.baseUrl ?? existing.baseUrl,
+      apiKey: input.apiKey ? encryptApiKey(input.apiKey) : existing.apiKey,
+      models: (input.models ? assertModelOverrides(input.models) : existing.models).map((item) => {
+        const model = userModel(item);
+        const saved = connectionChanged ? void 0 : existing.models.find((entry) => entry.id === model.id);
+        const imageInputCheck = matchingImageInputCheck(saved?.imageInputCheck, existing.provider, existing.baseUrl, model.id);
+        return { ...model, ...saved?.nativeSearch ? { nativeSearch: saved.nativeSearch } : {}, ...imageInputCheck ? { imageInputCheck } : {} };
+      }),
+      imageModelId: input.imageModelId !== void 0 ? input.imageModelId : existing.imageModelId,
+      enabled: input.enabled ?? existing.enabled,
+      ...input.local !== void 0 && { local: input.local },
+      updatedAt: Date.now()
+    };
+    if (input.imageModelId !== void 0 && input.imageModelId !== existing.imageModelId || input.provider !== void 0 && input.provider !== existing.provider) {
+      delete updated.imageModelProtocol;
+    }
+    config.channels[index] = updated;
+    writeConfig(config);
+    console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u66F4\u65B0\u6E20\u9053: ${updated.name} (${updated.id})`);
+    return updated;
+  });
 }
 function deleteChannel(id) {
-  const config = readConfig();
-  const index = config.channels.findIndex((c) => c.id === id);
-  if (index === -1) {
-    throw new Error(tr(`\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728\uFF1A${id}`, `Provider not found: ${id}`));
-  }
-  const removed = config.channels.splice(index, 1)[0];
-  writeConfig(config);
-  console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u5220\u9664\u6E20\u9053: ${removed.name} (${removed.id})`);
+  return withChannelsLock(() => {
+    const config = readConfig();
+    const index = config.channels.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new Error(tr(`\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728\uFF1A${id}`, `Provider not found: ${id}`));
+    }
+    const removed = config.channels.splice(index, 1)[0];
+    writeConfig(config);
+    console.log(`[\u6E20\u9053\u7BA1\u7406] \u5DF2\u5220\u9664\u6E20\u9053: ${removed.name} (${removed.id})`);
+  });
 }
 function revealApiKey(channelId) {
   const config = readConfig();
@@ -32405,24 +32512,28 @@ async function testChannel(channelId) {
   return testChannelDirect({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey: decryptKey(channel2.apiKey) });
 }
 function recordNativeSearchVerification(snapshot, modelId, supported) {
-  const protocol = nativeSearchProtocol(snapshot);
-  if (!protocol) return false;
-  const config = readConfig();
-  const current2 = config.channels.find((item) => item.id === snapshot.id);
-  const model = current2?.models.find((item) => item.id === modelId);
-  if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return false;
-  model.nativeSearch = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
-  writeConfig(config);
-  return true;
+  return withChannelsLock(() => {
+    const protocol = nativeSearchProtocol(snapshot);
+    if (!protocol) return false;
+    const config = readConfig();
+    const current2 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current2?.models.find((item) => item.id === modelId);
+    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return false;
+    model.nativeSearch = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    writeConfig(config);
+    return true;
+  });
 }
 function recordImageInputCheck(snapshot, modelId, supported) {
-  const config = readConfig();
-  const current2 = config.channels.find((item) => item.id === snapshot.id);
-  const model = current2?.models.find((item) => item.id === modelId);
-  if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return void 0;
-  model.imageInputCheck = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
-  writeConfig(config);
-  return model.imageInputCheck;
+  return withChannelsLock(() => {
+    const config = readConfig();
+    const current2 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current2?.models.find((item) => item.id === modelId);
+    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return void 0;
+    model.imageInputCheck = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    writeConfig(config);
+    return model.imageInputCheck;
+  });
 }
 async function testImageInput(channelId, modelId) {
   const channel2 = getChannelById(channelId);
@@ -32631,13 +32742,15 @@ async function refreshChannelDiscovery(channel2, apiKey, modelId) {
       try {
         const result = await fetchModels({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey }, AbortSignal.timeout(4e3));
         if (!result.success) return void 0;
-        const config = readConfig();
-        const saved = config.channels.find((item) => item.id === channel2.id);
-        if (!saved || saved.provider !== channel2.provider || saved.baseUrl !== channel2.baseUrl || saved.apiKey !== channel2.apiKey) return void 0;
-        const incoming = new Map(result.models.map((model) => [model.id, model.discovery]));
-        saved.models = saved.models.map((model) => incoming.has(model.id) ? { ...model, discovery: incoming.get(model.id) } : model);
-        writeConfig(config);
-        return saved.models;
+        return withChannelsLock(() => {
+          const config = readConfig();
+          const saved = config.channels.find((item) => item.id === channel2.id);
+          if (!saved || saved.provider !== channel2.provider || saved.baseUrl !== channel2.baseUrl || saved.apiKey !== channel2.apiKey) return void 0;
+          const incoming = new Map(result.models.map((model) => [model.id, model.discovery]));
+          saved.models = saved.models.map((model) => incoming.has(model.id) ? { ...model, discovery: incoming.get(model.id) } : model);
+          writeConfig(config);
+          return saved.models;
+        });
       } catch {
         return void 0;
       }
@@ -32662,6 +32775,7 @@ var init_channel_manager = __esm({
     import_node_crypto4 = require("node:crypto");
     init_config_paths();
     init_safe_file();
+    init_file_lock();
     init_proxy_fetch();
     init_proxy_settings_service();
     init_chat_tool_config();
@@ -33383,100 +33497,7 @@ var import_node_os = require("node:os");
 var import_node_path2 = require("node:path");
 init_src();
 init_safe_file();
-
-// ../electron/src/main/lib/file-lock.ts
-var import_node_crypto = require("node:crypto");
-var import_node_fs2 = require("node:fs");
-var import_node_path = require("node:path");
-init_src();
-var DEFAULT_LOCK_TIMEOUT_MS = 1e4;
-var DEFAULT_STALE_LOCK_MS = 6e4;
-var LOCK_RETRY_MS = 10;
-function withFileLock(targetPath, operation, options = {}) {
-  const lockPath = `${targetPath}.lock`;
-  (0, import_node_fs2.mkdirSync)((0, import_node_path.dirname)(targetPath), { recursive: true });
-  const deadline = Date.now() + DEFAULT_LOCK_TIMEOUT_MS;
-  let descriptor;
-  while (descriptor == null) {
-    try {
-      descriptor = options.recoverDeadOwner ? openProcessLock(lockPath) : (0, import_node_fs2.openSync)(lockPath, "wx");
-    } catch (error) {
-      if (!isLockContentionError(error)) throw error;
-      if (!options.recoverDeadOwner || !recoverProcessLock(lockPath)) removeStaleLock(lockPath);
-      if (Date.now() >= deadline) throw new Error(tr(`\u7B49\u5F85\u6587\u4EF6\u9501\u8D85\u65F6\uFF1A${targetPath}`, `Timed out waiting for the file lock: ${targetPath}`));
-      waitSynchronously(LOCK_RETRY_MS);
-    }
-  }
-  try {
-    return operation();
-  } finally {
-    releaseLock(lockPath, descriptor, options.recoverDeadOwner);
-  }
-}
-function releaseLock(lockPath, descriptor, checkOwner = false) {
-  const owned = checkOwner ? (0, import_node_fs2.fstatSync)(descriptor) : void 0;
-  (0, import_node_fs2.closeSync)(descriptor);
-  if (!owned) (0, import_node_fs2.rmSync)(lockPath, { force: true });
-  else {
-    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-    if (current2?.dev === owned.dev && current2.ino === owned.ino) (0, import_node_fs2.rmSync)(lockPath);
-  }
-}
-function openProcessLock(lockPath) {
-  const temporary = `${lockPath}.${(0, import_node_crypto.randomUUID)()}.tmp`;
-  const descriptor = (0, import_node_fs2.openSync)(temporary, "wx", 384);
-  try {
-    (0, import_node_fs2.writeFileSync)(descriptor, JSON.stringify({ pid: process.pid }));
-    (0, import_node_fs2.linkSync)(temporary, lockPath);
-    return descriptor;
-  } catch (error) {
-    (0, import_node_fs2.closeSync)(descriptor);
-    throw error;
-  } finally {
-    (0, import_node_fs2.rmSync)(temporary, { force: true });
-  }
-}
-function recoverProcessLock(lockPath) {
-  const stat = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-  if (!stat) return true;
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
-  if (!stat.size) return false;
-  let owner;
-  try {
-    owner = JSON.parse((0, import_node_fs2.readFileSync)(lockPath, "utf8"));
-  } catch {
-    throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
-  }
-  if (!owner || typeof owner !== "object" || !("pid" in owner) || typeof owner.pid !== "number" || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
-  try {
-    process.kill(owner.pid, 0);
-  } catch (error) {
-    if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") throw error;
-    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-    if (current2?.dev === stat.dev && current2.ino === stat.ino) (0, import_node_fs2.rmSync)(lockPath, { force: true });
-  }
-  return true;
-}
-function removeStaleLock(lockPath) {
-  if (!(0, import_node_fs2.existsSync)(lockPath)) return;
-  try {
-    if (Date.now() - (0, import_node_fs2.statSync)(lockPath).mtimeMs > DEFAULT_STALE_LOCK_MS) {
-      (0, import_node_fs2.rmSync)(lockPath, { force: true });
-      console.warn(`[\u6587\u4EF6\u9501] \u5DF2\u6E05\u7406\u8D85\u65F6\u9501: ${lockPath}`);
-    }
-  } catch {
-  }
-}
-function waitSynchronously(milliseconds) {
-  const signal = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
-  Atomics.wait(signal, 0, 0, milliseconds);
-}
-function isLockContentionError(error) {
-  if (!(error instanceof Error) || !("code" in error)) return false;
-  return error.code === "EEXIST" || process.platform === "win32" && error.code === "EPERM";
-}
-
-// src/appearance.ts
+init_file_lock();
 var themeNames = ["auto", "dark", "light", "catppuccin", "dracula", "nord", "gruvbox", "tokyo-night", "high-contrast"];
 var isLanguage = (value) => value === "en" || value === "zh-CN";
 function resolveCliLanguage(env, saved) {
@@ -35907,6 +35928,7 @@ var import_node_fs7 = require("node:fs");
 var import_node_path8 = require("node:path");
 init_src();
 init_safe_file();
+init_file_lock();
 function validateCliSettings(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(tr("CLI \u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "CLI settings are invalid"));
   const data = value;
@@ -35976,6 +35998,9 @@ function readCliSettings(directory) {
   }
 }
 function saveCliSettings(directory, settings2) {
+  withFileLock((0, import_node_path8.join)(directory, "cli-settings.json"), () => saveUnlocked(directory, settings2));
+}
+function saveUnlocked(directory, settings2) {
   const previous = readCliSettings(directory);
   const credentials = { ...previous?.credentials, ...settings2.credentials };
   if (previous?.apiKey) credentials[previous.provider + ":" + previous.baseUrl] = previous.apiKey;
@@ -36203,8 +36228,8 @@ init_src();
 var import_node_fs12 = require("node:fs");
 var import_node_os6 = require("node:os");
 var import_node_path10 = require("node:path");
-var import_node_crypto5 = require("node:crypto");
 init_src();
+init_file_lock();
 init_safe_file();
 function canonical(path) {
   if ((0, import_node_fs12.existsSync)(path)) return (0, import_node_fs12.realpathSync)(path);
@@ -36215,47 +36240,50 @@ function contains(parent, path) {
   const rel = (0, import_node_path10.relative)(parent, path);
   return !rel || !rel.startsWith(".." + import_node_path10.sep) && rel !== ".." && !(0, import_node_path10.isAbsolute)(rel);
 }
-function acquireProfile(input) {
+function openProfile(input) {
   const directory = canonical((0, import_node_path10.resolve)(input));
   for (const protectedName of [".cortex", ".cortex-kb-dev", ".cortex-dev"]) {
     const protectedPath = canonical((0, import_node_path10.join)((0, import_node_os6.homedir)(), protectedName));
     if (contains(protectedPath, directory) || contains(directory, protectedPath)) throw new Error(tr("CLI \u9884\u89C8\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55\u6216\u5176\u7236\u5B50\u76EE\u5F55", "CLI preview can\u2019t use the desktop config directory or its parents or children"));
   }
   (0, import_node_fs12.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const ownerPath = (0, import_node_path10.join)(directory, "cli-owner.json");
   const markerPath = (0, import_node_path10.join)(directory, "cli-profile.json");
-  const token = (0, import_node_crypto5.randomUUID)();
-  const transaction = (run) => withFileLock(ownerPath, run, { recoverDeadOwner: true });
-  transaction(() => {
+  withFileLock(markerPath, () => {
     if ((0, import_node_fs12.existsSync)(markerPath)) {
       const marker = JSON.parse((0, import_node_fs12.readFileSync)(markerPath, "utf8"));
       if (!marker || typeof marker !== "object" || !("format" in marker) || marker.format !== "cortex-cli-preview-v1") {
         throw new Error(tr("CLI \u914D\u7F6E\u76EE\u5F55\u683C\u5F0F\u4E0D\u517C\u5BB9", "The CLI config directory format is incompatible"));
       }
     } else {
-      if ((0, import_node_fs12.readdirSync)(directory).some((name) => name !== "cli-owner.json.lock")) {
+      if ((0, import_node_fs12.readdirSync)(directory).some((name) => name !== "cli-profile.json.lock")) {
         throw new Error(tr("CLI \u9884\u89C8\u9700\u8981\u7A7A\u7684\u9694\u79BB\u914D\u7F6E\u76EE\u5F55\uFF0C\u4E0D\u80FD\u63A5\u7BA1\u5DF2\u6709\u6570\u636E", "CLI preview needs an empty, isolated config directory and can\u2019t take over existing data"));
       }
       writeJsonFileAtomic(markerPath, { format: "cortex-cli-preview-v1" });
     }
-    if ((0, import_node_fs12.existsSync)(ownerPath)) {
-      const owner = JSON.parse((0, import_node_fs12.readFileSync)(ownerPath, "utf8"));
-      if (!owner || typeof owner !== "object" || !("pid" in owner) || typeof owner.pid !== "number" || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error(tr("\u8FD0\u884C\u9501\u635F\u574F\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E\u76EE\u5F55", "The run lock is damaged. Check the config directory."));
-      try {
-        process.kill(owner.pid, 0);
-        throw new Error(tr(
-          `\u6B64\u914D\u7F6E\u76EE\u5F55\u5DF2\u6709 CLI \u6B63\u5728\u8FD0\u884C\uFF08PID ${owner.pid}\uFF09\u3002\u8BF7\u5728\u539F\u7EC8\u7AEF\u9000\u51FA\u65E7 CLI \u540E\u91CD\u8BD5\u3002`,
-          `Another CLI is already running for this config directory (PID ${owner.pid}). Quit it in its terminal and try again.`
-        ));
-      } catch (error) {
-        if (!(error && typeof error === "object" && "code" in error && error.code === "ESRCH")) throw error;
-      }
-    }
-    writeJsonFileAtomic(ownerPath, { pid: process.pid, token }, true);
-  });
-  return { directory, release: () => transaction(() => {
-    if ((0, import_node_fs12.existsSync)(ownerPath) && JSON.parse((0, import_node_fs12.readFileSync)(ownerPath, "utf8")).token === token) (0, import_node_fs12.rmSync)(ownerPath);
-  }) };
+  }, { recoverDeadOwner: true });
+  return directory;
+}
+function assertSessionFree(directory, sessionId) {
+  const owner = sessionLeaseOwner(directory, sessionId);
+  if (owner) throw new Error(tr(
+    `\u8FD9\u4E2A\u5BF9\u8BDD\u6B63\u5728\u53E6\u4E00\u4E2A\u7EC8\u7AEF\u8FD0\u884C\uFF08PID ${owner}\uFF09\u3002\u8BF7\u5728\u90A3\u4E2A\u7EC8\u7AEF\u7EE7\u7EED\uFF0C\u6216\u9000\u51FA\u540E\u518D\u6253\u5F00\u3002`,
+    `This conversation is open in another terminal (PID ${owner}). Continue there, or quit it and try again.`
+  ));
+}
+function sessionLeaseOwner(directory, sessionId) {
+  let pid;
+  try {
+    pid = JSON.parse((0, import_node_fs12.readFileSync)((0, import_node_path10.join)(directory, "cli-locks", sessionId + ".json"), "utf8")).pid;
+  } catch {
+    return void 0;
+  }
+  if (typeof pid !== "number" || !Number.isSafeInteger(pid) || pid <= 0) return void 0;
+  try {
+    process.kill(pid, 0);
+    return pid;
+  } catch (error) {
+    return error.code === "ESRCH" ? void 0 : pid;
+  }
 }
 
 // src/setup.ts
@@ -36269,16 +36297,11 @@ var SetupCancelled = class extends Error {
 function needsSetup(options) {
   const request = options.request;
   if (options.desktop) return false;
-  const lease = acquireProfile(request.configDir);
-  try {
-    if (request.sessionId || request.channelId) return false;
-    const settings2 = readCliSettings(lease.directory);
-    const resolved = applyCliDefaults(request, settings2);
-    const key = process.env[options.keyEnv] || (resolved.provider && resolved.baseUrl ? savedCliKey(settings2, resolved.provider, resolved.baseUrl) : void 0);
-    return !resolved.provider || !resolved.model || !key || !(resolved.baseUrl || PROVIDER_DEFAULT_URLS[resolved.provider]);
-  } finally {
-    lease.release();
-  }
+  if (request.sessionId || request.channelId) return false;
+  const settings2 = readCliSettings(openProfile(request.configDir));
+  const resolved = applyCliDefaults(request, settings2);
+  const key = process.env[options.keyEnv] || (resolved.provider && resolved.baseUrl ? savedCliKey(settings2, resolved.provider, resolved.baseUrl) : void 0);
+  return !resolved.provider || !resolved.model || !key || !(resolved.baseUrl || PROVIDER_DEFAULT_URLS[resolved.provider]);
 }
 async function runLineSetup(options) {
   if (options.desktop) throw new Error(tr("\u684C\u9762\u5171\u4EAB\u6A21\u5F0F\u8BF7\u5728 Cortex \u684C\u9762\u4E2D\u8BBE\u7F6E\u4F9B\u5E94\u5546", "In desktop shared mode, set providers in the Cortex desktop app"));
@@ -36288,7 +36311,7 @@ async function runLineSetup(options) {
       "Setup needs an interactive terminal. For automation, use saved settings or environment variables."
     ));
   }
-  const lease = acquireProfile(options.request.configDir);
+  const directory = openProfile(options.request.configDir);
   let muted = false;
   const output = new import_node_stream.Writable({ write(chunk, _encoding, done) {
     if (!muted) process.stdout.write(chunk);
@@ -36316,7 +36339,7 @@ async function runLineSetup(options) {
     }
   };
   try {
-    const previous = readCliSettings(lease.directory);
+    const previous = readCliSettings(directory);
     process.stdout.write(tr(
       "\nCortex \u8BBE\u7F6E\n\u9009\u62E9\u4F9B\u5E94\u5546 \u2192 API \u5730\u5740 \u2192 \u6A21\u578B \u2192 \u5BC6\u94A5\nCtrl+C \u53D6\u6D88\uFF1B\u5BC6\u94A5\u4E0D\u4F1A\u5199\u5165\u5BF9\u8BDD\u3002\n\n",
       "\nCortex setup\nProvider \u2192 API URL \u2192 model \u2192 key\nCtrl+C cancels. Keys aren\u2019t written to the conversation.\n\n"
@@ -36384,11 +36407,11 @@ async function runLineSetup(options) {
     if (environmentKey && apiKey) {
       process.stdout.write(tr("\u5F53\u524D\u73AF\u5883\u53D8\u91CF ", "Environment variable ") + options.keyEnv + tr(" \u4F1A\u4F18\u5148\u4E8E\u4FDD\u5B58\u7684\u5BC6\u94A5\u3002\n", " takes priority over the saved key.\n"));
     }
-    process.stdout.write(tr("\u914D\u7F6E\u6587\u4EF6\uFF1A", "Config file: ") + (0, import_node_path11.join)(lease.directory, "cli-settings.json") + "\n");
+    process.stdout.write(tr("\u914D\u7F6E\u6587\u4EF6\uFF1A", "Config file: ") + (0, import_node_path11.join)(directory, "cli-settings.json") + "\n");
     const answer = await ask(tr("\u4FDD\u5B58\u8BBE\u7F6E\uFF1F[Y/n]", "Save settings? [Y/n]"), "y");
     if (!["y", "yes"].includes(answer.toLowerCase())) throw new SetupCancelled();
     controller.signal.throwIfAborted();
-    saveCliSettings(lease.directory, settings2);
+    saveCliSettings(directory, settings2);
     process.stdout.write(tr("\u8BBE\u7F6E\u5DF2\u4FDD\u5B58\u3002\u9996\u6B21\u53D1\u9001\u6D88\u606F\u65F6\u8FDE\u63A5\u6A21\u578B\u3002\n\n", "Settings saved. The model connects when you send your first message.\n\n"));
   } catch (error) {
     if (controller.signal.aborted) throw controller.signal.reason;
@@ -36398,13 +36421,12 @@ async function runLineSetup(options) {
     rl.off("close", onEnd);
     rl.close();
     process.stdin.pause();
-    lease.release();
   }
 }
 async function runSetup(options, ui) {
   if (!ui) return runLineSetup(options);
   if (options.desktop) throw new Error(tr("\u684C\u9762\u5171\u4EAB\u6A21\u5F0F\u8BF7\u5728 Cortex \u684C\u9762\u4E2D\u8BBE\u7F6E\u4F9B\u5E94\u5546", "In desktop shared mode, set providers in the Cortex desktop app"));
-  const lease = acquireProfile(options.request.configDir);
+  const directory = openProfile(options.request.configDir);
   const onTerminate = () => ui.cancelForm(new UiCancelled(143));
   const onEnd = () => ui.cancelForm(new UiCancelled(0));
   const onSignal = () => ui.cancelForm(new UiCancelled(130));
@@ -36412,8 +36434,8 @@ async function runSetup(options, ui) {
   process.on("SIGINT", onSignal);
   process.stdin.on("end", onEnd);
   try {
-    configureRuntimeDirectory(lease.directory);
-    const previous = readCliSettings(lease.directory);
+    configureRuntimeDirectory(directory);
+    const previous = readCliSettings(directory);
     const environmentKey = process.env[options.keyEnv];
     const settings2 = await editConnection(ui, previous, {
       models: (draft, signal) => discoverModels(draft, environmentKey || draft.apiKey || savedCliKey(previous, draft.provider, draft.baseUrl) || "", signal),
@@ -36423,7 +36445,7 @@ async function runSetup(options, ui) {
       baseUrl: options.request.baseUrl ?? PROVIDER_DEFAULT_URLS[options.request.provider ?? "openai"],
       model: options.request.model ?? ""
     });
-    saveCliSettings(lease.directory, settings2);
+    saveCliSettings(directory, settings2);
   } catch (error) {
     if (error instanceof UiCancelled) throw new SetupCancelled(error.exitCode === void 0, error.exitCode ?? 130);
     throw error;
@@ -36431,7 +36453,6 @@ async function runSetup(options, ui) {
     process.off("SIGTERM", onTerminate);
     process.off("SIGINT", onSignal);
     process.stdin.off("end", onEnd);
-    lease.release();
   }
 }
 
@@ -36444,11 +36465,12 @@ var import_node_util8 = require("node:util");
 var import_node_events = require("node:events");
 
 // ../electron/src/main/runtime/local-transport.ts
-var import_node_crypto6 = require("node:crypto");
+var import_node_crypto5 = require("node:crypto");
 var import_node_fs13 = require("node:fs");
 var import_node_net2 = require("node:net");
 var import_node_path12 = require("node:path");
 init_src();
+init_file_lock();
 var LOCAL_PROTOCOL_VERSION = 1;
 var RUNTIME_VERSION = "0.1.0";
 var MAX_FRAME_BYTES = 1024 * 1024;
@@ -36487,7 +36509,7 @@ function endpoint2(input, create) {
   checkDirectory(profileDir, false);
   const root = (0, import_node_path12.join)((0, import_node_fs13.realpathSync)("/tmp"), `cortex-runtime-${userId}`);
   privateDirectory(root, create);
-  const directory = (0, import_node_path12.join)(root, (0, import_node_crypto6.createHash)("sha256").update(profileDir).digest("hex").slice(0, 24));
+  const directory = (0, import_node_path12.join)(root, (0, import_node_crypto5.createHash)("sha256").update(profileDir).digest("hex").slice(0, 24));
   privateDirectory(directory, create);
   return { directory, socket: (0, import_node_path12.join)(directory, "s"), credential: (0, import_node_path12.join)(directory, "service.json"), profileDir };
 }
@@ -36786,7 +36808,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.17";
+var version = "0.1.18";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -36855,7 +36877,7 @@ function appendPromptHistory(configDir, cwd, text) {
 }
 
 // src/outbox.ts
-var import_node_crypto7 = require("node:crypto");
+var import_node_crypto6 = require("node:crypto");
 var import_node_fs15 = require("node:fs");
 var import_node_path14 = require("node:path");
 init_safe_file();
@@ -36885,7 +36907,7 @@ var CliOutbox = class {
       }
     }
     this.directory = (0, import_node_path14.join)(configDir, "cli-outbox", sessionId);
-    this.path = (0, import_node_path14.join)(this.directory, process.pid + "-" + (0, import_node_crypto7.randomUUID)() + ".json");
+    this.path = (0, import_node_path14.join)(this.directory, process.pid + "-" + (0, import_node_crypto6.randomUUID)() + ".json");
   }
   save(items) {
     if (!items.length) {
@@ -36920,7 +36942,7 @@ var CliOutbox = class {
         if (error.code !== "ESRCH") continue;
       }
       const source = (0, import_node_path14.join)(this.directory, file);
-      const claim = (0, import_node_path14.join)(this.directory, process.pid + "-" + (0, import_node_crypto7.randomUUID)() + ".json");
+      const claim = (0, import_node_path14.join)(this.directory, process.pid + "-" + (0, import_node_crypto6.randomUUID)() + ".json");
       try {
         (0, import_node_fs15.renameSync)(source, claim);
       } catch (error) {
@@ -36955,12 +36977,12 @@ var CliOutbox = class {
     return recovered;
   }
   release() {
-    if ((0, import_node_fs15.lstatSync)(this.path, { throwIfNoEntry: false })) (0, import_node_fs15.renameSync)(this.path, (0, import_node_path14.join)(this.directory, "released-" + (0, import_node_crypto7.randomUUID)() + ".json"));
+    if ((0, import_node_fs15.lstatSync)(this.path, { throwIfNoEntry: false })) (0, import_node_fs15.renameSync)(this.path, (0, import_node_path14.join)(this.directory, "released-" + (0, import_node_crypto6.randomUUID)() + ".json"));
   }
 };
 
 // src/interactive.ts
-var import_node_crypto8 = require("node:crypto");
+var import_node_crypto7 = require("node:crypto");
 var import_node_readline = require("node:readline");
 init_src();
 var HostRejected = class extends Error {
@@ -36990,7 +37012,7 @@ async function runInteractive(worker, options, request, ui) {
       if (branch !== store.get(state).branch) update({ branch });
     });
   };
-  const entry = (text, id = (0, import_node_crypto8.randomUUID)(), kind = "notice", detail, agentId) => {
+  const entry = (text, id = (0, import_node_crypto7.randomUUID)(), kind = "notice", detail, agentId) => {
     const entries = [...store.get(state).entries];
     const index = entries.findIndex((item) => item.id === id);
     if (index < 0) entries.push({ id, text: clean(text), kind, detail, agentId, runId: store.get(state).runId });
@@ -37080,7 +37102,7 @@ async function runInteractive(worker, options, request, ui) {
     if (!item || closed || current2.closing || !current2.requests.some((pending) => pending.runId === item.runId && pending.interaction.request.sessionId === item.interaction.request.sessionId && pending.interaction.request.requestId === item.interaction.request.requestId)) return;
     tracked({
       type: "respond",
-      id: (0, import_node_crypto8.randomUUID)(),
+      id: (0, import_node_crypto7.randomUUID)(),
       sessionId: item.interaction.request.sessionId,
       runId: item.runId,
       requestId: item.interaction.request.requestId,
@@ -37257,12 +37279,13 @@ async function runInteractive(worker, options, request, ui) {
     editing = true;
     try {
       let sessionId = value;
+      let busy = false;
       if (command === "/resume" && !sessionId) {
         if (!ui) {
           entry(tr("\u4F7F\u7528 /resume <\u4F1A\u8BDDID>\uFF1Bcortex sessions \u53EF\u67E5\u770B\u4F1A\u8BDD\u3002", "Use /resume <session ID>; run cortex sessions to list sessions."));
           return;
         }
-        const reply = await ui.wait(tr("\u8BFB\u53D6\u4F1A\u8BDD", "Reading sessions"), (signal) => query({ type: "sessions", id: (0, import_node_crypto8.randomUUID)() }, signal));
+        const reply = await ui.wait(tr("\u8BFB\u53D6\u4F1A\u8BDD", "Reading sessions"), (signal) => query({ type: "sessions", id: (0, import_node_crypto7.randomUUID)() }, signal));
         if (reply.type !== "sessions") return;
         if (!reply.sessions.length) {
           await ui.view(tr("\u6062\u590D\u4F1A\u8BDD", "Resume session"), tr("\u5F53\u524D\u6CA1\u6709\u53EF\u6062\u590D\u7684\u4F1A\u8BDD\u3002", "No sessions to resume."));
@@ -37274,7 +37297,13 @@ async function runInteractive(worker, options, request, ui) {
         const older = rows.filter((item) => item.id !== currentId && item.updatedAt < now - 3 * 864e5);
         const option = (item, hidden = false) => {
           const row = sessionRow({ ...item, title: item.title || tr("\u672A\u547D\u540D\u4F1A\u8BDD", "Untitled session") }, now, here);
-          return { value: item.id, label: row.label, description: item.id === currentId ? tr("\u2713 \u5F53\u524D", "\u2713 Current") : row.description, hidden };
+          return {
+            value: item.id,
+            label: row.label,
+            hidden,
+            muted: item.busy,
+            description: item.id === currentId ? tr("\u2713 \u5F53\u524D", "\u2713 Current") : item.busy ? tr("\u5728\u5176\u4ED6\u7EC8\u7AEF\u8FD0\u884C", "Open in another terminal") : row.description
+          };
         };
         const picker = ui;
         const pick = (all) => picker.select(tr("\u6062\u590D\u4F1A\u8BDD", "Resume session"), all || !older.length ? rows.map((item) => option(item)) : [
@@ -37288,16 +37317,22 @@ async function runInteractive(worker, options, request, ui) {
         ], { initial: currentId });
         sessionId = await pick(false);
         if (sessionId === ":older") sessionId = await pick(true);
+        busy = reply.sessions.some((item) => item.id === sessionId && item.busy);
       }
       if (command === "/resume" && !/^[A-Za-z0-9_-]{1,128}$/.test(sessionId)) throw new Error(tr("\u4F1A\u8BDD ID \u65E0\u6548", "Invalid session ID"));
       if (sessionId === current2.session.sessionId) return;
       if (command === "/resume" && value) {
-        const reply = await query({ type: "sessions", id: (0, import_node_crypto8.randomUUID)() }, AbortSignal.timeout(1e4));
+        const reply = await query({ type: "sessions", id: (0, import_node_crypto7.randomUUID)() }, AbortSignal.timeout(1e4));
         if (reply.type !== "sessions" || !reply.sessions.some((item) => item.id === sessionId)) throw new Error(tr("\u4F1A\u8BDD\u4E0D\u5B58\u5728", "Session not found"));
+        busy = reply.sessions.some((item) => item.id === sessionId && item.busy);
+      }
+      if (busy) {
+        ui?.notify(tr("\u8FD9\u4E2A\u5BF9\u8BDD\u6B63\u5728\u53E6\u4E00\u4E2A\u7EC8\u7AEF\u8FD0\u884C\uFF0C\u8BF7\u5728\u90A3\u8FB9\u7EE7\u7EED", "This conversation is open in another terminal. Continue there."), "warning");
+        return;
       }
       const draft = ui?.editor.getExpandedText() ?? "";
       if (draft.trim() || draftAttachments.length) {
-        saveQueue([...store.get(state).queue, { id: (0, import_node_crypto8.randomUUID)(), text: draft.trim() ? draft : "\u8BF7\u67E5\u770B\u9644\u4EF6\u3002", attachments: draftAttachments, state: "waiting" }]);
+        saveQueue([...store.get(state).queue, { id: (0, import_node_crypto7.randomUUID)(), text: draft.trim() ? draft : "\u8BF7\u67E5\u770B\u9644\u4EF6\u3002", attachments: draftAttachments, state: "waiting" }]);
       }
       configure = {
         kind: "switch",
@@ -37330,7 +37365,7 @@ async function runInteractive(worker, options, request, ui) {
     editing = true;
     try {
       const sessionId = current2.session.sessionId;
-      const reply = await ui.wait(tr("\u8BFB\u53D6\u56DE\u9000\u70B9", "Reading rewind points"), (signal) => query({ type: "rewind", id: (0, import_node_crypto8.randomUUID)(), sessionId }, signal));
+      const reply = await ui.wait(tr("\u8BFB\u53D6\u56DE\u9000\u70B9", "Reading rewind points"), (signal) => query({ type: "rewind", id: (0, import_node_crypto7.randomUUID)(), sessionId }, signal));
       if (reply.type !== "rewind-points") return;
       if (!reply.points.length) {
         await ui.view(tr("\u56DE\u9000", "Rewind"), tr("\u5F53\u524D\u8FD8\u6CA1\u6709\u53EF\u56DE\u9000\u7684\u6D88\u606F\u3002", "No messages to rewind to yet."));
@@ -37353,7 +37388,7 @@ async function runInteractive(worker, options, request, ui) {
       rewindDraft = known ?? excerpt;
       let result;
       try {
-        result = await query({ type: "rewind", id: (0, import_node_crypto8.randomUUID)(), sessionId, messageId, files: action === "files" }, new AbortController().signal);
+        result = await query({ type: "rewind", id: (0, import_node_crypto7.randomUUID)(), sessionId, messageId, files: action === "files" }, new AbortController().signal);
       } catch (error) {
         if (error instanceof HostRejected) {
           rewindDraft = void 0;
@@ -37378,7 +37413,7 @@ async function runInteractive(worker, options, request, ui) {
     if (!ui || !current2.session || editing || current2.closing) return;
     editing = true;
     try {
-      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto8.randomUUID)(), sessionId: current2.session.sessionId }, signal));
+      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto7.randomUUID)(), sessionId: current2.session.sessionId }, signal));
       if (reply.type !== "diff") return;
       if (!reply.fileChanges.length) {
         await ui.view(tr("\u672C\u4F1A\u8BDD\u6539\u52A8", "Changes in this session"), tr("\u672C\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u6587\u4EF6\u6539\u52A8", "No file changes in this session yet"));
@@ -37425,11 +37460,11 @@ async function runInteractive(worker, options, request, ui) {
     const actions = {
       models: async (draft, signal) => {
         if (options.desktop) return session.models ?? [session.model];
-        const reply = await query({ type: "catalog", id: (0, import_node_crypto8.randomUUID)(), connection: draft }, signal);
+        const reply = await query({ type: "catalog", id: (0, import_node_crypto7.randomUUID)(), connection: draft }, signal);
         return reply.type === "catalog" ? reply.models : [];
       },
       verify: async (draft, signal) => {
-        await query({ type: "verify", id: (0, import_node_crypto8.randomUUID)(), connection: draft }, signal);
+        await query({ type: "verify", id: (0, import_node_crypto7.randomUUID)(), connection: draft }, signal);
       }
     };
     const scope = () => ui.select(tr("\u4FDD\u5B58\u8303\u56F4", "Save scope"), [
@@ -37472,7 +37507,7 @@ async function runInteractive(worker, options, request, ui) {
           selectedScope = value;
         });
         const change = !options.desktop && !(store.get(state).session?.models ?? []).includes(model) ? { connection: { ...connection, model } } : { model };
-        tracked({ type: "settings", id: (0, import_node_crypto8.randomUUID)(), ...change, scope: selectedScope }, {
+        tracked({ type: "settings", id: (0, import_node_crypto7.randomUUID)(), ...change, scope: selectedScope }, {
           notice: model + (selectedScope === "default" ? tr("  \u5F53\u524D\u4F1A\u8BDD\u53CA\u4EE5\u540E\u9ED8\u8BA4", "  This session and future sessions") : tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only"))
         });
       } else if (command === "/thinking") {
@@ -37487,7 +37522,7 @@ async function runInteractive(worker, options, request, ui) {
         );
         const selectedScope = await scope();
         tracked(
-          { type: "settings", id: (0, import_node_crypto8.randomUUID)(), thinking, scope: selectedScope },
+          { type: "settings", id: (0, import_node_crypto7.randomUUID)(), thinking, scope: selectedScope },
           {
             notice: "Thinking " + thinking + (selectedScope === "default" ? tr("  \u5F53\u524D\u4F1A\u8BDD\u53CA\u4EE5\u540E\u9ED8\u8BA4", "  This session and future sessions") : tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only"))
           }
@@ -37499,7 +37534,7 @@ async function runInteractive(worker, options, request, ui) {
           { value: "bypassPermissions", label: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve"), description: tr("\u4ECD\u4FDD\u7559\u4E0D\u53EF\u9006\u547D\u4EE4\u4FDD\u62A4", "Irreversible commands stay protected") }
         ], { initial: session.mode, search: false });
         tracked(
-          { type: "settings", id: (0, import_node_crypto8.randomUUID)(), mode },
+          { type: "settings", id: (0, import_node_crypto7.randomUUID)(), mode },
           { notice: { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[mode] + tr("  \u6743\u9650\u5DF2\u66F4\u65B0\u3002", "  Permissions updated") }
         );
       } else {
@@ -37508,7 +37543,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         const settings2 = await editConnection(ui, connection, actions, session.credentialSource === "environment" ? options.keyEnv : void 0, true);
-        tracked({ type: "settings", id: (0, import_node_crypto8.randomUUID)(), connection: settings2 }, { notice: tr("\u8BBE\u7F6E\u5DF2\u4FDD\u5B58\uFF0C\u5F53\u524D\u4F1A\u8BDD\u4FDD\u7559\u3002", "Settings saved; this session is kept.") });
+        tracked({ type: "settings", id: (0, import_node_crypto7.randomUUID)(), connection: settings2 }, { notice: tr("\u8BBE\u7F6E\u5DF2\u4FDD\u5B58\uFF0C\u5F53\u524D\u4F1A\u8BDD\u4FDD\u7559\u3002", "Settings saved; this session is kept.") });
       }
     } catch (error) {
       if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
@@ -37527,7 +37562,7 @@ async function runInteractive(worker, options, request, ui) {
       const file = path ? readSelectedAttachment(path, current2.session.cwd) : { bytes: await clipboardImage(), filename: "clipboard-" + Date.now() + ".png" };
       staged = stageAttachment(request.configDir, file.bytes);
       const reply = await query(
-        { type: "attachment", id: (0, import_node_crypto8.randomUUID)(), sessionId: current2.session.sessionId, path: staged, filename: file.filename },
+        { type: "attachment", id: (0, import_node_crypto7.randomUUID)(), sessionId: current2.session.sessionId, path: staged, filename: file.filename },
         AbortSignal.timeout(1e4)
       );
       if (reply.type !== "attachment" || reply.sessionId !== store.get(state).session?.sessionId || store.get(state).closing) {
@@ -37620,7 +37655,7 @@ async function runInteractive(worker, options, request, ui) {
             entry(tr("\u7528\u6CD5\uFF1A/rename <\u540D\u79F0>", "Usage: /rename <title>"));
             return;
           }
-          const reply = await query({ type: "rename", id: (0, import_node_crypto8.randomUUID)(), sessionId, title }, AbortSignal.timeout(1e4));
+          const reply = await query({ type: "rename", id: (0, import_node_crypto7.randomUUID)(), sessionId, title }, AbortSignal.timeout(1e4));
           if (reply.type === "ack") ui?.notify(tr("\u4F1A\u8BDD\u5DF2\u6539\u540D\u3002", "Session renamed."), "success");
         })().catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
@@ -37662,7 +37697,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         try {
-          saveQueue([...current2.queue, { id: (0, import_node_crypto8.randomUUID)(), text: "/compact", state: "waiting" }]);
+          saveQueue([...current2.queue, { id: (0, import_node_crypto7.randomUUID)(), text: "/compact", state: "waiting" }]);
           dispatchQueue();
         } catch (error) {
           entry(error.message, void 0, "error");
@@ -37734,7 +37769,7 @@ async function runInteractive(worker, options, request, ui) {
         }
         tracked({
           type: "settings",
-          id: (0, import_node_crypto8.randomUUID)(),
+          id: (0, import_node_crypto7.randomUUID)(),
           scope: "session",
           ...command === "/model" ? { model: value } : command === "/thinking" ? { thinking: value } : { mode: value }
         }, { notice: value + tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only") });
@@ -37784,7 +37819,7 @@ async function runInteractive(worker, options, request, ui) {
     }
     if (!text.trim()) text = "\u8BF7\u67E5\u770B\u9644\u4EF6\u3002";
     try {
-      saveQueue([...current2.queue, { id: (0, import_node_crypto8.randomUUID)(), text, attachments, state: "waiting" }]);
+      saveQueue([...current2.queue, { id: (0, import_node_crypto7.randomUUID)(), text, attachments, state: "waiting" }]);
       draftAttachments = [];
       ui?.setAttachments?.([]);
       dispatchQueue();
@@ -37902,7 +37937,7 @@ async function runInteractive(worker, options, request, ui) {
       const queued = current2.queue.find((item) => item.id === message.id);
       if (queued) {
         try {
-          saveQueue(message.accepted ? current2.queue.filter((item) => item.id !== message.id) : current2.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto8.randomUUID)(), state: "waiting" } : item));
+          saveQueue(message.accepted ? current2.queue.filter((item) => item.id !== message.id) : current2.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto7.randomUUID)(), state: "waiting" } : item));
           if (!message.accepted) update({ queuePaused: true });
         } catch (error) {
           update({ queue: current2.queue.map((item) => item.id === message.id ? { ...item, state: "uncertain" } : item), queuePaused: true });
@@ -38125,7 +38160,7 @@ async function runInteractive(worker, options, request, ui) {
         const sessionId = store.get(state).session?.sessionId;
         if (!sessionId) return [];
         try {
-          const reply = await query({ type: "skills", id: (0, import_node_crypto8.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
+          const reply = await query({ type: "skills", id: (0, import_node_crypto7.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
           const session2 = store.get(state).session;
           if (signal.aborted || session2?.sessionId !== sessionId) return [];
           if (reply.type !== "skills" || reply.sessionId !== sessionId) {
@@ -38238,7 +38273,7 @@ async function runInteractive(worker, options, request, ui) {
           for (const text of readPromptHistory(request.configDir, current2.session.cwd).reverse()) screen.editor.addToHistory(text);
           screen.editor.setAutocompleteProvider(new CortexAutocomplete(commandContext, current2.session.cwd, discoverSkills, async (signal) => {
             try {
-              const reply = await query({ type: "sessions", id: (0, import_node_crypto8.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
+              const reply = await query({ type: "sessions", id: (0, import_node_crypto7.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
               return reply.type === "sessions" ? reply.sessions : [];
             } catch (error) {
               if (!signal.aborted) {
@@ -38356,7 +38391,7 @@ async function runInteractive(worker, options, request, ui) {
         try {
           await query({
             type: "agent-control",
-            id: (0, import_node_crypto8.randomUUID)(),
+            id: (0, import_node_crypto7.randomUUID)(),
             sessionId: action.sessionId,
             runId: action.runId,
             agentId: action.agentId,
@@ -38393,7 +38428,7 @@ async function runInteractive(worker, options, request, ui) {
     stopUI();
     if (rewindDraft !== void 0 && outbox) {
       try {
-        outbox.save([...store.get(state).queue, { id: (0, import_node_crypto8.randomUUID)(), text: rewindDraft, state: "waiting" }]);
+        outbox.save([...store.get(state).queue, { id: (0, import_node_crypto7.randomUUID)(), text: rewindDraft, state: "waiting" }]);
       } catch (error) {
         process.stderr.write(tr("\u56DE\u9000\u524D\u7684\u6D88\u606F\u672A\u80FD\u4FDD\u5B58\uFF1A", "Couldn\u2019t save the message from before the rewind: ") + clean(error.message) + "\n" + clean(rewindDraft) + "\n");
       }
@@ -38416,7 +38451,7 @@ async function runInteractive(worker, options, request, ui) {
 // src/args.ts
 var import_node_os7 = require("node:os");
 var import_node_path16 = require("node:path");
-var import_node_crypto9 = require("node:crypto");
+var import_node_crypto8 = require("node:crypto");
 var import_node_util6 = require("node:util");
 init_src();
 var cliOptions = {
@@ -38544,7 +38579,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
     command,
     configDir: values["config-dir"],
     cwd: options.desktop && (command === "exec" || command === "interactive") && !values.session ? (0, import_node_path16.resolve)(values.cwd ?? process.cwd()) : values.cwd,
-    requestId: values["request-id"] ?? (options.desktop && command === "exec" ? (0, import_node_crypto9.randomUUID)() : void 0),
+    requestId: values["request-id"] ?? (options.desktop && command === "exec" ? (0, import_node_crypto8.randomUUID)() : void 0),
     prompt: prompt.join(" "),
     sessionId: values.session,
     channelId: values.channel,
@@ -38888,10 +38923,8 @@ async function main() {
         "Interactive mode needs a terminal. For pipes or automation, use exec."
       ));
     }
-    if (options.setup) {
-      const lease = acquireProfile(request.configDir);
-      lease.release();
-    }
+    if (options.setup) openProfile(request.configDir);
+    if (!options.desktop && request.sessionId && /^[\w-]+$/.test(request.sessionId)) assertSessionFree(openProfile(request.configDir), request.sessionId);
     const setupRequired = !options.setup && !options.desktop && request.command === "interactive" && needsSetup(options);
     if ((options.setup || request.command === "interactive") && process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb") {
       ui = new TerminalUI(void 0, readAppearance());
