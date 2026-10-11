@@ -51,4 +51,6 @@ source <(cortex completions zsh)
 
 ## 第三方许可
 
+`dist/cortex.cjs` 与 `dist/worker.cjs` 打包了第三方 npm 包，各包的许可证与版权声明见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；作为依赖安装的包（见 `package.json`）随包自带许可证。
+
 终端符号的 ASCII 降级规则改写自 [termcn](https://github.com/shadcn-labs/termcn)（MIT License，Copyright (c) 2026 Aniket Pawar）。

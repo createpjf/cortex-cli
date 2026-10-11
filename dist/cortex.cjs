@@ -36644,7 +36644,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.12";
+var version = "0.1.13";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
