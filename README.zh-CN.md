@@ -4,6 +4,20 @@
 
 <p align="center">如果你在用 Cortex 桌面，运行 <code>cortex --desktop</code> 即可共用桌面的供应商、权限和对话。</p>
 
+<p align="center">
+  <img src="./media/session.svg" alt="Cortex CLI 对话：一轮完成的代码修改、三个调研子代理，输入框里是下一步预测" width="90%" />
+</p>
+
+<details>
+<summary>更多截图</summary>
+
+<p align="center">
+  <img src="./media/start.svg" alt="Cortex CLI 开始页" width="90%" />
+  <img src="./media/commands.svg" alt="Ctrl+P 打开的命令面板" width="90%" />
+</p>
+
+</details>
+
 ---
 
 ## 快速开始

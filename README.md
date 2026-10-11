@@ -4,6 +4,20 @@
 
 <p align="center">If you use the Cortex desktop app, run <code>cortex --desktop</code> to share its providers, permissions and conversations.</p>
 
+<p align="center">
+  <img src="./media/session.svg" alt="A Cortex CLI session: a finished code change, three research agents, and a suggested next message in the input box" width="90%" />
+</p>
+
+<details>
+<summary>More screenshots</summary>
+
+<p align="center">
+  <img src="./media/start.svg" alt="Cortex CLI start screen" width="90%" />
+  <img src="./media/commands.svg" alt="Command palette opened with Ctrl+P" width="90%" />
+</p>
+
+</details>
+
 ---
 
 ## Quickstart

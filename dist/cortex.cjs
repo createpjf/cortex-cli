@@ -38252,7 +38252,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.22";
+var version = "0.1.23";
 
 // src/interactive.ts
 var import_node_fs18 = require("node:fs");
