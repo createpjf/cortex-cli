@@ -1,0 +1,19 @@
+{
+  "name": "cortex-cli",
+  "version": "0.1.9",
+  "private": true,
+  "description": "Cortex Agent in your terminal (preview build)",
+  "bin": {
+    "cortex": "dist/cortex.cjs"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "1.1.0",
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "@earendil-works/pi-tui": "1.1.0",
+    "sharp": "0.35.3"
+  }
+}
