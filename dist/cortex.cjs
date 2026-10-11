@@ -36786,7 +36786,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.16";
+var version = "0.1.17";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -38597,7 +38597,9 @@ async function runUpdate(deps) {
     write(theme.error("\u2717 " + tr("\u8BFB\u53D6\u6700\u65B0\u7248\u672C\u5931\u8D25", "Couldn\u2019t check the latest version")) + "  " + theme.muted(error.message) + "\n");
     return 1;
   }
-  write("  " + theme.muted(tr("\u5F53\u524D", "Current")) + "  " + current2 + "\n  " + theme.muted(tr("\u6700\u65B0", "Latest")) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
+  const [currentLabel, latestLabel] = [tr("\u5F53\u524D", "Current"), tr("\u6700\u65B0", "Latest")];
+  const labelWidth = Math.max(currentLabel.length, latestLabel.length);
+  write("  " + theme.muted(currentLabel.padEnd(labelWidth)) + "  " + current2 + "\n  " + theme.muted(latestLabel.padEnd(labelWidth)) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
   if (compareVersions(latest, current2) <= 0) {
     write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current2) + "\n");
     return 0;
