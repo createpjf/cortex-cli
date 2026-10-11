@@ -9,10 +9,12 @@ Cortex Agent in your terminal. Preview build; the source lives in the Cortex rep
 需要 Node.js 22.19 或更高版本。
 
 ```bash
-npm install -g github:createpjf/cortex-cli
+npm install -g github:createpjf/cortex-cli --loglevel=error
 ```
 
-更新时重新执行同一条命令。卸载用 `npm uninstall -g cortex-cli`。
+`--loglevel=error` 让 npm 只输出错误。去掉它会看到几条来自上游依赖的废弃与安装脚本警告，不影响使用。
+
+更新用 `cortex update`：显示当前与最新版本、各版本的更新内容和安装进度，完成后写明版本变化。交互界面每天最多联网检查一次新版本，有新版本时在输入框下边框提示；设置 `CORTEX_NO_UPDATE_CHECK=1` 可关闭。卸载用 `npm uninstall -g cortex-cli`。
 
 ## 使用
 

@@ -1,6 +1,6 @@
 {
   "name": "cortex-cli",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "private": true,
   "description": "Cortex Agent in your terminal (preview build)",
   "bin": {
@@ -9,6 +9,10 @@
   "engines": {
     "node": ">=22.19.0"
   },
+  "files": [
+    "dist",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
   "dependencies": {
     "@earendil-works/pi-agent-core": "1.1.0",
     "@earendil-works/pi-ai": "1.1.0",

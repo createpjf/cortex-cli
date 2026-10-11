@@ -35144,14 +35144,15 @@ var TerminalUI = class {
     return this.unicode === false ? lines.map(toAscii) : lines;
   }
   /** 下边框的短暂通知：图标与颜色按级别区分（参考 termcn Toast / StatusMessage） */
-  notify(text, variant = "info") {
+  notify(text, variant = "info", duration = 2500) {
+    if (this.disposed) return;
     this.noticeVariant = variant;
     this.clearNotice();
     this.notice = clean(text);
     this.noticeTimer = setTimeout(() => {
       this.clearNotice();
       this.tui.requestRender();
-    }, 2500);
+    }, duration);
     this.noticeTimer.unref();
     this.tui.requestRender();
   }
@@ -36435,9 +36436,9 @@ async function runSetup(options, ui) {
 }
 
 // src/index.ts
-var import_node_child_process6 = require("node:child_process");
-var import_node_path17 = require("node:path");
-var import_node_util7 = require("node:util");
+var import_node_child_process7 = require("node:child_process");
+var import_node_path18 = require("node:path");
+var import_node_util8 = require("node:util");
 
 // src/desktop-client.ts
 var import_node_events = require("node:events");
@@ -36785,7 +36786,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.15";
+var version = "0.1.16";
 
 // src/interactive.ts
 var import_node_fs16 = require("node:fs");
@@ -38436,7 +38437,7 @@ var cliOptions = {
   "output-format": { type: "string" },
   timeout: { type: "string" }
 };
-var subcommands = ["setup", "exec", "resume", "sessions", "inspect", "runtime", "request", "completions"];
+var subcommands = ["setup", "exec", "resume", "sessions", "inspect", "runtime", "request", "completions", "update"];
 function completionScript(shell) {
   const flags = Object.keys(cliOptions).map((name) => "--" + name);
   if (shell === "fish") {
@@ -38471,6 +38472,10 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
     setup: positionals[0] === "setup"
   };
   if (options.help || options.version) return options;
+  if (positionals[0] === "update") {
+    if (positionals.length !== 1) throw new Error(tr("update \u4E0D\u63A5\u53D7\u53C2\u6570", "update takes no arguments"));
+    return { ...options, update: true };
+  }
   if (positionals[0] === "completions") {
     const shell = positionals[1];
     if (positionals.length !== 2 || shell !== "bash" && shell !== "zsh" && shell !== "fish") {
@@ -38551,6 +38556,175 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   return options;
 }
 
+// src/update.ts
+var import_node_child_process6 = require("node:child_process");
+var import_node_fs17 = require("node:fs");
+var import_node_os8 = require("node:os");
+var import_node_path17 = require("node:path");
+var import_node_util7 = require("node:util");
+init_src();
+init_safe_file();
+var updateSource = "github:createpjf/cortex-cli";
+var manifestUrl = "https://raw.githubusercontent.com/createpjf/cortex-cli/main/package.json";
+var commitsUrl = "https://api.github.com/repos/createpjf/cortex-cli/commits?per_page=30";
+function compareVersions(a, b) {
+  const parts = (value) => value.split("-")[0].split(".").map((part) => Number(part) || 0);
+  const [left, right] = [parts(a), parts(b)];
+  for (let index = 0; index < Math.max(left.length, right.length); index++) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0);
+    if (diff) return diff;
+  }
+  return 0;
+}
+function changelog(commits, current2, latest) {
+  const entries = [];
+  for (const { commit } of commits) {
+    const [subject = "", ...body] = (commit?.message ?? "").split("\n");
+    const version2 = /^cortex-cli (\d+\.\d+\.\d+)/.exec(subject.trim())?.[1];
+    if (!version2 || compareVersions(version2, current2) <= 0 || compareVersions(version2, latest) > 0 || entries.some((entry) => entry.version === version2)) continue;
+    entries.push({ version: version2, items: body.map((line) => line.trim()).filter((line) => line.startsWith("- ")).map((line) => line.slice(2)) });
+  }
+  return entries.sort((a, b) => compareVersions(b.version, a.version));
+}
+async function runUpdate(deps) {
+  const { current: current2, write } = deps;
+  write(theme.bold(tr("Cortex CLI \u66F4\u65B0", "Cortex CLI update")) + "\n");
+  let latest;
+  try {
+    latest = String(JSON.parse(await deps.fetchText(manifestUrl)).version ?? "");
+    if (!/^\d+\.\d+\.\d+/.test(latest)) throw new Error(tr("\u7248\u672C\u53F7\u683C\u5F0F\u4E0D\u5BF9", "unexpected version format"));
+  } catch (error) {
+    write(theme.error("\u2717 " + tr("\u8BFB\u53D6\u6700\u65B0\u7248\u672C\u5931\u8D25", "Couldn\u2019t check the latest version")) + "  " + theme.muted(error.message) + "\n");
+    return 1;
+  }
+  write("  " + theme.muted(tr("\u5F53\u524D", "Current")) + "  " + current2 + "\n  " + theme.muted(tr("\u6700\u65B0", "Latest")) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
+  if (compareVersions(latest, current2) <= 0) {
+    write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current2) + "\n");
+    return 0;
+  }
+  let notes = [];
+  try {
+    notes = changelog(JSON.parse(await deps.fetchText(commitsUrl)), current2, latest);
+  } catch {
+    notes = [];
+  }
+  if (notes.length) {
+    write("\n  " + theme.bold(tr("\u66F4\u65B0\u5185\u5BB9", "What\u2019s new")) + "\n");
+    for (const note of notes) {
+      note.items.forEach((item, index) => write("  " + theme.muted(index ? " ".repeat(note.version.length) : note.version) + "  " + item + "\n"));
+      if (!note.items.length) write("  " + theme.muted(note.version) + "\n");
+    }
+  }
+  write("\n");
+  const started = deps.now();
+  const result = await deps.npm(["install", "-g", updateSource, "--loglevel=error", "--no-fund", "--no-audit"]);
+  deps.progress("");
+  const took = formatDuration(deps.now() - started);
+  if (result.code !== 0) {
+    write(theme.error("\u2717 " + tr("\u66F4\u65B0\u5931\u8D25", "Update failed")) + "  " + theme.muted(tr("npm \u9000\u51FA\u7801 ", "npm exit code ") + result.code + tr("\uFF0C\u5F53\u524D\u4ECD\u662F ", "; still on ") + current2) + "\n");
+    for (const line of result.output.trim().split("\n").slice(-4)) if (line.trim()) write("  " + theme.muted(line) + "\n");
+    write("  " + theme.muted(tr("\u53EF\u4EE5\u91CD\u8BD5\uFF0C\u6216\u624B\u52A8\u8FD0\u884C\uFF1Anpm install -g ", "Try again, or run: npm install -g ") + updateSource) + "\n");
+    return 1;
+  }
+  const now = deps.installed();
+  if (now && compareVersions(now, current2) <= 0) {
+    write(theme.warning("\u26A0 " + tr("\u5B89\u88C5\u5B8C\u6210\uFF0C\u4F46\u7248\u672C\u4ECD\u662F ", "Installed, but the version is still ") + now) + "\n");
+    return 1;
+  }
+  write(theme.success("\u2713 " + tr("\u5DF2\u66F4\u65B0  ", "Updated  ") + current2 + " \u2192 " + (now ?? latest)) + "  " + theme.muted(tr("\u7528\u65F6 ", "took ") + took) + "\n  " + theme.muted(tr("\u91CD\u65B0\u6253\u5F00 cortex \u5373\u53EF\u4F7F\u7528\u65B0\u7248\u672C", "Reopen cortex to use the new version")) + "\n");
+  return 0;
+}
+function systemUpdateDeps(current2) {
+  const unicode = unicodeSupported();
+  const out = (text) => {
+    const shown = unicode ? text : toAscii(text);
+    process.stdout.write(process.stdout.isTTY ? shown : (0, import_node_util7.stripVTControlCharacters)(shown));
+  };
+  const command = process.platform === "win32" ? "npm.cmd" : "npm";
+  let progressShown = false;
+  return {
+    current: current2,
+    now: Date.now,
+    write: out,
+    fetchText: async (url) => {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1e4), headers: { "User-Agent": "cortex-cli" } });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      return response.text();
+    },
+    progress: (text) => {
+      if (!process.stdout.isTTY) return;
+      if (text || progressShown) process.stdout.write("\r\x1B[2K" + (unicode ? text : toAscii(text)));
+      progressShown = !!text;
+    },
+    npm: (args) => new Promise((resolve6) => {
+      const frames = unicode ? ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"] : ["|", "/", "-", "\\"];
+      const started = Date.now();
+      let frame = 0;
+      const tick = setInterval(() => {
+        if (!process.stdout.isTTY) return;
+        process.stdout.write("\r\x1B[2K" + theme.accent(frames[frame++ % frames.length]) + " " + tr("\u6B63\u5728\u4E0B\u8F7D\u5E76\u5B89\u88C5\u2026 ", "Downloading and installing\u2026 ") + theme.muted(formatDuration(Date.now() - started)));
+        progressShown = true;
+      }, 120);
+      let output = "";
+      const child = (0, import_node_child_process6.spawn)(command, args, { stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32" });
+      child.stdout.on("data", (chunk) => {
+        output += chunk;
+      });
+      child.stderr.on("data", (chunk) => {
+        output += chunk;
+      });
+      child.on("error", (error) => {
+        clearInterval(tick);
+        resolve6({ code: 127, output: error.message });
+      });
+      child.on("close", (code) => {
+        clearInterval(tick);
+        resolve6({ code: code ?? 1, output });
+      });
+    }),
+    installed: () => {
+      const root = (0, import_node_child_process6.spawnSync)(command, ["root", "-g"], { encoding: "utf8", shell: process.platform === "win32" }).stdout?.trim();
+      try {
+        return root ? String(JSON.parse((0, import_node_fs17.readFileSync)((0, import_node_path17.join)(root, "cortex-cli", "package.json"), "utf8")).version) : void 0;
+      } catch {
+        return void 0;
+      }
+    }
+  };
+}
+async function checkForUpdate(current2, options = {}) {
+  const env = options.env ?? process.env;
+  if (env.CORTEX_NO_UPDATE_CHECK === "1" || env.CORTEX_NO_UPDATE_CHECK === "true") return void 0;
+  const path = options.path ?? (0, import_node_path17.join)((0, import_node_os8.homedir)(), ".cortex-cli-update.json");
+  const now = options.now ?? Date.now();
+  let cached = {};
+  try {
+    cached = JSON.parse((0, import_node_fs17.readFileSync)(path, "utf8"));
+  } catch {
+    cached = {};
+  }
+  let latest = typeof cached.latest === "string" ? cached.latest : void 0;
+  if (typeof cached.checkedAt !== "number" || now - cached.checkedAt >= 864e5 || now < cached.checkedAt) {
+    try {
+      const fetchText = options.fetchText ?? (async (url) => {
+        const response = await fetch(url, { signal: AbortSignal.timeout(5e3), headers: { "User-Agent": "cortex-cli" } });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.text();
+      });
+      const version2 = String(JSON.parse(await fetchText(manifestUrl)).version ?? "");
+      if (!/^\d+\.\d+\.\d+/.test(version2)) return void 0;
+      latest = version2;
+      try {
+        writeJsonFileAtomic(path, { checkedAt: now, latest }, true);
+      } catch {
+      }
+    } catch {
+      return void 0;
+    }
+  }
+  return latest && compareVersions(latest, current2) > 0 ? latest : void 0;
+}
+
 // src/index.ts
 init_src();
 function help2() {
@@ -38596,6 +38770,7 @@ function help2() {
     tr('  cortex "\u4EFB\u52A1" > \u7ED3\u679C.txt          \u8F93\u51FA\u91CD\u5B9A\u5411\u65F6\u6309 exec \u8FD0\u884C', '  cortex "task" > out.txt           Runs as exec when output is redirected'),
     tr("  cortex sessions --config-dir <\u72EC\u7ACB\u76EE\u5F55>", "  cortex sessions --config-dir <separate dir>"),
     tr("  cortex inspect --config-dir <\u72EC\u7ACB\u76EE\u5F55>", "  cortex inspect --config-dir <separate dir>"),
+    tr("  cortex update                   \u68C0\u67E5\u5E76\u66F4\u65B0\u5230\u6700\u65B0\u7248\u672C", "  cortex update                   Check for and install the latest version"),
     tr(
       "  cortex completions <bash|zsh|fish>  \u6253\u5370\u8865\u5168\u811A\u672C\uFF0C\u4F8B\u5982 source <(cortex completions zsh)",
       "  cortex completions <bash|zsh|fish>  Print a completion script, e.g. source <(cortex completions zsh)"
@@ -38677,8 +38852,8 @@ async function main() {
     if (format === "json") process.stdout.write(JSON.stringify(result) + "\n");
     else if (format === "stream-json") process.stdout.write(JSON.stringify({ type: "run.result", ...result }) + "\n");
     else {
-      if (result.answer) process.stdout.write((0, import_node_util7.stripVTControlCharacters)(result.answer) + "\n");
-      for (const error of result.errors) process.stderr.write((0, import_node_util7.stripVTControlCharacters)(error.message) + "\n");
+      if (result.answer) process.stdout.write((0, import_node_util8.stripVTControlCharacters)(result.answer) + "\n");
+      for (const error of result.errors) process.stderr.write((0, import_node_util8.stripVTControlCharacters)(error.message) + "\n");
       if (result.recovery) process.stderr.write(JSON.stringify({ recovery: result.recovery }) + "\n");
       if (result.sessionId) process.stderr.write(tr("\u4F1A\u8BDD\uFF1A", "Session: ") + result.sessionId + "\n");
     }
@@ -38699,6 +38874,10 @@ async function main() {
       process.stdout.write(completionScript(options.completions));
       return;
     }
+    if (options.update) {
+      process.exitCode = await runUpdate(systemUpdateDeps(version));
+      return;
+    }
     let request = options.request;
     lastRequestId = request.requestId;
     if (request.command === "interactive" && (!process.stdin.isTTY || !process.stdout.isTTY)) {
@@ -38716,6 +38895,10 @@ async function main() {
       ui = new TerminalUI(void 0, readAppearance());
       ui.onAppearance = saveAppearance;
       ui.onEnd = () => ui?.cancelForm(new UiCancelled(0));
+      const screen = ui;
+      void checkForUpdate(version).then((latest) => {
+        if (latest) setTimeout(() => screen.notify(tr("\u6709\u65B0\u7248\u672C ", "New version ") + latest + " \xB7 cortex update", "info", 1e4), 1500).unref();
+      });
     }
     if (options.setup) {
       await runSetup(options, ui);
@@ -38740,7 +38923,7 @@ async function main() {
     while (true) {
       const apiKey = options.desktop ? "" : process.env[options.keyEnv] ?? "";
       const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== options.keyEnv && !/(?:api.?key|token|secret|password|credential)/i.test(name)));
-      const worker = options.desktop ? await connectDesktop(request.configDir) : (0, import_node_child_process6.fork)((0, import_node_path17.join)(__dirname, "worker.cjs"), [], { env, stdio: ["ignore", "ignore", "ignore", "ipc"], execArgv: [] });
+      const worker = options.desktop ? await connectDesktop(request.configDir) : (0, import_node_child_process7.fork)((0, import_node_path18.join)(__dirname, "worker.cjs"), [], { env, stdio: ["ignore", "ignore", "ignore", "ipc"], execArgv: [] });
       if (options.desktop && request.requestId) process.stderr.write(tr("\u8BF7\u6C42\uFF1A", "Request: ") + request.requestId + "\n");
       if (request.command === "interactive") {
         const configure = await runInteractive(worker, options, { ...request, apiKey }, ui);
