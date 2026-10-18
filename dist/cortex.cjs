@@ -40,6 +40,86 @@ var init_scheduled_tasks = __esm({
   }
 });
 
+// ../../packages/shared/src/i18n/index.ts
+function initialLanguage() {
+  const scope = globalThis;
+  return scope.electronAPI?.language === "en" || scope.process?.env?.CORTEX_LANGUAGE === "en" ? "en" : "zh-CN";
+}
+function getLanguage() {
+  return current;
+}
+function setLanguage(language) {
+  current = language;
+}
+function tr(zh, en) {
+  return current === "en" ? en : zh;
+}
+function plural(count, singular, pluralForm = `${singular}s`) {
+  return englishPlurals.select(count) === "one" ? singular : pluralForm;
+}
+function formatDuration(ms) {
+  const seconds = Math.max(0, Math.floor(ms / 1e3));
+  const h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, s = seconds % 60;
+  const pad = (value) => String(value).padStart(2, "0");
+  if (current === "en") return h ? `${h}h ${pad(m)}m` : m ? `${m}m ${pad(s)}s` : `${s}s`;
+  return h ? `${h}\u5C0F\u65F6 ${pad(m)}\u5206` : m ? `${m}\u5206 ${pad(s)}\u79D2` : `${s}\u79D2`;
+}
+var current, SEGMENT_GAP, englishPlurals, IPC_ERRORS;
+var init_i18n = __esm({
+  "../../packages/shared/src/i18n/index.ts"() {
+    "use strict";
+    current = initialLanguage();
+    SEGMENT_GAP = "\u2003";
+    englishPlurals = new Intl.PluralRules("en");
+    IPC_ERRORS = {
+      sessionNotRunning: () => tr("\u5BF9\u8BDD\u672A\u8FD0\u884C\uFF0C\u65E0\u6CD5\u8FFD\u52A0\u6D88\u606F", "Chat isn\u2019t running, so the message can\u2019t be added"),
+      questionExpired: () => tr("\u95EE\u9898\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u63D0\u95EE", "This question has expired. Ask again."),
+      /** 供应商流在长度上限处结束（core sse-reader 产生，主进程按它改写为本次预算说明） */
+      outputLimit: () => tr("\u6A21\u578B\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210", "The model hit its output limit, so the response is incomplete"),
+      /** 本次输出预算说明的开头，错误卡片按它识别 */
+      outputBudgetLead: () => tr("\u672C\u6B21\u8F93\u51FA\u8FBE\u5230", "Output budget reached"),
+      outputBudget: (tokens) => tr(
+        `\u672C\u6B21\u8F93\u51FA\u8FBE\u5230 ${tokens} token \u9884\u7B97\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210\uFF1B\u672A\u81EA\u52A8\u91CD\u653E\u5DF2\u6267\u884C\u7684\u5DE5\u5177\uFF0C\u53EF\u4EE5\u8BA9\u5B83\u4ECE\u4E2D\u65AD\u5904\u7EE7\u7EED\u3002`,
+        `Output budget reached (${tokens} tokens), so the response is incomplete. Tools that already ran weren\u2019t replayed; ask it to continue from where it stopped.`
+      ),
+      imageInputDisabled: () => tr("\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165", "Image input isn\u2019t enabled for this model"),
+      /** 知识库模型回复的结束原因（Wiki 编辑器按它给出建议） */
+      modelOutputTruncated: () => tr("\u8F93\u51FA\u8FBE\u5230\u957F\u5EA6\u4E0A\u9650\u88AB\u622A\u65AD", "output was cut off at the length limit"),
+      modelContentBlocked: () => tr("\u88AB\u6A21\u578B\u670D\u52A1\u7684\u5185\u5BB9\u5BA1\u6838\u62E6\u622A", "blocked by the model provider\u2019s content filter")
+    };
+  }
+});
+
+// ../../packages/shared/src/types/office.ts
+var OFFICE_GRID_EDIT_COMMANDS, OFFICE_WORD_EDIT_COMMANDS, OFFICE_DECK_EDIT_COMMANDS, OFFICE_EDIT_COMMANDS;
+var init_office = __esm({
+  "../../packages/shared/src/types/office.ts"() {
+    "use strict";
+    init_i18n();
+    OFFICE_GRID_EDIT_COMMANDS = ["cell.set", "range.setValues", "selection.set", "home.bold", "home.italic", "home.underline", "edit.undo", "edit.redo"];
+    OFFICE_WORD_EDIT_COMMANDS = ["text.insert", "text.delete", "edit.replace", "select.text", "select.all", "select.range", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "para.align", "edit.undo", "edit.redo"];
+    OFFICE_DECK_EDIT_COMMANDS = ["slide.new", "slide.duplicate", "slide.delete", "slide.move", "slide.go", "slide.layout", "slide.notes", "shape.insert", "shape.move", "shape.resize", "shape.fill", "edit.select", "edit.deselect", "text.edit", "text.exit", "text.set", "text.insert", "text.delete", "text.selectAll", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "edit.undo", "edit.redo"];
+    OFFICE_EDIT_COMMANDS = [.../* @__PURE__ */ new Set([...OFFICE_WORD_EDIT_COMMANDS, ...OFFICE_GRID_EDIT_COMMANDS, ...OFFICE_DECK_EDIT_COMMANDS])];
+  }
+});
+
+// ../../packages/shared/src/types/cola.ts
+var RUNNER_RESUME_MIN_OFFLINE_MS;
+var init_cola = __esm({
+  "../../packages/shared/src/types/cola.ts"() {
+    "use strict";
+    init_i18n();
+    RUNNER_RESUME_MIN_OFFLINE_MS = 10 * 6e4;
+  }
+});
+
+// ../../packages/shared/src/types/cola-recipe.ts
+var init_cola_recipe = __esm({
+  "../../packages/shared/src/types/cola-recipe.ts"() {
+    "use strict";
+  }
+});
+
 // ../../packages/shared/src/types/session-messages.ts
 var SESSION_MESSAGE_LIMITS;
 var init_session_messages = __esm({
@@ -81,55 +161,6 @@ var init_runtime = __esm({
   }
 });
 
-// ../../packages/shared/src/i18n/index.ts
-function initialLanguage() {
-  const scope = globalThis;
-  return scope.electronAPI?.language === "en" || scope.process?.env?.CORTEX_LANGUAGE === "en" ? "en" : "zh-CN";
-}
-function getLanguage() {
-  return current;
-}
-function setLanguage(language) {
-  current = language;
-}
-function tr(zh, en) {
-  return current === "en" ? en : zh;
-}
-function plural(count, singular, pluralForm = `${singular}s`) {
-  return englishPlurals.select(count) === "one" ? singular : pluralForm;
-}
-function formatDuration(ms) {
-  const seconds = Math.max(0, Math.floor(ms / 1e3));
-  const h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, s = seconds % 60;
-  const pad = (value) => String(value).padStart(2, "0");
-  if (current === "en") return h ? `${h}h ${pad(m)}m` : m ? `${m}m ${pad(s)}s` : `${s}s`;
-  return h ? `${h}\u5C0F\u65F6 ${pad(m)}\u5206` : m ? `${m}\u5206 ${pad(s)}\u79D2` : `${s}\u79D2`;
-}
-var current, englishPlurals, IPC_ERRORS;
-var init_i18n = __esm({
-  "../../packages/shared/src/i18n/index.ts"() {
-    "use strict";
-    current = initialLanguage();
-    englishPlurals = new Intl.PluralRules("en");
-    IPC_ERRORS = {
-      sessionNotRunning: () => tr("\u5BF9\u8BDD\u672A\u8FD0\u884C\uFF0C\u65E0\u6CD5\u8FFD\u52A0\u6D88\u606F", "Chat isn\u2019t running, so the message can\u2019t be added"),
-      questionExpired: () => tr("\u95EE\u9898\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u63D0\u95EE", "This question has expired. Ask again."),
-      /** 供应商流在长度上限处结束（core sse-reader 产生，主进程按它改写为本次预算说明） */
-      outputLimit: () => tr("\u6A21\u578B\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210", "The model hit its output limit, so the response is incomplete"),
-      /** 本次输出预算说明的开头，错误卡片按它识别 */
-      outputBudgetLead: () => tr("\u672C\u6B21\u8F93\u51FA\u8FBE\u5230", "Output budget reached"),
-      outputBudget: (tokens) => tr(
-        `\u672C\u6B21\u8F93\u51FA\u8FBE\u5230 ${tokens} token \u9884\u7B97\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210\uFF1B\u672A\u81EA\u52A8\u91CD\u653E\u5DF2\u6267\u884C\u7684\u5DE5\u5177\uFF0C\u53EF\u4EE5\u8BA9\u5B83\u4ECE\u4E2D\u65AD\u5904\u7EE7\u7EED\u3002`,
-        `Output budget reached (${tokens} tokens), so the response is incomplete. Tools that already ran weren\u2019t replayed; ask it to continue from where it stopped.`
-      ),
-      imageInputDisabled: () => tr("\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165", "Image input isn\u2019t enabled for this model"),
-      /** 知识库模型回复的结束原因（Wiki 编辑器按它给出建议） */
-      modelOutputTruncated: () => tr("\u8F93\u51FA\u8FBE\u5230\u957F\u5EA6\u4E0A\u9650\u88AB\u622A\u65AD", "output was cut off at the length limit"),
-      modelContentBlocked: () => tr("\u88AB\u6A21\u578B\u670D\u52A1\u7684\u5185\u5BB9\u5BA1\u6838\u62E6\u622A", "blocked by the model provider\u2019s content filter")
-    };
-  }
-});
-
 // ../../packages/shared/src/types/channel.ts
 var PROVIDER_DEFAULT_URLS, PROVIDER_ENDPOINT_PRESETS, PROVIDER_LABELS;
 var init_channel = __esm({
@@ -152,14 +183,14 @@ var init_channel = __esm({
     };
     PROVIDER_ENDPOINT_PRESETS = {
       deepseek: [
-        { label: tr("\u539F\u5382 \xB7 Chat Completions", "Official \xB7 Chat Completions"), value: "https://api.deepseek.com" },
-        { label: tr("\u539F\u5382 \xB7 Messages", "Official \xB7 Messages"), value: "https://api.deepseek.com/anthropic" }
+        { label: tr(`\u539F\u5382${SEGMENT_GAP}Chat Completions`, `Official${SEGMENT_GAP}Chat Completions`), value: "https://api.deepseek.com" },
+        { label: tr(`\u539F\u5382${SEGMENT_GAP}Messages`, `Official${SEGMENT_GAP}Messages`), value: "https://api.deepseek.com/anthropic" }
       ],
       minimax: [
-        { label: tr("\u56FD\u5185\u7AD9 \xB7 Messages", "China \xB7 Messages"), value: "https://api.minimax.cn/anthropic/v1" },
-        { label: tr("\u56FD\u9645\u7AD9 \xB7 Messages", "Global \xB7 Messages"), value: "https://api.minimax.io/anthropic/v1" },
-        { label: tr("\u56FD\u5185\u7AD9 \xB7 Chat Completions", "China \xB7 Chat Completions"), value: "https://api.minimax.cn/v1" },
-        { label: tr("\u56FD\u9645\u7AD9 \xB7 Chat Completions", "Global \xB7 Chat Completions"), value: "https://api.minimax.io/v1" }
+        { label: tr(`\u56FD\u5185\u7AD9${SEGMENT_GAP}Messages`, `China${SEGMENT_GAP}Messages`), value: "https://api.minimax.cn/anthropic/v1" },
+        { label: tr(`\u56FD\u9645\u7AD9${SEGMENT_GAP}Messages`, `Global${SEGMENT_GAP}Messages`), value: "https://api.minimax.io/anthropic/v1" },
+        { label: tr(`\u56FD\u5185\u7AD9${SEGMENT_GAP}Chat Completions`, `China${SEGMENT_GAP}Chat Completions`), value: "https://api.minimax.cn/v1" },
+        { label: tr(`\u56FD\u9645\u7AD9${SEGMENT_GAP}Chat Completions`, `Global${SEGMENT_GAP}Chat Completions`), value: "https://api.minimax.io/v1" }
       ]
     };
     PROVIDER_LABELS = {
@@ -194,11 +225,16 @@ var init_chat = __esm({
 });
 
 // ../../packages/shared/src/types/agent.ts
-var GLOBAL_CAPABILITY_SLUG;
+function userFacingToolResult(text2) {
+  const value = text2.trim();
+  return value.startsWith(USER_DENY_REASON_PREFIX) ? value.slice(USER_DENY_REASON_PREFIX.length) : value;
+}
+var GLOBAL_CAPABILITY_SLUG, USER_DENY_REASON_PREFIX;
 var init_agent = __esm({
   "../../packages/shared/src/types/agent.ts"() {
     "use strict";
     GLOBAL_CAPABILITY_SLUG = "@global";
+    USER_DENY_REASON_PREFIX = "\u7528\u6237\u62D2\u7EDD\u4E86\u6B64\u64CD\u4F5C\uFF0C\u5E76\u8BF4\u660E\uFF1A";
   }
 });
 
@@ -269,6 +305,7 @@ var init_knowledge = __esm({
 var init_environment = __esm({
   "../../packages/shared/src/types/environment.ts"() {
     "use strict";
+    init_i18n();
   }
 });
 
@@ -305,7 +342,7 @@ var SEARCH_BACKEND_IDS, searchBackendCredentialId;
 var init_chat_tool = __esm({
   "../../packages/shared/src/types/chat-tool.ts"() {
     "use strict";
-    SEARCH_BACKEND_IDS = ["brave", "searchinfinity", "tavily", "volcengine", "zhipu"];
+    SEARCH_BACKEND_IDS = ["brave", "searchinfinity", "tavily", "volcengine", "zhipu", "deepseek"];
     searchBackendCredentialId = (id) => `web-search:${id}`;
   }
 });
@@ -359,11 +396,23 @@ var init_creative = __esm({
   }
 });
 
+// ../../packages/shared/src/types/terminal.ts
+var TERMINAL_LIMITS;
+var init_terminal = __esm({
+  "../../packages/shared/src/types/terminal.ts"() {
+    "use strict";
+    TERMINAL_LIMITS = { perSession: 4, total: 12, retained: 48, inputBytes: 64 * 1024, excerptBytes: 32 * 1024, queueBytes: 256 * 1024 };
+  }
+});
+
 // ../../packages/shared/src/types/index.ts
 var init_types = __esm({
   "../../packages/shared/src/types/index.ts"() {
     "use strict";
     init_scheduled_tasks();
+    init_office();
+    init_cola();
+    init_cola_recipe();
     init_session_messages();
     init_browser();
     init_computer_use();
@@ -393,6 +442,7 @@ var init_types = __esm({
     init_model_thinking();
     init_model_routing();
     init_creative();
+    init_terminal();
   }
 });
 
@@ -614,6 +664,70 @@ var init_capabilities_diff = __esm({
   }
 });
 
+// ../../packages/shared/src/utils/mcp-failure.ts
+function describeMcpFailure(failure3, language = getLanguage()) {
+  const pick = (zh, en) => language === "en" ? en : zh;
+  switch (failure3.kind) {
+    case "command_missing":
+      return pick("\u547D\u4EE4\u4E0D\u5B58\u5728\uFF0C\u8BF7\u68C0\u67E5 PATH \u6216\u91CD\u65B0\u5B89\u88C5", "Command not found. Check PATH or reinstall.");
+    case "spawn_failed":
+      return pick("\u65E0\u6CD5\u542F\u52A8\u670D\u52A1\u5668\u8FDB\u7A0B\uFF0C\u8BF7\u68C0\u67E5\u547D\u4EE4\u6743\u9650", "Couldn\u2019t start the server process. Check the command\u2019s permissions.");
+    case "timeout":
+      return pick("\u542F\u52A8\u8D85\u65F6", "Startup timed out");
+    case "auth":
+      return pick("\u9274\u6743\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u51ED\u8BC1", "Authentication failed. Check the credentials.");
+    case "credentials_unavailable":
+      if (failure3.reason === "secret") return pick("\u8FDE\u63A5\u5668\u5BC6\u94A5\u4E0D\u5B58\u5728\u6216\u65E0\u6CD5\u89E3\u5BC6\uFF0C\u8BF7\u5728\u6269\u5C55\u4E2D\u5FC3\u91CD\u65B0\u586B\u5199", "The connector secret is missing or can\u2019t be decrypted. Enter it again in Extensions.");
+      if (failure3.reason === "binding") return pick("\u8FDE\u63A5\u5730\u5740\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u586B\u5199\u5BC6\u94A5", "The connection address changed. Enter the secret again.");
+      return pick("\u673A\u5668\u4EBA\u51ED\u636E\u4E0D\u53EF\u7528\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6216\u5355\u72EC\u586B\u5199", "Bot credentials are unavailable. Choose again or enter your own.");
+    case "needs_login":
+      return pick("\u9700\u8981\u5148\u5728\u684C\u9762\u7AEF\u767B\u5F55\uFF08\u6269\u5C55\u4E2D\u5FC3 \u2192 \u8FDE\u63A5\u5668 \u2192 \u8FDE\u63A5\uFF09", "Sign in from the desktop app first (Extensions \u2192 Connectors \u2192 Connect).");
+    case "http_status":
+      return pick(`\u670D\u52A1\u5668\u8FD4\u56DE ${failure3.status}`, `Server returned ${failure3.status}`);
+    case "refused":
+      return pick("\u8FDE\u63A5\u88AB\u62D2\u7EDD\uFF1A\u670D\u52A1\u6CA1\u6709\u5728\u8FD0\u884C\uFF0C\u8BF7\u5148\u542F\u52A8\u5B83\uFF08\u672C\u673A\u670D\u52A1\u5982 Figma \u684C\u9762\u7248\u8981\u5148\u5F00\u542F MCP \u670D\u52A1\uFF09", "Connection refused: the server isn\u2019t running. Start it first (for a local server like Figma desktop, turn on its MCP server).");
+    case "protocol":
+      return pick("\u63E1\u624B\u5931\u8D25\uFF0C\u670D\u52A1\u5668\u672A\u6309 MCP \u534F\u8BAE\u54CD\u5E94\u6216\u5DF2\u9000\u51FA", "Handshake failed: the server didn\u2019t follow the MCP protocol or exited.");
+    default:
+      return pick("\u8FDE\u63A5\u5931\u8D25", "Connection failed");
+  }
+}
+function packageOfSpec(spec) {
+  return PACKAGE_SPEC.exec(spec)?.[1] ?? spec;
+}
+function runnerPackage(command, args) {
+  const base = (command ?? "").split(/[\\/]/).pop()?.toLowerCase().replace(/\.(exe|cmd)$/, "") ?? "";
+  let rest = [...args ?? []];
+  if (base === "bun") {
+    if (rest[0] !== "x") return void 0;
+    rest = rest.slice(1);
+  } else if (base !== "npx" && base !== "bunx") return void 0;
+  while (rest[0]?.startsWith("-")) {
+    if (!RUNNER_FLAGS.has(rest[0])) return void 0;
+    rest = rest.slice(1);
+  }
+  return rest[0] ? PACKAGE_SPEC.exec(rest[0])?.[1] : void 0;
+}
+function mcpSecretBinding(entry, packageOfBundled) {
+  if (entry.type !== "stdio") return entry.url && URL.canParse(entry.url) ? new URL(entry.url).origin : "";
+  if (entry.bundled) {
+    const name2 = packageOfBundled?.(entry.bundled);
+    return name2 ? `package:${name2}` : `bundled:${entry.bundled}`;
+  }
+  if (entry.managedPackage) return `package:${packageOfSpec(entry.managedPackage)}`;
+  const name = runnerPackage(entry.command, entry.args);
+  return name ? `package:${name}` : `command:${[entry.command ?? "", ...entry.args ?? []].join("\0")}`;
+}
+var PACKAGE_SPEC, RUNNER_FLAGS;
+var init_mcp_failure = __esm({
+  "../../packages/shared/src/utils/mcp-failure.ts"() {
+    "use strict";
+    init_i18n();
+    PACKAGE_SPEC = /^((?:@[^/\s@]+\/)?[^@\s/-][^@\s/]*)@[^\s@]+$/;
+    RUNNER_FLAGS = /* @__PURE__ */ new Set(["-y", "--yes", "--bun"]);
+  }
+});
+
 // ../../packages/shared/src/utils/session-content.ts
 var init_session_content = __esm({
   "../../packages/shared/src/utils/session-content.ts"() {
@@ -741,6 +855,13 @@ var init_currency_safe_math = __esm({
   }
 });
 
+// ../../packages/shared/src/utils/file-mentions.ts
+var init_file_mentions = __esm({
+  "../../packages/shared/src/utils/file-mentions.ts"() {
+    "use strict";
+  }
+});
+
 // ../../packages/shared/src/utils/knowledge-mentions.ts
 var init_knowledge_mentions = __esm({
   "../../packages/shared/src/utils/knowledge-mentions.ts"() {
@@ -753,14 +874,13 @@ var init_knowledge_mentions = __esm({
 function displaySessionTitle(title) {
   return DEFAULT_SESSION_TITLES.has(title) ? tr("\u65B0\u5BF9\u8BDD", "New chat") : title;
 }
-var RECAP_AWAY_MS, segmenter, DEFAULT_SESSION_TITLES;
+var RECAP_AWAY_MS, DEFAULT_SESSION_TITLES;
 var init_session_title = __esm({
   "../../packages/shared/src/utils/session-title.ts"() {
     "use strict";
     init_i18n();
     init_knowledge_mentions();
     RECAP_AWAY_MS = 10 * 6e4;
-    segmenter = new Intl.Segmenter(void 0, { granularity: "grapheme" });
     DEFAULT_SESSION_TITLES = /* @__PURE__ */ new Set(["\u65B0\u5BF9\u8BDD", "\u65B0 Agent \u4F1A\u8BDD", "CLI \u5BF9\u8BDD"]);
   }
 });
@@ -1001,6 +1121,7 @@ var init_image_artifacts = __esm({
 var init_creative_auto = __esm({
   "../../packages/shared/src/utils/creative-auto.ts"() {
     "use strict";
+    init_i18n();
     init_channel();
     init_creative();
     init_creative_video();
@@ -1017,11 +1138,55 @@ var init_creative_layout = __esm({
   }
 });
 
+// ../../packages/shared/src/utils/voice-polish.ts
+var init_voice_polish = __esm({
+  "../../packages/shared/src/utils/voice-polish.ts"() {
+    "use strict";
+  }
+});
+
+// ../../packages/shared/src/utils/provider-error.ts
+var init_provider_error = __esm({
+  "../../packages/shared/src/utils/provider-error.ts"() {
+    "use strict";
+    init_i18n();
+  }
+});
+
+// ../../packages/shared/src/utils/cola-goal.ts
+var COLA_TRIGGER_LIMITS;
+var init_cola_goal = __esm({
+  "../../packages/shared/src/utils/cola-goal.ts"() {
+    "use strict";
+    COLA_TRIGGER_LIMITS = {
+      quietMs: 2 * 6e4,
+      minIntervalMs: 30 * 6e4,
+      runsPerDay: 10,
+      pending: 50,
+      triggers: 5,
+      files: 5e3,
+      dir: 500,
+      pattern: 100,
+      pollDefault: 15,
+      pollMin: 5,
+      pollMax: 1440,
+      lines: 500,
+      line: 200,
+      args: 4e3,
+      name: 200,
+      keywords: 10,
+      keyword: 30,
+      chatId: 200
+    };
+  }
+});
+
 // ../../packages/shared/src/utils/index.ts
 var init_utils = __esm({
   "../../packages/shared/src/utils/index.ts"() {
     "use strict";
     init_capabilities_diff();
+    init_mcp_failure();
     init_session_content();
     init_creative_naming();
     init_task_items();
@@ -1030,6 +1195,7 @@ var init_utils = __esm({
     init_workspace_knowledge2();
     init_knowledge_scope();
     init_currency_safe_math();
+    init_file_mentions();
     init_knowledge_mentions();
     init_session_title();
     init_session_mentions();
@@ -1045,6 +1211,9 @@ var init_utils = __esm({
     init_creative_video();
     init_creative_auto();
     init_creative_layout();
+    init_voice_polish();
+    init_provider_error();
+    init_cola_goal();
   }
 });
 
@@ -1156,6 +1325,16 @@ var init_safe_file = __esm({
 });
 
 // ../electron/src/main/lib/file-lock.ts
+function linuxProcessIdentity(pid) {
+  if (process.platform !== "linux") return;
+  try {
+    const stat = (0, import_node_fs2.readFileSync)(`/proc/${pid}/stat`, "utf8");
+    const started = stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19];
+    return [(0, import_node_fs2.readFileSync)("/proc/sys/kernel/random/boot_id", "utf8").trim(), (0, import_node_fs2.readlinkSync)(`/proc/${pid}/ns/pid`), started].join(":");
+  } catch {
+    return;
+  }
+}
 function withFileLock(targetPath, operation, options = {}) {
   const lockPath = `${targetPath}.lock`;
   (0, import_node_fs2.mkdirSync)((0, import_node_path.dirname)(targetPath), { recursive: true });
@@ -1178,27 +1357,45 @@ function withFileLock(targetPath, operation, options = {}) {
   }
 }
 function releaseLock(lockPath, descriptor, checkOwner = false) {
-  const owned = checkOwner ? (0, import_node_fs2.fstatSync)(descriptor) : void 0;
-  (0, import_node_fs2.closeSync)(descriptor);
-  if (!owned) (0, import_node_fs2.rmSync)(lockPath, { force: true });
-  else {
-    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-    if (current2?.dev === owned.dev && current2.ino === owned.ino) (0, import_node_fs2.rmSync)(lockPath);
+  let owned;
+  try {
+    if (checkOwner) {
+      const buffer = Buffer.alloc(1024);
+      owned = buffer.subarray(0, (0, import_node_fs2.readSync)(descriptor, buffer, 0, buffer.length, 0)).toString("utf8");
+    }
+  } finally {
+    (0, import_node_fs2.closeSync)(descriptor);
+  }
+  if (!checkOwner) (0, import_node_fs2.rmSync)(lockPath, { force: true });
+  else removeOwnedLock(lockPath, owned);
+}
+function removeOwnedLock(lockPath, owned) {
+  const current3 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
+  if (!current3?.isFile() || current3.size > 1024) return;
+  try {
+    if ((0, import_node_fs2.readFileSync)(lockPath, "utf8") === owned) (0, import_node_fs2.rmSync)(lockPath);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
 }
 function openProcessLock(lockPath) {
   const temporary = `${lockPath}.${(0, import_node_crypto.randomUUID)()}.tmp`;
-  const descriptor = (0, import_node_fs2.openSync)(temporary, "wx", 384);
+  const descriptor = (0, import_node_fs2.openSync)(temporary, "wx+", 384);
   try {
-    (0, import_node_fs2.writeFileSync)(descriptor, JSON.stringify({ pid: process.pid }));
+    (0, import_node_fs2.writeFileSync)(descriptor, JSON.stringify({ pid: process.pid, identity: linuxProcessIdentity(process.pid), token: (0, import_node_crypto.randomUUID)() }));
     (0, import_node_fs2.linkSync)(temporary, lockPath);
-    return descriptor;
   } catch (error) {
     (0, import_node_fs2.closeSync)(descriptor);
-    throw error;
-  } finally {
     (0, import_node_fs2.rmSync)(temporary, { force: true });
+    throw error;
   }
+  try {
+    (0, import_node_fs2.rmSync)(temporary, { force: true });
+  } catch (error) {
+    releaseLock(lockPath, descriptor, true);
+    throw error;
+  }
+  return descriptor;
 }
 function recoverProcessLock(lockPath) {
   const stat = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
@@ -1206,18 +1403,22 @@ function recoverProcessLock(lockPath) {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
   if (!stat.size) return false;
   let owner;
+  const saved = (0, import_node_fs2.readFileSync)(lockPath, "utf8");
   try {
-    owner = JSON.parse((0, import_node_fs2.readFileSync)(lockPath, "utf8"));
+    owner = JSON.parse(saved);
   } catch {
     throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
   }
   if (!owner || typeof owner !== "object" || !("pid" in owner) || typeof owner.pid !== "number" || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error(tr("\u6587\u4EF6\u9501\u8EAB\u4EFD\u65E0\u6548", "Invalid file lock owner"));
   try {
+    const identity2 = linuxProcessIdentity(owner.pid);
+    if ("identity" in owner && typeof owner.identity === "string" && identity2 && owner.identity !== identity2) {
+      throw Object.assign(new Error("\u8FDB\u7A0B\u542F\u52A8\u8EAB\u4EFD\u5DF2\u53D8\u5316"), { code: "ESRCH" });
+    }
     process.kill(owner.pid, 0);
   } catch (error) {
     if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") throw error;
-    const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-    if (current2?.dev === stat.dev && current2.ino === stat.ino) (0, import_node_fs2.rmSync)(lockPath, { force: true });
+    removeOwnedLock(lockPath, saved);
   }
   return true;
 }
@@ -1250,6 +1451,1033 @@ var init_file_lock = __esm({
     DEFAULT_LOCK_TIMEOUT_MS = 1e4;
     DEFAULT_STALE_LOCK_MS = 6e4;
     LOCK_RETRY_MS = 10;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/scheduled-tasks.ts
+var init_scheduled_tasks2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/scheduled-tasks.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/i18n/index.ts
+function initialLanguage2() {
+  const scope = globalThis;
+  return scope.electronAPI?.language === "en" || scope.process?.env?.CORTEX_LANGUAGE === "en" ? "en" : "zh-CN";
+}
+function tr2(zh, en) {
+  return current2 === "en" ? en : zh;
+}
+var current2, SEGMENT_GAP2, englishPlurals2, IPC_ERRORS2;
+var init_i18n2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/i18n/index.ts"() {
+    "use strict";
+    current2 = initialLanguage2();
+    SEGMENT_GAP2 = "\u2003";
+    englishPlurals2 = new Intl.PluralRules("en");
+    IPC_ERRORS2 = {
+      sessionNotRunning: () => tr2("\u5BF9\u8BDD\u672A\u8FD0\u884C\uFF0C\u65E0\u6CD5\u8FFD\u52A0\u6D88\u606F", "Chat isn\u2019t running, so the message can\u2019t be added"),
+      questionExpired: () => tr2("\u95EE\u9898\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u63D0\u95EE", "This question has expired. Ask again."),
+      /** 供应商流在长度上限处结束（core sse-reader 产生，主进程按它改写为本次预算说明） */
+      outputLimit: () => tr2("\u6A21\u578B\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210", "The model hit its output limit, so the response is incomplete"),
+      /** 本次输出预算说明的开头，错误卡片按它识别 */
+      outputBudgetLead: () => tr2("\u672C\u6B21\u8F93\u51FA\u8FBE\u5230", "Output budget reached"),
+      outputBudget: (tokens) => tr2(
+        `\u672C\u6B21\u8F93\u51FA\u8FBE\u5230 ${tokens} token \u9884\u7B97\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210\uFF1B\u672A\u81EA\u52A8\u91CD\u653E\u5DF2\u6267\u884C\u7684\u5DE5\u5177\uFF0C\u53EF\u4EE5\u8BA9\u5B83\u4ECE\u4E2D\u65AD\u5904\u7EE7\u7EED\u3002`,
+        `Output budget reached (${tokens} tokens), so the response is incomplete. Tools that already ran weren\u2019t replayed; ask it to continue from where it stopped.`
+      ),
+      imageInputDisabled: () => tr2("\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165", "Image input isn\u2019t enabled for this model"),
+      /** 知识库模型回复的结束原因（Wiki 编辑器按它给出建议） */
+      modelOutputTruncated: () => tr2("\u8F93\u51FA\u8FBE\u5230\u957F\u5EA6\u4E0A\u9650\u88AB\u622A\u65AD", "output was cut off at the length limit"),
+      modelContentBlocked: () => tr2("\u88AB\u6A21\u578B\u670D\u52A1\u7684\u5185\u5BB9\u5BA1\u6838\u62E6\u622A", "blocked by the model provider\u2019s content filter")
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/office.ts
+var OFFICE_GRID_EDIT_COMMANDS2, OFFICE_WORD_EDIT_COMMANDS2, OFFICE_DECK_EDIT_COMMANDS2, OFFICE_EDIT_COMMANDS2;
+var init_office2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/office.ts"() {
+    "use strict";
+    init_i18n2();
+    OFFICE_GRID_EDIT_COMMANDS2 = ["cell.set", "range.setValues", "selection.set", "home.bold", "home.italic", "home.underline", "edit.undo", "edit.redo"];
+    OFFICE_WORD_EDIT_COMMANDS2 = ["text.insert", "text.delete", "edit.replace", "select.text", "select.all", "select.range", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "para.align", "edit.undo", "edit.redo"];
+    OFFICE_DECK_EDIT_COMMANDS2 = ["slide.new", "slide.duplicate", "slide.delete", "slide.move", "slide.go", "slide.layout", "slide.notes", "shape.insert", "shape.move", "shape.resize", "shape.fill", "edit.select", "edit.deselect", "text.edit", "text.exit", "text.set", "text.insert", "text.delete", "text.selectAll", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "edit.undo", "edit.redo"];
+    OFFICE_EDIT_COMMANDS2 = [.../* @__PURE__ */ new Set([...OFFICE_WORD_EDIT_COMMANDS2, ...OFFICE_GRID_EDIT_COMMANDS2, ...OFFICE_DECK_EDIT_COMMANDS2])];
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola.ts
+var RUNNER_RESUME_MIN_OFFLINE_MS2;
+var init_cola2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola.ts"() {
+    "use strict";
+    init_i18n2();
+    RUNNER_RESUME_MIN_OFFLINE_MS2 = 10 * 6e4;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola-recipe.ts
+var init_cola_recipe2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola-recipe.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/session-messages.ts
+var SESSION_MESSAGE_LIMITS2;
+var init_session_messages2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/session-messages.ts"() {
+    "use strict";
+    SESSION_MESSAGE_LIMITS2 = {
+      /** 正文最大字符数 */
+      maxBodyChars: 32e3,
+      /** 每个目标会话未处理请求上限 */
+      maxQueuedPerTarget: 20,
+      /** 消息链最大深度，超过则拒绝，防止两个会话互相唤醒 */
+      maxHop: 4,
+      /** 单个授权默认允许的自动唤醒次数 */
+      defaultMaxWakes: 20,
+      /** 未处理请求的默认有效期（毫秒） */
+      defaultTtlMs: 7 * 24 * 60 * 6e4
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/browser.ts
+var init_browser2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/browser.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/computer-use.ts
+var init_computer_use3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/computer-use.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/runtime.ts
+var init_runtime2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/runtime.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/channel.ts
+var PROVIDER_ENDPOINT_PRESETS2, PROVIDER_LABELS2;
+var init_channel2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/channel.ts"() {
+    "use strict";
+    init_i18n2();
+    PROVIDER_ENDPOINT_PRESETS2 = {
+      deepseek: [
+        { label: tr2(`\u539F\u5382${SEGMENT_GAP2}Chat Completions`, `Official${SEGMENT_GAP2}Chat Completions`), value: "https://api.deepseek.com" },
+        { label: tr2(`\u539F\u5382${SEGMENT_GAP2}Messages`, `Official${SEGMENT_GAP2}Messages`), value: "https://api.deepseek.com/anthropic" }
+      ],
+      minimax: [
+        { label: tr2(`\u56FD\u5185\u7AD9${SEGMENT_GAP2}Messages`, `China${SEGMENT_GAP2}Messages`), value: "https://api.minimax.cn/anthropic/v1" },
+        { label: tr2(`\u56FD\u9645\u7AD9${SEGMENT_GAP2}Messages`, `Global${SEGMENT_GAP2}Messages`), value: "https://api.minimax.io/anthropic/v1" },
+        { label: tr2(`\u56FD\u5185\u7AD9${SEGMENT_GAP2}Chat Completions`, `China${SEGMENT_GAP2}Chat Completions`), value: "https://api.minimax.cn/v1" },
+        { label: tr2(`\u56FD\u9645\u7AD9${SEGMENT_GAP2}Chat Completions`, `Global${SEGMENT_GAP2}Chat Completions`), value: "https://api.minimax.io/v1" }
+      ]
+    };
+    PROVIDER_LABELS2 = {
+      anthropic: "Anthropic",
+      openai: "OpenAI",
+      deepseek: "DeepSeek",
+      google: "Google",
+      moonshot: tr2("Moonshot / Kimi\uFF08OpenAI \u534F\u8BAE\uFF09", "Moonshot / Kimi (OpenAI API)"),
+      "kimi-api": tr2("Kimi API\uFF08Anthropic \u534F\u8BAE\uFF09", "Kimi API (Anthropic API)"),
+      "kimi-coding": "Kimi Coding Plan",
+      zhipu: tr2("\u667A\u8C31 AI", "Zhipu AI"),
+      minimax: "MiniMax",
+      doubao: tr2("\u8C46\u5305", "Doubao"),
+      qwen: tr2("\u901A\u4E49\u5343\u95EE", "Qwen"),
+      custom: tr2("OpenAI \u517C\u5BB9\u683C\u5F0F", "OpenAI-compatible")
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/proxy.ts
+var init_proxy2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/proxy.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat.ts
+var init_chat2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent.ts
+var init_agent2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-provider.ts
+var init_agent_provider2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-provider.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-loop.ts
+var init_agent_loop2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-loop.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/local-memory.ts
+var init_local_memory3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/local-memory.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/enterprise-memory.ts
+var init_enterprise_memory3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/enterprise-memory.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/workspace-knowledge.ts
+var init_workspace_knowledge3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/workspace-knowledge.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-center.ts
+var init_memory_center2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-center.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-share.ts
+var init_memory_share2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-share.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/organization.ts
+var init_organization2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/organization.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/knowledge.ts
+var init_knowledge2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/knowledge.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/environment.ts
+var init_environment2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/environment.ts"() {
+    "use strict";
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/installer.ts
+var init_installer2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/installer.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/github.ts
+var init_github2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/github.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/system-prompt.ts
+var init_system_prompt2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/system-prompt.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/quick-phrase.ts
+var init_quick_phrase2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/quick-phrase.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat-tool.ts
+var init_chat_tool2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat-tool.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/feishu.ts
+var init_feishu2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/feishu.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/dingtalk.ts
+var init_dingtalk2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/dingtalk.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/wechat.ts
+var init_wechat2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/wechat.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-thinking.ts
+var init_model_thinking2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-thinking.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-routing.ts
+var FAST_CATEGORY_ID2, QUALITY_CATEGORY_ID2, LOCAL_GROUP_ID2, PRIVACY_RULE_ID2;
+var init_model_routing3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-routing.ts"() {
+    "use strict";
+    FAST_CATEGORY_ID2 = "fast";
+    QUALITY_CATEGORY_ID2 = "quality";
+    LOCAL_GROUP_ID2 = "local";
+    PRIVACY_RULE_ID2 = "privacy";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/creative.ts
+var CREATIVE_LIMITS2;
+var init_creative2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/creative.ts"() {
+    "use strict";
+    CREATIVE_LIMITS2 = { maxVideoBytes: 256 * 1024 * 1024, maxImageBytes: 25 * 1024 * 1024, maxPixels: 4e7, thumbnailSize: 512, thumbnailConcurrency: 2, pageSize: 60, maxNodes: 500, maxEdges: 1e3, maxPromptLength: 5e4, maxFeedbackAnnotations: 100, maxOutputsPerNode: 64 };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/terminal.ts
+var TERMINAL_LIMITS2;
+var init_terminal2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/terminal.ts"() {
+    "use strict";
+    TERMINAL_LIMITS2 = { perSession: 4, total: 12, retained: 48, inputBytes: 64 * 1024, excerptBytes: 32 * 1024, queueBytes: 256 * 1024 };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/index.ts
+var init_types2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/index.ts"() {
+    "use strict";
+    init_scheduled_tasks2();
+    init_office2();
+    init_cola2();
+    init_cola_recipe2();
+    init_session_messages2();
+    init_browser2();
+    init_computer_use3();
+    init_runtime2();
+    init_channel2();
+    init_proxy2();
+    init_chat2();
+    init_agent2();
+    init_agent_provider2();
+    init_agent_loop2();
+    init_local_memory3();
+    init_enterprise_memory3();
+    init_workspace_knowledge3();
+    init_memory_center2();
+    init_memory_share2();
+    init_organization2();
+    init_knowledge2();
+    init_environment2();
+    init_installer2();
+    init_github2();
+    init_system_prompt2();
+    init_quick_phrase2();
+    init_chat_tool2();
+    init_feishu2();
+    init_dingtalk2();
+    init_wechat2();
+    init_model_thinking2();
+    init_model_routing3();
+    init_creative2();
+    init_terminal2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-templates.ts
+var t2, NOTICE2, SAMPLE_SUFFIX2, STARTERS2, DOCUMENT_TEMPLATES2;
+var init_knowledge_templates2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-templates.ts"() {
+    "use strict";
+    init_i18n2();
+    t2 = (zh, en) => ({ zh, en });
+    NOTICE2 = t2("\u4EE5\u4E0B\u4E3A\u6A21\u677F\u793A\u4F8B\uFF0C\u8BF7\u66FF\u6362\u4E3A\u672C\u516C\u53F8\u5B9E\u9645\u5236\u5EA6\u540E\u518D\u6295\u5165\u4F7F\u7528\u3002", "This is a sample from a template. Replace it with your company\u2019s actual policies before relying on it.");
+    SAMPLE_SUFFIX2 = t2("\uFF08\u793A\u4F8B\uFF09", " (sample)");
+    STARTERS2 = [
+      {
+        id: "hr",
+        name: t2("\u4EBA\u4E8B\u5236\u5EA6", "HR policies"),
+        description: t2("\u5165\u804C\u529E\u7406\u3001\u8003\u52E4\u4F11\u5047\u3001\u5DEE\u65C5\u62A5\u9500\u7684\u5236\u5EA6\u4E0E\u6D41\u7A0B", "Onboarding, attendance, leave, and travel expense policies"),
+        documents: [
+          { id: "onboarding", title: t2("\u5165\u804C\u529E\u7406\u8BF4\u660E", "Onboarding guide"), sections: [
+            { heading: t2("\u5165\u804C\u524D\u51C6\u5907", "Before day one"), text: t2(
+              "\u4EBA\u4E8B\u8D1F\u8D23\u4EBA\u5411\u65B0\u5458\u5DE5\u53D1\u9001\u62A5\u5230\u65F6\u95F4\u3001\u5730\u70B9\u548C\u6750\u6599\u6E05\u5355\u3002\u6750\u6599\u901A\u8FC7\u516C\u53F8\u6307\u5B9A\u7684\u5B89\u5168\u6E20\u9053\u63D0\u4EA4\uFF0C\u4E0D\u5728\u5171\u4EAB\u77E5\u8BC6\u5E93\u4FDD\u5B58\u8EAB\u4EFD\u8BC1\u3001\u94F6\u884C\u5361\u7B49\u4E2A\u4EBA\u654F\u611F\u4FE1\u606F\u3002\n\n\u5F85\u8865\u5145\uFF1A\u4EBA\u4E8B\u8054\u7CFB\u4EBA\u3001\u62A5\u5230\u5730\u70B9\u3001\u6750\u6599\u63D0\u4EA4\u5165\u53E3\u3002",
+              "The HR owner sends the new hire the start time, location and a list of documents. Documents are submitted through the company\u2019s designated secure channel; ID cards, bank cards and other sensitive personal information are not stored in the shared knowledge base.\n\nTo fill in: HR contact, check-in location, where to submit documents."
+            ) },
+            { heading: t2("\u5165\u804C\u5F53\u5929", "First day"), text: t2(
+              "- \u4EBA\u4E8B\uFF1A\u6838\u5BF9\u5165\u804C\u6750\u6599\uFF0C\u8BF4\u660E\u5236\u5EA6\u67E5\u9605\u65B9\u5F0F\u3002\n- IT\uFF1A\u6309\u5C97\u4F4D\u9700\u8981\u5F00\u901A\u8D26\u53F7\u5E76\u4EA4\u4ED8\u8BBE\u5907\u3002\n- \u76F4\u5C5E\u8D1F\u8D23\u4EBA\uFF1A\u4ECB\u7ECD\u56E2\u961F\u3001\u5B89\u6392\u5165\u804C\u4F19\u4F34\uFF0C\u786E\u8BA4\u7B2C\u4E00\u5468\u76EE\u6807\u3002\n\n\u5F85\u8865\u5145\uFF1A\u8D26\u53F7\u7533\u8BF7\u5165\u53E3\u3001\u8BBE\u5907\u9886\u53D6\u5730\u70B9\u3002",
+              "- HR: check the onboarding documents and explain where to find policies.\n- IT: set up accounts and hand over equipment as the role requires.\n- Manager: introduce the team, assign an onboarding buddy and agree on first-week goals.\n\nTo fill in: where to request accounts, where to pick up equipment."
+            ) },
+            { heading: t2("\u7B2C\u4E00\u5468\u56DE\u8BBF", "First-week check-in"), text: t2(
+              "\u76F4\u5C5E\u8D1F\u8D23\u4EBA\u4E0E\u65B0\u5458\u5DE5\u786E\u8BA4\u804C\u8D23\u3001\u534F\u4F5C\u65B9\u5F0F\u548C\u5F85\u89E3\u51B3\u95EE\u9898\uFF1B\u4EBA\u4E8B\u8BB0\u5F55\u529E\u7406\u8FDB\u5EA6\u3002\u6D89\u53CA\u8BD5\u7528\u671F\u3001\u52B3\u52A8\u5408\u540C\u548C\u798F\u5229\u7684\u8981\u6C42\uFF0C\u4EE5\u516C\u53F8\u6B63\u5F0F\u5236\u5EA6\u53CA\u9002\u7528\u6CD5\u5F8B\u4E3A\u51C6\u3002",
+              "The manager confirms responsibilities, ways of working and open questions with the new hire; HR records progress. Probation, employment contract and benefit requirements follow the company\u2019s official policies and applicable law."
+            ) }
+          ] },
+          { id: "leave", title: t2("\u8003\u52E4\u4E0E\u4F11\u5047\u8BF4\u660E", "Attendance and leave"), sections: [
+            { heading: t2("\u63D0\u4EA4\u4F11\u5047\u7533\u8BF7", "Requesting leave"), text: t2(
+              "\u5458\u5DE5\u5728\u516C\u53F8\u6307\u5B9A\u5165\u53E3\u9009\u62E9\u5047\u522B\u3001\u65E5\u671F\u548C\u4EA4\u63A5\u4EBA\uFF0C\u8865\u5145\u5FC5\u8981\u8BF4\u660E\u3002\u5BA1\u6279\u901A\u8FC7\u540E\uFF0C\u6309\u56E2\u961F\u8981\u6C42\u5B8C\u6210\u4EA4\u63A5\u3002\n\n\u5F85\u8865\u5145\uFF1A\u7533\u8BF7\u5165\u53E3\u3001\u5BA1\u6279\u4EBA\u3001\u63D0\u524D\u7533\u8BF7\u8981\u6C42\u3001\u7D27\u6025\u60C5\u51B5\u5904\u7406\u65B9\u5F0F\u3002",
+              "Employees choose the leave type, dates and a cover person in the company\u2019s designated system and add any needed notes. Once approved, they hand over work as the team requires.\n\nTo fill in: where to apply, approver, how far in advance to apply, what to do in an emergency."
+            ) },
+            { heading: t2("\u6838\u5BF9\u5047\u671F\u4E0E\u8003\u52E4", "Checking leave and attendance"), text: t2(
+              "\u4F11\u5047\u989D\u5EA6\u3001\u9002\u7528\u8D44\u683C\u3001\u8BA1\u85AA\u89C4\u5219\u548C\u8BC1\u660E\u8981\u6C42\uFF0C\u987B\u7531\u4EBA\u4E8B\u8865\u5145\u6B63\u5F0F\u4F9D\u636E\u3002\u9047\u5230\u4F59\u989D\u6216\u8003\u52E4\u8BB0\u5F55\u7591\u95EE\uFF0C\u8054\u7CFB\u6307\u5B9A\u8D1F\u8D23\u4EBA\u6838\u5BF9\uFF0C\u4E0D\u4EE5\u793A\u4F8B\u5185\u5BB9\u8BA1\u7B97\u5B9E\u9645\u5F85\u9047\u3002",
+              "HR must add the official basis for leave allowances, eligibility, pay rules and required proof. For questions about balances or attendance records, check with the designated owner; don\u2019t calculate actual entitlements from this sample."
+            ) }
+          ] },
+          { id: "travel", title: t2("\u5DEE\u65C5\u4E0E\u62A5\u9500\u8BF4\u660E", "Travel and expenses"), sections: [
+            { heading: t2("\u51FA\u5DEE\u524D", "Before the trip"), text: t2(
+              "\u8BF4\u660E\u51FA\u5DEE\u76EE\u7684\u3001\u884C\u7A0B\u548C\u9884\u8BA1\u8D39\u7528\uFF0C\u6309\u516C\u53F8\u6D41\u7A0B\u5B8C\u6210\u5BA1\u6279\u540E\u5B89\u6392\u9884\u8BA2\u3002\n\n\u5F85\u8865\u5145\uFF1A\u5DEE\u65C5\u7533\u8BF7\u5165\u53E3\u3001\u9884\u7B97\u6807\u51C6\u3001\u9884\u8BA2\u6E20\u9053\u3001\u5BA1\u6279\u4EBA\u3002",
+              "Describe the purpose, itinerary and estimated cost, get approval through the company process, then book.\n\nTo fill in: where to request travel, budget limits, booking channels, approver."
+            ) },
+            { heading: t2("\u51FA\u5DEE\u540E", "After the trip"), text: t2(
+              "\u6574\u7406\u8D39\u7528\u660E\u7EC6\u548C\u5408\u89C4\u51ED\u8BC1\uFF0C\u5173\u8054\u539F\u51FA\u5DEE\u7533\u8BF7\u5E76\u63D0\u4EA4\u62A5\u9500\u3002\u8D22\u52A1\u6838\u5BF9\u540E\u53CD\u9988\u8865\u5145\u6750\u6599\u6216\u4ED8\u6B3E\u5B89\u6392\u3002\n\n\u5F85\u8865\u5145\uFF1A\u62A5\u9500\u5165\u53E3\u3001\u63D0\u4EA4\u65F6\u9650\u3001\u7968\u636E\u8981\u6C42\u3001\u7279\u6B8A\u8D39\u7528\u5904\u7406\u89C4\u5219\u3002",
+              "Collect itemized expenses and valid receipts, link them to the original travel request and submit for reimbursement. Finance reviews them and asks for more documents or arranges payment.\n\nTo fill in: where to submit, deadline, receipt requirements, rules for special expenses."
+            ) }
+          ] }
+        ],
+        topics: [
+          { id: "new-employee", title: t2("\u65B0\u5458\u5DE5\u5165\u804C\u6307\u5F15", "New employee guide"), sections: [{ documentId: "onboarding", section: 0 }, { documentId: "onboarding", section: 1 }, { documentId: "onboarding", section: 2 }, { documentId: "leave", section: 0 }] },
+          { id: "business-trip", title: t2("\u51FA\u5DEE\u4E0E\u62A5\u9500\u6D41\u7A0B", "Business travel and expenses"), sections: [{ documentId: "travel", section: 0 }, { documentId: "travel", section: 1 }] }
+        ]
+      },
+      {
+        id: "project",
+        name: t2("\u9879\u76EE\u534F\u4F5C", "Project collaboration"),
+        description: t2("\u9879\u76EE\u8BF4\u660E\u3001\u91CC\u7A0B\u7891\u7EA6\u5B9A\u4E0E\u4EA4\u4ED8\u4EA4\u63A5\u6E05\u5355", "Project briefs, milestone agreements, and handover checklists"),
+        documents: [
+          { id: "brief", title: t2("\u9879\u76EE\u8BF4\u660E", "Project brief"), sections: [
+            { heading: t2("\u76EE\u6807\u4E0E\u8303\u56F4", "Goals and scope"), text: t2(
+              "\u9879\u76EE\u540D\u79F0\uFF1A[\u586B\u5199\u9879\u76EE\u540D\u79F0]\n\n\u76EE\u6807\uFF1A[\u63CF\u8FF0\u8981\u89E3\u51B3\u7684\u95EE\u9898\u548C\u53EF\u9A8C\u6536\u7684\u7ED3\u679C]\n\n\u672C\u671F\u8303\u56F4\uFF1A[\u5217\u51FA\u672C\u671F\u4EA4\u4ED8]\n\n\u6682\u4E0D\u5305\u542B\uFF1A[\u660E\u786E\u6682\u4E0D\u5B9E\u65BD\u7684\u4E8B\u9879]",
+              "Project name: [fill in]\n\nGoal: [the problem to solve and a result that can be accepted]\n\nIn scope: [deliverables for this phase]\n\nOut of scope: [what won\u2019t be done for now]"
+            ) },
+            { heading: t2("\u534F\u4F5C\u7EA6\u5B9A", "Working agreements"), text: t2(
+              "\u8D1F\u8D23\u4EBA\uFF1A[\u59D3\u540D\u6216\u89D2\u8272]\n\n\u91CC\u7A0B\u7891\uFF1A[\u65E5\u671F\u4E0E\u4EA4\u4ED8\u7269]\n\n\u6C9F\u901A\u5165\u53E3\uFF1A[\u9879\u76EE\u7FA4\u6216\u4EFB\u52A1\u94FE\u63A5]\n\n\u53D8\u66F4\u9700\u8BB0\u5F55\u539F\u56E0\u3001\u5F71\u54CD\u548C\u786E\u8BA4\u4EBA\uFF0C\u518D\u66F4\u65B0\u9879\u76EE\u8BF4\u660E\u3002",
+              "Owner: [name or role]\n\nMilestones: [dates and deliverables]\n\nWhere to talk: [project group or task link]\n\nFor any change, record the reason, impact and who approved it, then update this brief."
+            ) }
+          ] },
+          { id: "handover", title: t2("\u4EA4\u4ED8\u4E0E\u4EA4\u63A5\u6E05\u5355", "Delivery and handover checklist"), sections: [
+            { heading: t2("\u4EA4\u4ED8\u68C0\u67E5", "Delivery check"), text: t2(
+              "- \u5BF9\u7167\u7EA6\u5B9A\u9010\u9879\u786E\u8BA4\u9A8C\u6536\u7ED3\u679C\u3002\n- \u9644\u4E0A\u4EA4\u4ED8\u6587\u4EF6\u548C\u4F7F\u7528\u8BF4\u660E\u3002\n- \u8BB0\u5F55\u672A\u89E3\u51B3\u95EE\u9898\u3001\u8D1F\u8D23\u4EBA\u53CA\u540E\u7EED\u5B89\u6392\u3002",
+              "- Check each acceptance criterion against what was agreed.\n- Attach the deliverables and instructions for using them.\n- Record open issues, owners and next steps."
+            ) },
+            { heading: t2("\u4EA4\u63A5\u786E\u8BA4", "Handover sign-off"), text: t2(
+              "\u63A5\u6536\u4EBA\u786E\u8BA4\u6587\u4EF6\u53EF\u8BBF\u95EE\u3001\u64CD\u4F5C\u53EF\u590D\u73B0\uFF0C\u5E76\u8BB0\u5F55\u4EA4\u63A5\u65E5\u671F\u3002\u8D26\u53F7\u5BC6\u94A5\u901A\u8FC7\u516C\u53F8\u6307\u5B9A\u6E20\u9053\u4EA4\u63A5\uFF0C\u4E0D\u5199\u5165\u77E5\u8BC6\u5E93\u3002",
+              "The recipient confirms the files are accessible and the steps can be reproduced, and records the handover date. Accounts and keys are handed over through the company\u2019s designated channel, never written into the knowledge base."
+            ) }
+          ] }
+        ],
+        topics: [{ id: "project-guide", title: t2("\u9879\u76EE\u4ECE\u542F\u52A8\u5230\u4EA4\u63A5", "From kickoff to handover"), sections: [{ documentId: "brief", section: 0 }, { documentId: "brief", section: 1 }, { documentId: "handover", section: 0 }, { documentId: "handover", section: 1 }] }]
+      },
+      {
+        id: "product",
+        name: t2("\u4EA7\u54C1\u652F\u6301", "Product support"),
+        description: t2("\u4EA7\u54C1\u4ECB\u7ECD\u3001\u5E38\u89C1\u95EE\u9898\u4E0E\u6545\u969C\u5904\u7406\u6D41\u7A0B", "Product overviews, FAQs, and troubleshooting processes"),
+        documents: [
+          { id: "overview", title: t2("\u4EA7\u54C1\u4ECB\u7ECD", "Product overview"), sections: [
+            { heading: t2("\u4EA7\u54C1\u4E0E\u9002\u7528\u573A\u666F", "Product and use cases"), text: t2(
+              "\u4EA7\u54C1\u540D\u79F0\uFF1A[\u586B\u5199\u540D\u79F0]\n\n\u76EE\u6807\u7528\u6237\uFF1A[\u586B\u5199\u7528\u6237\u7FA4\u4F53]\n\n\u6838\u5FC3\u7528\u9014\uFF1A[\u8BF4\u660E\u80FD\u5E2E\u52A9\u7528\u6237\u5B8C\u6210\u4EC0\u4E48]\n\n\u4F7F\u7528\u8FB9\u754C\uFF1A[\u8BF4\u660E\u9002\u7528\u6761\u4EF6\u548C\u9650\u5236]",
+              "Product name: [fill in]\n\nWho it\u2019s for: [fill in]\n\nWhat it does: [what it helps users get done]\n\nLimits: [when it applies and what it can\u2019t do]"
+            ) },
+            { heading: t2("\u5F00\u59CB\u4F7F\u7528", "Getting started"), text: t2(
+              "1. \u786E\u8BA4\u8D26\u53F7\u3001\u6743\u9650\u548C\u8FD0\u884C\u73AF\u5883\u3002\n2. \u6309\u64CD\u4F5C\u6307\u5357\u5B8C\u6210\u7B2C\u4E00\u4E2A\u4EFB\u52A1\u3002\n3. \u68C0\u67E5\u7ED3\u679C\uFF1B\u5982\u672A\u8FBE\u9884\u671F\uFF0C\u6309\u95EE\u9898\u5904\u7406\u6D41\u7A0B\u53CD\u9988\u3002\n\n\u5F85\u8865\u5145\uFF1A\u64CD\u4F5C\u6307\u5357\u94FE\u63A5\u3001\u652F\u6301\u5165\u53E3\u3001\u7248\u672C\u8BF4\u660E\u3002",
+              "1. Make sure the account, permissions and environment are ready.\n2. Complete a first task by following the guide.\n3. Check the result; if it isn\u2019t what you expected, report it through the support process.\n\nTo fill in: guide link, where to get support, release notes."
+            ) }
+          ] },
+          { id: "support", title: t2("\u95EE\u9898\u5904\u7406\u8BF4\u660E", "Handling issues"), sections: [
+            { heading: t2("\u6536\u96C6\u95EE\u9898\u4FE1\u606F", "Gathering details"), text: t2(
+              "\u8BB0\u5F55\u51FA\u73B0\u95EE\u9898\u7684\u64CD\u4F5C\u3001\u9884\u671F\u7ED3\u679C\u3001\u5B9E\u9645\u7ED3\u679C\u3001\u53D1\u751F\u65F6\u95F4\u548C\u4EA7\u54C1\u7248\u672C\u3002\u622A\u56FE\u6216\u65E5\u5FD7\u9700\u53BB\u9664\u4E2A\u4EBA\u4FE1\u606F\u53CA\u5BC6\u94A5\u3002",
+              "Record the steps taken, the expected and actual results, when it happened and the product version. Remove personal information and keys from screenshots and logs."
+            ) },
+            { heading: t2("\u8DDF\u8FDB\u4E0E\u5173\u95ED", "Follow-up and closing"), text: t2(
+              "\u652F\u6301\u4EBA\u5458\u590D\u73B0\u5E76\u8BB0\u5F55\u5904\u7406\u65B9\u6848\uFF1B\u65E0\u6CD5\u89E3\u51B3\u65F6\u4EA4\u7ED9\u5BF9\u5E94\u8D1F\u8D23\u4EBA\u3002\u7528\u6237\u786E\u8BA4\u95EE\u9898\u89E3\u51B3\u540E\uFF0C\u8865\u5145\u53EF\u590D\u7528\u7684\u5904\u7406\u6B65\u9AA4\u3002\n\n\u5F85\u8865\u5145\uFF1A\u652F\u6301\u8054\u7CFB\u4EBA\u3001\u5347\u7EA7\u5904\u7406\u8DEF\u5F84\u3001\u54CD\u5E94\u65F6\u95F4\u7EA6\u5B9A\u3002",
+              "Support reproduces the issue and records the fix; if they can\u2019t solve it, they pass it to the right owner. After the user confirms it\u2019s fixed, add reusable steps.\n\nTo fill in: support contacts, escalation path, response time targets."
+            ) }
+          ] }
+        ],
+        topics: [{ id: "support-guide", title: t2("\u4EA7\u54C1\u4F7F\u7528\u4E0E\u6C42\u52A9\u6307\u5F15", "Using the product and getting help"), sections: [{ documentId: "overview", section: 0 }, { documentId: "overview", section: 1 }, { documentId: "support", section: 0 }, { documentId: "support", section: 1 }] }]
+      }
+    ];
+    DOCUMENT_TEMPLATES2 = [
+      { id: "meeting", title: t2("\u4F1A\u8BAE\u7EAA\u8981", "Meeting notes"), sections: [
+        { heading: t2("\u4F1A\u8BAE\u4FE1\u606F", "Meeting details"), text: t2("\u65E5\u671F\uFF1A[\u586B\u5199]\n\n\u53C2\u4E0E\u4EBA\uFF1A[\u586B\u5199]\n\n\u8BAE\u9898\uFF1A[\u586B\u5199]", "Date: [fill in]\n\nAttendees: [fill in]\n\nTopics: [fill in]") },
+        { heading: t2("\u51B3\u7B56\u4E0E\u4F9D\u636E", "Decisions and basis"), text: t2("| \u51B3\u7B56 | \u4F9D\u636E\u6216\u76F8\u5173\u8D44\u6599 | \u786E\u8BA4\u4EBA |\n| --- | --- | --- |\n| [\u586B\u5199] | [\u586B\u5199] | [\u586B\u5199] |", "| Decision | Basis or related documents | Approved by |\n| --- | --- | --- |\n| [fill in] | [fill in] | [fill in] |") },
+        { heading: t2("\u884C\u52A8\u9879", "Action items"), text: t2("| \u4E8B\u9879 | \u8D1F\u8D23\u4EBA | \u622A\u6B62\u65E5\u671F |\n| --- | --- | --- |\n| [\u586B\u5199] | [\u586B\u5199] | [\u586B\u5199] |", "| Item | Owner | Due date |\n| --- | --- | --- |\n| [fill in] | [fill in] | [fill in] |") },
+        { heading: t2("\u5F85\u786E\u8BA4\u95EE\u9898", "Open questions"), text: t2("[\u8BB0\u5F55\u4ECD\u9700\u6838\u5BF9\u7684\u95EE\u9898\u4E0E\u4E0B\u4E00\u6B65]", "[Questions still to check, and next steps]") }
+      ] },
+      { id: "sop", title: t2("\u64CD\u4F5C\u6D41\u7A0B", "Standard procedure"), sections: [
+        { heading: t2("\u9002\u7528\u8303\u56F4", "Scope"), text: t2("\u9002\u7528\u5BF9\u8C61\uFF1A[\u586B\u5199]\n\n\u524D\u63D0\u6761\u4EF6\uFF1A[\u586B\u5199]\n\n\u8D1F\u8D23\u4EBA\uFF1A[\u586B\u5199]", "Applies to: [fill in]\n\nPrerequisites: [fill in]\n\nOwner: [fill in]") },
+        { heading: t2("\u64CD\u4F5C\u6B65\u9AA4", "Steps"), text: t2("1. [\u51C6\u5907\u4E8B\u9879]\n2. [\u6267\u884C\u64CD\u4F5C]\n3. [\u68C0\u67E5\u7ED3\u679C]", "1. [Prepare]\n2. [Do the work]\n3. [Check the result]") },
+        { heading: t2("\u4F8B\u5916\u4E0E\u6C42\u52A9", "Exceptions and help"), text: t2("[\u586B\u5199\u5F02\u5E38\u60C5\u51B5\u3001\u5904\u7406\u65B9\u5F0F\u53CA\u8054\u7CFB\u4EBA]", "[Exceptions, how to handle them, and who to contact]") },
+        { heading: t2("\u7EF4\u62A4\u8BB0\u5F55", "Maintenance"), text: t2("\u4F9D\u636E\u8D44\u6599\uFF1A[\u586B\u5199]\n\n\u6700\u540E\u6838\u5BF9\u65E5\u671F\uFF1A[\u586B\u5199]\n\n\u4E0B\u6B21\u590D\u6838\u65E5\u671F\uFF1A[\u586B\u5199]", "Sources: [fill in]\n\nLast checked: [fill in]\n\nNext review: [fill in]") }
+      ] }
+    ];
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/subagent-templates.ts
+var SUBAGENT_PRESETS2;
+var init_subagent_templates2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/subagent-templates.ts"() {
+    "use strict";
+    SUBAGENT_PRESETS2 = {
+      "web-research": {
+        name: "\u7F51\u9875\u8C03\u7814",
+        base: "explore",
+        maxTurns: 20,
+        description: "\u8054\u7F51\u8C03\u7814\u4E00\u4E2A\u5177\u4F53\u4E3B\u9898\uFF08\u51FA\u884C\u3001\u4EF7\u683C\u3001\u4EA7\u54C1\u3001\u6280\u672F\u8D44\u6599\u7B49\uFF09\uFF0C\u8FD4\u56DE\u5E26\u6765\u6E90\u548C\u65E5\u671F\u7684\u4E8B\u5B9E\uFF1B\u591A\u4E2A\u4E3B\u9898\u5404\u6D3E\u4E00\u4E2A\u5E76\u884C\uFF0C\u6C47\u603B\u3001\u9884\u7B97\u3001\u5BF9\u6BD4\u7559\u7ED9\u7236\u4EE3\u7406",
+        prompt: [
+          "\u4F60\u662F\u7F51\u9875\u8C03\u7814\u5458\uFF0C\u53EA\u8C03\u7814\u5206\u914D\u7ED9\u4F60\u7684\u8FD9\u4E00\u4E2A\u4E3B\u9898\uFF0C\u4E0D\u505A\u4E3B\u9898\u4E4B\u5916\u7684\u6C47\u603B\u6216\u4F30\u7B97\u3002",
+          "1. \u5148\u5217\u51FA\u8981\u56DE\u7B54\u7684\u95EE\u9898\uFF0C\u518D\u641C\u7D22\uFF1B\u641C\u7D22\u7EA6 8 \u6B21\u3001\u8BFB\u7F51\u9875\u7EA6 6 \u7BC7\u4E3A\u9650\uFF0C\u591F\u7528\u5C31\u505C\u3002",
+          "2. \u8BFB\u7F51\u9875\u65F6\u7ED9 WebFetch \u5E26\u4E0A prompt\uFF0C\u5199\u660E\u8981\u4ECE\u9875\u9762\u627E\u4EC0\u4E48\uFF0C\u53EA\u62FF\u8981\u70B9\uFF1B\u786E\u9700\u539F\u6587\u65F6\u518D\u7701\u7565 prompt\u3002",
+          "3. \u4F18\u5148\u5B98\u65B9\u7F51\u7AD9\u3001\u4E00\u624B\u516C\u544A\u548C\u6743\u5A01\u5E73\u53F0\uFF1B\u8F6C\u8F7D\u3001\u8BBA\u575B\u548C\u8FC7\u671F\u9875\u9762\u53EA\u4F5C\u65C1\u8BC1\u3002",
+          "4. \u6BCF\u6761\u4E8B\u5B9E\u9644\u6765\u6E90\u7F51\u5740\u548C\u9875\u9762\u65E5\u671F\u6216\u6838\u5BF9\u65E5\u671F\uFF1B\u4EF7\u683C\u3001\u73ED\u6B21\u3001\u5F00\u653E\u65F6\u95F4\u3001\u653F\u7B56\u5199\u660E\u9002\u7528\u65F6\u6BB5\u3002",
+          "5. \u67E5\u4E0D\u5230\u6216\u6765\u6E90\u4E92\u76F8\u77DB\u76FE\u65F6\u5199\u300C\u5F85\u6838\u5B9E\u300D\u5E76\u8BF4\u660E\u539F\u56E0\uFF0C\u4E0D\u7528\u5E38\u8BC6\u6216\u65E7\u6570\u636E\u8865\u9F50\u3002"
+        ].join("\n")
+      },
+      "knowledge-research": {
+        name: "\u77E5\u8BC6\u5E93\u68C0\u7D22",
+        base: "explore",
+        maxTurns: 20,
+        description: "\u5728\u672C\u6B21\u5BF9\u8BDD\u6240\u9009\u7684\u77E5\u8BC6\u5E93\u91CC\u67E5\u4E00\u4E2A\u4E3B\u9898\uFF0C\u8BFB\u6700\u76F8\u5173\u7684\u539F\u6587\u5E76\u5E26\u51FA\u5904\u56DE\u7B54\uFF1B\u53EA\u7528\u77E5\u8BC6\u5E93\uFF0C\u4E0D\u4E0A\u7F51",
+        prompt: [
+          "\u4F60\u662F\u77E5\u8BC6\u5E93\u68C0\u7D22\u5458\uFF0C\u53EA\u5728\u672C\u6B21\u77E5\u8BC6\u8303\u56F4\u5185\u67E5\u627E\uFF0C\u4E0D\u8054\u7F51\u8865\u5145\u3002",
+          "1. \u7528 knowledge_search \u6362\u4E24\u4E09\u79CD\u8BF4\u6CD5\u68C0\u7D22\uFF0C\u6311\u6700\u76F8\u5173\u7684\u8D44\u6599\u8BFB\u539F\u6587\uFF0C\u4E0D\u53EA\u770B\u7247\u6BB5\u3002",
+          "2. \u6BCF\u6761\u7ED3\u8BBA\u5199\u660E\u8D44\u6599\u540D\u79F0\u4E0E\u4F4D\u7F6E\uFF08\u7AE0\u8282\u3001\u9875\u7801\u6216\u6BB5\u843D\uFF09\uFF0C\u5E76\u6458\u5F55\u5173\u952E\u539F\u53E5\u3002",
+          "3. \u5206\u5F00\u5199\u300C\u8D44\u6599\u539F\u6587\u300D\u548C\u300C\u63A8\u65AD\u300D\uFF1B\u8D44\u6599\u4E4B\u95F4\u4E0D\u4E00\u81F4\u65F6\u90FD\u5217\u51FA\u6765\uFF0C\u5E76\u6CE8\u660E\u5404\u81EA\u7248\u672C\u6216\u65E5\u671F\u3002",
+          "4. \u67E5\u4E0D\u5230\u5C31\u76F4\u63A5\u8BF4\u67E5\u4E0D\u5230\uFF0C\u4EE5\u53CA\u67E5\u8FC7\u54EA\u4E9B\u5173\u952E\u8BCD\uFF0C\u4E0D\u8981\u7F16\u9020\u6216\u7528\u5E38\u8BC6\u4EE3\u66FF\u3002"
+        ].join("\n")
+      },
+      "doc-maker": {
+        name: "\u6587\u6863\u5236\u4F5C",
+        base: "general",
+        context: "inherit",
+        maxTurns: 30,
+        description: "\u6839\u636E\u5DF2\u6574\u7406\u597D\u7684\u5185\u5BB9\u751F\u6210\u4E00\u4E2A\u6210\u54C1\u6587\u4EF6\uFF08Word\u3001PDF\u3001Excel \u6216 PPT\uFF09\uFF1B\u4E00\u6B21\u53EA\u505A\u4E00\u4E2A\u6210\u54C1\uFF0C\u591A\u4E2A\u683C\u5F0F\u5404\u6D3E\u4E00\u4E2A\u5E76\u884C",
+        prompt: [
+          "\u4F60\u662F\u6587\u6863\u5236\u4F5C\u5458\uFF0C\u53EA\u5236\u4F5C\u4EFB\u52A1\u8BF4\u660E\u91CC\u6307\u5B9A\u7684\u8FD9\u4E00\u4E2A\u6587\u4EF6\u3002",
+          "1. \u5185\u5BB9\u53EA\u7528\u4EFB\u52A1\u8BF4\u660E\u548C\u5BF9\u8BDD\u8BB0\u5F55\u91CC\u5DF2\u6709\u7684\u6750\u6599\uFF0C\u4E0D\u53E6\u884C\u8C03\u7814\u6216\u7F16\u9020\uFF1B\u7F3A\u5185\u5BB9\u65F6\u5728\u62A5\u544A\u91CC\u5217\u51FA\u3002",
+          "2. \u5148\u52A0\u8F7D\u5BF9\u5E94\u6280\u80FD\u7167\u505A\uFF1AWord / Excel / PPT \u7528 OfficeCLI\uFF0CPDF \u7528 ExportPdf\u3002",
+          "3. \u6210\u54C1\u5B58\u5230\u672C\u8F6E\u4EA4\u4ED8\u76EE\u5F55\uFF1B\u5236\u4F5C\u811A\u672C\u4E0E\u4E34\u65F6\u6587\u4EF6\u653E\u5728\u5DE5\u4F5C\u76EE\u5F55\u7684 .context/scratch/\u3002",
+          "4. \u4EA4\u4ED8\u524D\u68C0\u67E5\uFF1A\u6587\u4EF6\u5B58\u5728\u4E14\u975E\u7A7A\uFF1BOffice \u6587\u4EF6\u8DD1 validate\uFF0CPDF \u7528 Read \u56DE\u8BFB\u6587\u5B57\uFF0C\u786E\u8BA4\u6807\u9898\u3001\u8868\u683C\u4E0E\u5173\u952E\u6570\u5B57\u3002",
+          "5. \u62A5\u544A\u5199\u660E\u6587\u4EF6\u8DEF\u5F84\u3001\u9875\u6570\u6216\u8868\u6570\u3001\u505A\u8FC7\u54EA\u4E9B\u68C0\u67E5\uFF0C\u4EE5\u53CA\u6CA1\u80FD\u68C0\u67E5\u7684\u90E8\u5206\u3002"
+        ].join("\n")
+      },
+      "fact-check": {
+        name: "\u6838\u67E5",
+        base: "explore",
+        maxTurns: 20,
+        description: "\u5B9A\u7A3F\u524D\u6838\u67E5\u4E00\u4EFD\u65B9\u6848\u3001\u56DE\u7B54\u6216\u6587\u6863\u91CC\u53EF\u6838\u5B9E\u7684\u4E8B\u5B9E\uFF08\u4EF7\u683C\u3001\u65F6\u95F4\u3001\u653F\u7B56\u3001\u6570\u5B57\u3001\u51FA\u5904\uFF09\uFF1B\u53EA\u62A5\u544A\u7ED3\u679C\uFF0C\u4E0D\u6539\u5199\u539F\u6587",
+        prompt: [
+          "\u4F60\u662F\u6838\u67E5\u5458\uFF0C\u53EA\u8BFB\u4E0D\u6539\u3002",
+          "1. \u4ECE\u7ED9\u4F60\u7684\u5185\u5BB9\u91CC\u6311\u51FA\u53EF\u6838\u5B9E\u7684\u8BF4\u6CD5\uFF1A\u4EF7\u683C\u3001\u65E5\u671F\u65F6\u95F4\u3001\u8425\u4E1A\u6216\u5F00\u653E\u5B89\u6392\u3001\u653F\u7B56\u89C4\u5B9A\u3001\u7EDF\u8BA1\u6570\u5B57\u3001\u5F15\u7528\u51FA\u5904\u3002",
+          "2. \u6309\u5F71\u54CD\u6392\u5E8F\uFF0C\u9010\u6761\u7528\u539F\u51FA\u5904\u3001\u5B98\u65B9\u6765\u6E90\u6216\u77E5\u8BC6\u5E93\u6838\u5BF9\uFF1B\u641C\u7D22\u4E0E\u8BFB\u7F51\u9875\u9002\u5EA6\uFF0C\u591F\u5224\u65AD\u5C31\u505C\u3002",
+          "3. \u8F93\u51FA\u8868\u683C\uFF1A\u539F\u8BF4\u6CD5\uFF5C\u7ED3\u8BBA\uFF08\u4E00\u81F4 / \u6709\u51FA\u5165 / \u67E5\u4E0D\u5230\uFF09\uFF5C\u4F9D\u636E\uFF08\u7F51\u5740\u6216\u8D44\u6599\u4F4D\u7F6E\uFF0C\u9644\u65E5\u671F\uFF09\uFF5C\u5EFA\u8BAE\u6539\u6CD5\u3002",
+          "4. \u6CA1\u6709\u95EE\u9898\u5C31\u76F4\u63A5\u8BF4\u6CA1\u6709\uFF0C\u4E0D\u51D1\u6570\uFF1B\u4E0D\u8981\u91CD\u5199\u5168\u6587\u3002"
+        ].join("\n")
+      }
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-files.ts
+var init_knowledge_files2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-files.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/index.ts
+var init_config2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/index.ts"() {
+    "use strict";
+    init_knowledge_templates2();
+    init_subagent_templates2();
+    init_knowledge_files2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/capabilities-diff.ts
+var init_capabilities_diff2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/capabilities-diff.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/mcp-failure.ts
+var init_mcp_failure2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/mcp-failure.ts"() {
+    "use strict";
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-content.ts
+var init_session_content2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-content.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-naming.ts
+var init_creative_naming2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-naming.ts"() {
+    "use strict";
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/task-items.ts
+var init_task_items2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/task-items.ts"() {
+    "use strict";
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/local-memory.ts
+var DAY_MS3;
+var init_local_memory4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/local-memory.ts"() {
+    "use strict";
+    init_i18n2();
+    DAY_MS3 = 24 * 60 * 60 * 1e3;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/enterprise-memory.ts
+var init_enterprise_memory4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/enterprise-memory.ts"() {
+    "use strict";
+    init_local_memory4();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/workspace-knowledge.ts
+var DAY_MS4;
+var init_workspace_knowledge4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/workspace-knowledge.ts"() {
+    "use strict";
+    init_local_memory4();
+    DAY_MS4 = 24 * 60 * 60 * 1e3;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-scope.ts
+var init_knowledge_scope2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-scope.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/currency-safe-math.ts
+var init_currency_safe_math2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/currency-safe-math.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/file-mentions.ts
+var init_file_mentions2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/file-mentions.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-mentions.ts
+var init_knowledge_mentions2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-mentions.ts"() {
+    "use strict";
+    init_currency_safe_math2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-title.ts
+var RECAP_AWAY_MS2;
+var init_session_title2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-title.ts"() {
+    "use strict";
+    init_i18n2();
+    init_knowledge_mentions2();
+    RECAP_AWAY_MS2 = 10 * 6e4;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-mentions.ts
+var init_session_mentions2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-mentions.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/assistant-content.ts
+var init_assistant_content2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/assistant-content.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/deid.ts
+var init_deid2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/deid.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/model-routing.ts
+var oneOf2, isReason2, isClassifier2, isClassifierError2, isSkipReason2, isRuleKind2, TASK_TYPE_NAMES2, BUILTIN_NAMES2;
+var init_model_routing4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/model-routing.ts"() {
+    "use strict";
+    init_channel2();
+    init_model_routing3();
+    init_i18n2();
+    oneOf2 = (values) => (value) => typeof value === "string" && Object.hasOwn(values, value);
+    isReason2 = oneOf2({ first: true, continued: true, same_category: true, switch: true, rule: true, same_tier: true, upgrade: true, downgrade: true, short_followup: true, uncertain: true, no_candidate: true, regenerate: true, retry_after_failure: true, manual: true });
+    isClassifier2 = oneOf2({ "this-that": true, fast_model: true, none: true });
+    isClassifierError2 = oneOf2({ timeout: true, error: true, invalid: true });
+    isSkipReason2 = oneOf2({ disabled: true, not_local: true, no_tools: true, image: true, native_file: true, context: true, price_unknown: true, failed_last_run: true });
+    isRuleKind2 = oneOf2({ detect: true, terms: true, project: true, sticky: true });
+    TASK_TYPE_NAMES2 = {
+      qa: ["\u7B80\u5355\u95EE\u7B54", "Quick questions"],
+      rewrite: ["\u7FFB\u8BD1\u3001\u6539\u5199\u4E0E\u683C\u5F0F\u8F6C\u6362", "Translate, rewrite, and convert"],
+      summary: ["\u603B\u7ED3\u63D0\u70BC", "Summaries"],
+      long_writing: ["\u64B0\u5199\u957F\u6587", "Long-form writing"],
+      document: ["\u5236\u4F5C\u6587\u6863\u8868\u683C", "Documents and spreadsheets"],
+      analysis: ["\u6570\u636E\u5206\u6790\u4E0E\u8C03\u7814", "Analysis and research"]
+    };
+    BUILTIN_NAMES2 = {
+      [FAST_CATEGORY_ID2]: ["\u5FEB\u901F", "Fast"],
+      [QUALITY_CATEGORY_ID2]: ["\u9AD8\u8D28\u91CF", "High quality"],
+      [LOCAL_GROUP_ID2]: ["\u672C\u5730", "Local"],
+      [PRIVACY_RULE_ID2]: ["\u9690\u79C1", "Private"],
+      ...TASK_TYPE_NAMES2
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/subagent-model.ts
+var init_subagent_model2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/subagent-model.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/computer-use.ts
+var ELEMENT_ROLES2;
+var init_computer_use4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/computer-use.ts"() {
+    "use strict";
+    ELEMENT_ROLES2 = [
+      "button",
+      "close button",
+      "minimize button",
+      "full screen button",
+      "zoom button",
+      "link",
+      "tab",
+      "checkbox",
+      "check box",
+      "radio button",
+      "radio group",
+      "pop up button",
+      "combo box",
+      "menu item",
+      "menu button",
+      "menu bar",
+      "menu bar item",
+      "increment arrow",
+      "decrement arrow",
+      "text field",
+      "search text field",
+      "text entry area",
+      "secure text field",
+      "static text",
+      "text",
+      "row",
+      "cell",
+      "group",
+      "container",
+      "collection",
+      "image",
+      "heading",
+      "list",
+      "sortable",
+      "outline",
+      "table",
+      "ruler",
+      "splitter",
+      "grow area",
+      "toolbar",
+      "scroll area",
+      "scroll bar",
+      "split group",
+      "standard window",
+      "window",
+      "\u6309\u94AE",
+      "\u94FE\u63A5",
+      "\u590D\u9009\u6846",
+      "\u5355\u9009\u6309\u94AE",
+      "\u5F39\u51FA\u5F0F\u6309\u94AE",
+      "\u83DC\u5355\u9879",
+      "\u83DC\u5355\u6309\u94AE",
+      "\u6587\u672C\u680F",
+      "\u641C\u7D22\u6587\u672C\u680F",
+      "\u6587\u672C\u8F93\u5165\u533A",
+      "\u5B89\u5168\u6587\u672C\u680F",
+      "\u9759\u6001\u6587\u672C",
+      "\u6587\u672C",
+      "\u884C",
+      "\u5355\u5143\u683C",
+      "\u7EC4",
+      "\u56FE\u50CF",
+      "\u6807\u9898",
+      "\u5217\u8868",
+      "\u6807\u51C6\u7A97\u53E3",
+      "\u7A97\u53E3"
+    ].sort((a, b) => b.length - a.length);
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/research-progress.ts
+var researchStatusLabel2, subagentOutcomeLabel2;
+var init_research_progress2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/research-progress.ts"() {
+    "use strict";
+    init_i18n2();
+    researchStatusLabel2 = {
+      queued: tr2("\u6392\u961F\u4E2D", "Queued"),
+      running: tr2("\u8FD0\u884C\u4E2D", "Running"),
+      completed: tr2("\u5DF2\u5B8C\u6210", "Done"),
+      failed: tr2("\u5931\u8D25", "Failed"),
+      stopped: tr2("\u5DF2\u505C\u6B62", "Stopped"),
+      interrupted: tr2("\u5DF2\u4E2D\u65AD", "Interrupted"),
+      cached: tr2("\u590D\u7528\u5DF2\u6709\u7ED3\u679C", "Reused")
+    };
+    subagentOutcomeLabel2 = { partial: tr2("\u90E8\u5206\u5B8C\u6210", "Partly done"), failed: tr2("\u672A\u5B8C\u6210", "Not done") };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/memory-ref.ts
+var init_memory_ref2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/memory-ref.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-video.ts
+var MINIMAX_RATIOS2, SEEDANCE_RATIOS2, WAN_RATIOS2, KLING_RATIOS2, CREATIVE_VIDEO_MODELS2;
+var init_creative_video2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-video.ts"() {
+    "use strict";
+    init_creative2();
+    init_i18n2();
+    init_creative_graph2();
+    MINIMAX_RATIOS2 = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
+    SEEDANCE_RATIOS2 = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"];
+    WAN_RATIOS2 = ["16:9", "9:16", "1:1", "4:3", "3:4"];
+    KLING_RATIOS2 = ["16:9", "9:16", "1:1"];
+    CREATIVE_VIDEO_MODELS2 = [
+      // https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md
+      { protocol: "minimax", pattern: /^MiniMax-H3$/, duration: [4, 15], resolutions: ["768P", "2K"], resolution: "768P", ratios: MINIMAX_RATIOS2, frames: [0, 2] },
+      { protocol: "minimax", pattern: /^MiniMax-H3-Max$/, duration: [5, 15], resolutions: ["480P", "768P"], resolution: "768P", ratios: MINIMAX_RATIOS2, frames: [0, 2] },
+      // 火山方舟与 BytePlus ModelArk 同一套参数：https://docs.byteplus.com/en/docs/modelark/create-video-generation-task-api
+      { protocol: "seedance", pattern: /seedance-2-5/i, duration: [4, 30], resolutions: ["480p", "720p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
+      { protocol: "seedance", pattern: /seedance-2-0-(?:fast|mini)/i, duration: [4, 15], resolutions: ["480p", "720p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
+      { protocol: "seedance", pattern: /seedance-2-0/i, duration: [4, 15], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
+      { protocol: "seedance", pattern: /seedance-1-5-pro/i, duration: [4, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true, seed: true },
+      { protocol: "seedance", pattern: /seedance-1-0-pro-fast/i, duration: [2, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 1], seed: true },
+      { protocol: "seedance", pattern: /seedance-1-0-pro/i, duration: [2, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], seed: true },
+      // 未知型号与 ep- 端点：沿用端点默认参数
+      { protocol: "seedance", pattern: /seedance|^ep-/i, resolutions: [], ratios: [], frames: [0, 2] },
+      // 百炼万相：https://help.aliyun.com/zh/model-studio/wan3-video-generation-api-reference ；单价（北京地域刊例价）：https://help.aliyun.com/zh/model-studio/model-pricing
+      { protocol: "dashscope", pattern: /^wan3\.0-video-prime$/, duration: [2, 30], resolutions: ["480P", "720P", "1080P"], resolution: "720P", ratios: [...WAN_RATIOS2, "21:9"], frames: [0, 2], audio: true, seed: true, price: { currency: "CNY", perSecond: { "480P": 0.45, "720P": 0.9, "1080P": 1.8 } } },
+      { protocol: "dashscope", pattern: /^wan3\.0-video$/, duration: [2, 30], resolutions: ["480P", "720P", "1080P"], resolution: "720P", ratios: [...WAN_RATIOS2, "21:9"], frames: [0, 2], audio: true, seed: true, price: { currency: "CNY", perSecond: { "480P": 0.3, "720P": 0.6, "1080P": 1.2 } } },
+      // https://help.aliyun.com/zh/model-studio/text-to-video-api-reference ；https://help.aliyun.com/zh/model-studio/image-to-video-general-api-reference
+      { protocol: "dashscope", pattern: /^wan2\.7-t2v(?:-\d{4}-\d{2}-\d{2})?$/, duration: [2, 15], resolutions: ["720P", "1080P"], resolution: "720P", ratios: WAN_RATIOS2, frames: [0, 0], seed: true, price: { currency: "CNY", perSecond: { "720P": 0.6, "1080P": 1 } } },
+      { protocol: "dashscope", pattern: /^wan2\.7-i2v(?:-\d{4}-\d{2}-\d{2})?$/, duration: [2, 15], resolutions: ["720P", "1080P"], resolution: "720P", ratios: [], frames: [1, 2], seed: true, price: { currency: "CNY", perSecond: { "720P": 0.6, "1080P": 1 } } },
+      // 可灵：https://kling.ai/document-api/api/video/3-0-omni/text-to-video ；模型 ID 即接口路径的最后一段
+      { protocol: "kling", pattern: /^kling-3\.0$/, duration: [3, 15], resolutions: ["720p", "1080p"], resolution: "720p", ratios: KLING_RATIOS2, frames: [0, 2], audio: false },
+      { protocol: "kling", pattern: /^kling-3\.0-turbo$/, duration: [3, 15], resolutions: ["720p", "1080p"], resolution: "720p", ratios: KLING_RATIOS2, frames: [0, 1] }
+    ];
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-graph.ts
+var init_creative_graph2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-graph.ts"() {
+    "use strict";
+    init_creative2();
+    init_creative_video2();
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/image-artifacts.ts
+var init_image_artifacts2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/image-artifacts.ts"() {
+    "use strict";
+    init_creative_graph2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-auto.ts
+var init_creative_auto2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-auto.ts"() {
+    "use strict";
+    init_i18n2();
+    init_channel2();
+    init_creative2();
+    init_creative_video2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-layout.ts
+var VIDEO_RATIO2;
+var init_creative_layout2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-layout.ts"() {
+    "use strict";
+    init_creative_graph2();
+    VIDEO_RATIO2 = 16 / 9;
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/voice-polish.ts
+var init_voice_polish2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/voice-polish.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/provider-error.ts
+var init_provider_error2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/provider-error.ts"() {
+    "use strict";
+    init_i18n2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/cola-goal.ts
+var COLA_TRIGGER_LIMITS2;
+var init_cola_goal2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/cola-goal.ts"() {
+    "use strict";
+    COLA_TRIGGER_LIMITS2 = {
+      quietMs: 2 * 6e4,
+      minIntervalMs: 30 * 6e4,
+      runsPerDay: 10,
+      pending: 50,
+      triggers: 5,
+      files: 5e3,
+      dir: 500,
+      pattern: 100,
+      pollDefault: 15,
+      pollMin: 5,
+      pollMax: 1440,
+      lines: 500,
+      line: 200,
+      args: 4e3,
+      name: 200,
+      keywords: 10,
+      keyword: 30,
+      chatId: 200
+    };
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/index.ts
+var init_utils2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/index.ts"() {
+    "use strict";
+    init_capabilities_diff2();
+    init_mcp_failure2();
+    init_session_content2();
+    init_creative_naming2();
+    init_task_items2();
+    init_local_memory4();
+    init_enterprise_memory4();
+    init_workspace_knowledge4();
+    init_knowledge_scope2();
+    init_currency_safe_math2();
+    init_file_mentions2();
+    init_knowledge_mentions2();
+    init_session_title2();
+    init_session_mentions2();
+    init_assistant_content2();
+    init_deid2();
+    init_model_routing4();
+    init_subagent_model2();
+    init_computer_use4();
+    init_research_progress2();
+    init_memory_ref2();
+    init_creative_graph2();
+    init_image_artifacts2();
+    init_creative_video2();
+    init_creative_auto2();
+    init_creative_layout2();
+    init_voice_polish2();
+    init_provider_error2();
+    init_cola_goal2();
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/constants/permission-rules.ts
+var init_permission_rules2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/constants/permission-rules.ts"() {
+    "use strict";
+  }
+});
+
+// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/index.ts
+var init_src2 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/index.ts"() {
+    "use strict";
+    init_types2();
+    init_config2();
+    init_utils2();
+    init_permission_rules2();
+    init_i18n2();
   }
 });
 
@@ -1296,7 +2524,7 @@ function getModelCapabilities(provider, modelId, protocol) {
 }
 function resolveModelThinking(capability, explicit, legacyEnabled) {
   if (explicit !== void 0) {
-    if (!capability.levels.includes(explicit)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6", "This model doesn\u2019t support that thinking effort"));
+    if (!capability.levels.includes(explicit)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6", "This model doesn\u2019t support that thinking effort"));
     return explicit;
   }
   if (legacyEnabled === false && capability.levels.includes("off")) return "off";
@@ -1326,7 +2554,7 @@ function modelThinkingPayload(capability, protocol, level) {
   }
 }
 function auxiliaryModelOptions(provider, modelId, protocol, requestedTokens) {
-  if (!Number.isSafeInteger(requestedTokens) || requestedTokens < 1) throw new Error(tr("\u8F93\u51FA\u9884\u7B97\u5FC5\u987B\u4E3A\u6B63\u6574\u6570", "The output budget must be a positive integer"));
+  if (!Number.isSafeInteger(requestedTokens) || requestedTokens < 1) throw new Error(tr2("\u8F93\u51FA\u9884\u7B97\u5FC5\u987B\u4E3A\u6B63\u6574\u6570", "The output budget must be a positive integer"));
   const capability = getModelCapabilities(provider, modelId, protocol);
   if (!capability) return { maxTokens: requestedTokens, parameters: {}, omitSampling: false };
   const level = capability.levels.includes("off") ? "off" : capability.levels[0];
@@ -1337,7 +2565,7 @@ var TITLE_MAX_TOKENS;
 var init_model_capabilities = __esm({
   "../../packages/core/src/providers/model-capabilities.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     TITLE_MAX_TOKENS = 1024;
   }
 });
@@ -1392,6 +2620,10 @@ function isNativeGoogleEndpoint(baseUrl) {
 }
 function normalizeOpenAIBaseUrlForSdk(baseUrl) {
   return normalizeBaseUrl(baseUrl).replace(/\/chat\/completions$/i, "");
+}
+function normalizeKimiCodingBaseUrl(baseUrl) {
+  const url = normalizeOpenAIBaseUrlForSdk(baseUrl);
+  return /\/v\d+$/.test(url) ? url : `${url}/v1`;
 }
 function isNativeDeepSeekCompletions(provider, baseUrl) {
   if (provider !== "deepseek" || !baseUrl) return false;
@@ -1468,12 +2700,12 @@ function supportsResponseSchema(provider, baseUrl, modelId) {
   return !!protocol && getModelCapabilities(provider, modelId, protocol)?.structuredOutput === "json-schema";
 }
 function validateResponseSchema(value) {
-  if (!value || typeof value.name !== "string" || !/^[\w-]{1,64}$/.test(value.name) || !value.schema || Array.isArray(value.schema) || value.schema.type !== "object" || new TextEncoder().encode(JSON.stringify(value)).byteLength > 32e3) throw new Error(tr("Schema \u9700\u4E3A object\uFF0C\u540D\u79F0\u9650 64 \u4E2A\u5B57\u6BCD\u3001\u6570\u5B57\u3001\u4E0B\u5212\u7EBF\u6216\u77ED\u6A2A\u7EBF\uFF0C\u5185\u5BB9\u4E0D\u8D85\u8FC7 32KB", "Schema must be an object \u2264 32 KB, named with up to 64 letters, digits, _ or -"));
+  if (!value || typeof value.name !== "string" || !/^[\w-]{1,64}$/.test(value.name) || !value.schema || Array.isArray(value.schema) || value.schema.type !== "object" || new TextEncoder().encode(JSON.stringify(value)).byteLength > 32e3) throw new Error(tr2("Schema \u9700\u4E3A object\uFF0C\u540D\u79F0\u9650 64 \u4E2A\u5B57\u6BCD\u3001\u6570\u5B57\u3001\u4E0B\u5212\u7EBF\u6216\u77ED\u6A2A\u7EBF\uFF0C\u5185\u5BB9\u4E0D\u8D85\u8FC7 32KB", "Schema must be an object \u2264 32 KB, named with up to 64 letters, digits, _ or -"));
 }
 function applyResponseSchema(provider, baseUrl, modelId, body, schema) {
   if (!schema) return body;
   validateResponseSchema(schema);
-  if (!supportsResponseSchema(provider, baseUrl, modelId)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301\u4E25\u683C JSON Schema", "Strict JSON Schema isn\u2019t confirmed for this model and endpoint"));
+  if (!supportsResponseSchema(provider, baseUrl, modelId)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301\u4E25\u683C JSON Schema", "Strict JSON Schema isn\u2019t confirmed for this model and endpoint"));
   if (provider === "openai") body.text = { ...body.text, format: { type: "json_schema", ...schema, strict: true } };
   else if (provider === "anthropic") body.output_config = { ...body.output_config, format: { type: "json_schema", schema: schema.schema } };
   else if (provider === "google") body.generationConfig = { ...body.generationConfig, responseFormat: { text: { mimeType: "APPLICATION_JSON", schema: schema.schema } } };
@@ -1483,7 +2715,7 @@ function applyResponseSchema(provider, baseUrl, modelId, body, schema) {
 var init_response_schema = __esm({
   "../../packages/core/src/providers/response-schema.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     init_model_capabilities();
     init_url_utils();
   }
@@ -1535,47 +2767,47 @@ function supportsNativeAttachment(provider, baseUrl, modelId, mediaType) {
 function validateNativeRequestSize(provider, baseUrl, body) {
   const deepseek = isNativeDeepSeekCompletions(provider, baseUrl) || isNativeDeepSeekMessages(provider, baseUrl);
   const limit = isNativeAnthropicEndpoint(provider, baseUrl) ? 32e6 : deepseek ? 48 * 1024 * 1024 : isNativeGLMEndpoint(provider, baseUrl) ? 1e8 : void 0;
-  if (limit && new TextEncoder().encode(body).byteLength >= limit) throw new Error(isNativeAnthropicEndpoint(provider, baseUrl) ? tr("Anthropic \u8BF7\u6C42\u8D85\u8FC7 32 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Anthropic request exceeds 32 MB. Remove some attachments or context.") : deepseek ? tr("DeepSeek \u8BF7\u6C42\u8D85\u8FC7 48 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "DeepSeek request exceeds 48 MB. Remove some attachments or context.") : tr("GLM \u8BF7\u6C42\u8D85\u8FC7 100 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "GLM request exceeds 100 MB. Remove some attachments or context."));
+  if (limit && new TextEncoder().encode(body).byteLength >= limit) throw new Error(isNativeAnthropicEndpoint(provider, baseUrl) ? tr2("Anthropic \u8BF7\u6C42\u8D85\u8FC7 32 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Anthropic request exceeds 32 MB. Remove some attachments or context.") : deepseek ? tr2("DeepSeek \u8BF7\u6C42\u8D85\u8FC7 48 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "DeepSeek request exceeds 48 MB. Remove some attachments or context.") : tr2("GLM \u8BF7\u6C42\u8D85\u8FC7 100 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "GLM request exceeds 100 MB. Remove some attachments or context."));
 }
 function nativeAttachmentParts(provider, input, attachments) {
   return (input.readNativeAttachments?.(attachments) ?? []).map((file) => {
-    if (!supportsNativeAttachment(provider, input.baseUrl, input.modelId, file.mediaType)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u4E0D\u652F\u6301\u6B64\u539F\u751F\u6587\u4EF6\u8F93\u5165", "This model and endpoint don\u2019t support this native file input"));
-    if (!file.filename || [file.data, file.fileId, file.fileUri].filter((value) => value !== void 0).length !== 1) throw new Error(tr("\u539F\u751F\u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B\u552F\u4E00\u6709\u6548\u6765\u6E90", "A native file needs exactly one valid source"));
-    if (file.data !== void 0 && (!file.data || file.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.data))) throw new Error(tr("\u539F\u751F\u6587\u4EF6 Base64 \u65E0\u6548", "Invalid Base64 in native file"));
+    if (!supportsNativeAttachment(provider, input.baseUrl, input.modelId, file.mediaType)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u4E0D\u652F\u6301\u6B64\u539F\u751F\u6587\u4EF6\u8F93\u5165", "This model and endpoint don\u2019t support this native file input"));
+    if (!file.filename || [file.data, file.fileId, file.fileUri].filter((value) => value !== void 0).length !== 1) throw new Error(tr2("\u539F\u751F\u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B\u552F\u4E00\u6709\u6548\u6765\u6E90", "A native file needs exactly one valid source"));
+    if (file.data !== void 0 && (!file.data || file.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.data))) throw new Error(tr2("\u539F\u751F\u6587\u4EF6 Base64 \u65E0\u6548", "Invalid Base64 in native file"));
     if (isNativeDeepSeekCompletions(provider, input.baseUrl) || isNativeDeepSeekMessages(provider, input.baseUrl)) {
-      if (file.fileUri || file.fileId !== void 0 && !/^file-api-[\w-]+$/.test(file.fileId)) throw new Error(tr("DeepSeek \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid DeepSeek file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file-api-[\w-]+$/.test(file.fileId)) throw new Error(tr2("DeepSeek \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid DeepSeek file reference"));
       return isNativeDeepSeekMessages(provider, input.baseUrl) ? { type: "image", source: file.fileId ? { type: "file", file_id: file.fileId } : { type: "base64", media_type: file.mediaType, data: file.data } } : file.fileId ? { type: "file", file_id: file.fileId } : { type: "image_url", image_url: { url: `data:${file.mediaType};base64,${file.data}` } };
     }
     if (isNativeAnthropicEndpoint(provider, input.baseUrl)) {
-      if (file.fileUri || file.fileId !== void 0 && !/^file_[\w-]+$/.test(file.fileId)) throw new Error(tr("Anthropic \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Anthropic file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file_[\w-]+$/.test(file.fileId)) throw new Error(tr2("Anthropic \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Anthropic file reference"));
       return { type: "document", source: file.fileId ? { type: "file", file_id: file.fileId } : { type: "base64", media_type: file.mediaType, data: file.data } };
     }
     if (provider === "zhipu") {
-      if (!file.data) throw new Error(tr("GLM \u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B Base64 \u5185\u5BB9", "GLM files need Base64 content"));
+      if (!file.data) throw new Error(tr2("GLM \u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B Base64 \u5185\u5BB9", "GLM files need Base64 content"));
       return { type: "file", file: { filename: file.filename, file_data: `data:${file.mediaType};base64,${file.data}` } };
     }
     if (provider === "moonshot") {
-      if (!file.fileId || !/^[\w-]{1,200}$/.test(file.fileId)) throw new Error(tr("Kimi \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Kimi file reference"));
+      if (!file.fileId || !/^[\w-]{1,200}$/.test(file.fileId)) throw new Error(tr2("Kimi \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Kimi file reference"));
       return { type: "video_url", video_url: { url: `ms://${file.fileId}` } };
     }
     if (provider === "minimax") {
-      if (file.fileId && !/^\d+$/.test(file.fileId)) throw new Error(tr("MiniMax \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid MiniMax file reference"));
-      if (!file.data && !file.fileId) throw new Error(tr("MiniMax \u89C6\u9891\u7F3A\u5C11\u5185\u5BB9", "MiniMax video has no content"));
+      if (file.fileId && !/^\d+$/.test(file.fileId)) throw new Error(tr2("MiniMax \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid MiniMax file reference"));
+      if (!file.data && !file.fileId) throw new Error(tr2("MiniMax \u89C6\u9891\u7F3A\u5C11\u5185\u5BB9", "MiniMax video has no content"));
       const mediaType = file.mediaType === "video/quicktime" ? "video/mov" : file.mediaType;
       return isNativeMiniMaxMessages(provider, input.baseUrl) ? { type: "video", source: file.fileId ? { type: "url", url: `mm_file://${file.fileId}` } : { type: "base64", media_type: mediaType, data: file.data } } : { type: "video_url", video_url: { url: file.fileId ? `mm_file://${file.fileId}` : `data:${mediaType};base64,${file.data}` } };
     }
     if (provider === "openai") {
-      if (file.fileUri || file.fileId !== void 0 && !/^file-[\w-]+$/.test(file.fileId)) throw new Error(tr("OpenAI \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid OpenAI file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file-[\w-]+$/.test(file.fileId)) throw new Error(tr2("OpenAI \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid OpenAI file reference"));
       return file.fileId ? { type: "input_file", file_id: file.fileId } : { type: "input_file", filename: file.filename, file_data: `data:${file.mediaType};base64,${file.data}` };
     }
-    if (file.fileId || file.fileUri !== void 0 && !/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/[\w-]+$/.test(file.fileUri)) throw new Error(tr("Gemini \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Gemini file reference"));
+    if (file.fileId || file.fileUri !== void 0 && !/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/[\w-]+$/.test(file.fileUri)) throw new Error(tr2("Gemini \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Gemini file reference"));
     return file.fileUri ? { file_data: { mime_type: file.mediaType, file_uri: file.fileUri } } : { inline_data: { mime_type: file.mediaType, data: file.data } };
   });
 }
 var init_native_attachments = __esm({
   "../../packages/core/src/providers/native-attachments.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     init_model_capabilities();
     init_url_utils();
   }
@@ -1593,7 +2825,7 @@ function detectThinkingCapability(providerType, modelId) {
   if (providerType === "deepseek") {
     return { mode: "manual-only", disableStrategy: "explicit-disabled" };
   }
-  if (providerType === "kimi-api" || providerType === "kimi-coding") {
+  if (providerType === "kimi-api") {
     return { mode: "none", disableStrategy: "omit-field" };
   }
   if (providerType !== "anthropic") {
@@ -1713,7 +2945,7 @@ var init_anthropic_adapter = __esm({
   "../../packages/core/src/providers/anthropic-adapter.ts"() {
     "use strict";
     init_response_schema();
-    init_src();
+    init_src2();
     init_model_capabilities();
     init_protocol_history();
     init_native_attachments();
@@ -1727,31 +2959,17 @@ var init_anthropic_adapter = __esm({
       }
       /** 根据 provider 类型选择 URL 规范化方式 */
       normalizeUrl(baseUrl) {
-        if (this.providerType === "deepseek" || this.providerType === "kimi-coding") {
-          return normalizeBaseUrl(baseUrl);
-        }
+        if (this.providerType === "deepseek") return normalizeBaseUrl(baseUrl);
         return normalizeAnthropicBaseUrl(baseUrl, this.providerType);
       }
-      /**
-       * 构造请求头
-       *
-       * Kimi Coding Plan 要求：
-       * - 只使用 Bearer（服务端会校验 User-Agent 白名单，不接受伪装为浏览器/SDK）
-       * - User-Agent 必须是真实 coding agent 身份（如 KimiCLI/1.3）
-       */
+      /** 构造请求头：双认证头（Anthropic 原生 + Bearer 兼容） */
       buildHeaders(apiKey) {
-        const base = {
+        return {
           "anthropic-version": "2023-06-01",
-          "content-type": "application/json"
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "Authorization": `Bearer ${apiKey}`
         };
-        if (this.providerType === "kimi-coding") {
-          base["Authorization"] = `Bearer ${apiKey}`;
-          base["User-Agent"] = "KimiCLI/1.3";
-          return base;
-        }
-        base["x-api-key"] = apiKey;
-        base["Authorization"] = `Bearer ${apiKey}`;
-        return base;
       }
       buildStreamRequest(input) {
         const url = this.normalizeUrl(input.baseUrl);
@@ -1814,7 +3032,7 @@ var init_anthropic_adapter = __esm({
         applyResponseSchema(this.providerType, input.baseUrl, input.modelId, body, input.jsonSchema);
         const requestBody = JSON.stringify(body);
         validateNativeRequestSize(this.providerType, input.baseUrl, requestBody);
-        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
+        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr2("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
         const procReq = globalThis.process;
         if (procReq?.env?.CORTEX_DEBUG_REQUEST) {
           console.log("[Request]", this.providerType, input.modelId, "\u2192", requestBody.slice(0, 4e3));
@@ -1828,12 +3046,12 @@ var init_anthropic_adapter = __esm({
       parseSSELine(jsonLine) {
         try {
           const event = JSON.parse(jsonLine);
-          if (event.type === "error") return [{ type: "error", error: event.error?.message || event.error?.type || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (event.type === "error") return [{ type: "error", error: event.error?.message || event.error?.type || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
           const events = [];
           if (event.type === "message_start" && event.message?.input_transformations !== void 0) {
             const transformations = event.message.input_transformations;
             if (!Array.isArray(transformations) || transformations.some((item) => !item || typeof item !== "object" || Array.isArray(item) || typeof item.type !== "string" || typeof item.path !== "string" || typeof item.reason !== "string")) {
-              return [{ type: "error", error: tr("\u6A21\u578B\u8F93\u5165\u5904\u7406\u8BB0\u5F55\u683C\u5F0F\u65E0\u6548", "The model returned invalid input-processing records") }];
+              return [{ type: "error", error: tr2("\u6A21\u578B\u8F93\u5165\u5904\u7406\u8BB0\u5F55\u683C\u5F0F\u65E0\u6548", "The model returned invalid input-processing records") }];
             }
             events.push({ type: "input_transformations", transformations });
           }
@@ -1888,7 +3106,7 @@ var init_anthropic_adapter = __esm({
           if (event.type === "message_stop") events.push({ type: "done" });
           return events;
         } catch {
-          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
@@ -1916,7 +3134,7 @@ var init_anthropic_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeAnthropicEndpoint(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "anthropic-messages")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
+        if (input.jsonSchema && (!isNativeAnthropicEndpoint(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "anthropic-messages")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
         const url = this.normalizeUrl(input.baseUrl);
         const capability = detectThinkingCapability(this.providerType, input.modelId);
         const known = getModelCapabilities(this.providerType, input.modelId, "anthropic-messages");
@@ -2041,15 +3259,26 @@ var init_openai_adapter = __esm({
     init_protocol_history();
     init_native_attachments();
     init_url_utils();
-    init_src();
+    init_src2();
     init_model_capabilities();
     OpenAIAdapter = class {
       constructor(providerType = "openai") {
         this.providerType = providerType;
       }
       protocol = "openai-completions";
+      normalizeUrl(baseUrl) {
+        return this.providerType === "kimi-coding" ? normalizeKimiCodingBaseUrl(baseUrl) : normalizeBaseUrl(baseUrl);
+      }
+      /** Kimi Coding Plan 校验 coding agent 的 User-Agent 白名单，只用 Bearer。 */
+      buildHeaders(apiKey) {
+        return {
+          "Authorization": `Bearer ${apiKey}`,
+          "content-type": "application/json",
+          ...this.providerType === "kimi-coding" ? { "User-Agent": "KimiCLI/1.3" } : {}
+        };
+      }
       buildStreamRequest(input) {
-        const url = normalizeBaseUrl(input.baseUrl);
+        const url = this.normalizeUrl(input.baseUrl);
         const messages = toOpenAIMessages(input, this.providerType);
         const bodyObj = {
           model: input.modelId,
@@ -2074,21 +3303,18 @@ var init_openai_adapter = __esm({
         applyResponseSchema(this.providerType, input.baseUrl, input.modelId, bodyObj, input.jsonSchema);
         const requestBody = JSON.stringify(bodyObj);
         validateNativeRequestSize(this.providerType, input.baseUrl, requestBody);
-        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
+        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr2("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
         return {
           url: `${url}/chat/completions`,
-          headers: {
-            "Authorization": `Bearer ${input.apiKey}`,
-            "content-type": "application/json"
-          },
+          headers: this.buildHeaders(input.apiKey),
           body: requestBody
         };
       }
       parseSSELine(jsonLine) {
         try {
           const chunk = JSON.parse(jsonLine);
-          if (chunk.base_resp?.status_code) return [{ type: "error", error: chunk.base_resp.status_msg || tr(`MiniMax API \u9519\u8BEF\uFF08\u9519\u8BEF\u7801 ${chunk.base_resp.status_code}\uFF09`, `MiniMax API error (code ${chunk.base_resp.status_code})`) }];
-          if (chunk.error) return [{ type: "error", error: chunk.error.message || chunk.error.type || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (chunk.base_resp?.status_code) return [{ type: "error", error: chunk.base_resp.status_msg || tr2(`MiniMax API \u9519\u8BEF\uFF08\u9519\u8BEF\u7801 ${chunk.base_resp.status_code}\uFF09`, `MiniMax API error (code ${chunk.base_resp.status_code})`) }];
+          if (chunk.error) return [{ type: "error", error: chunk.error.message || chunk.error.type || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
           const delta = chunk.choices?.[0]?.delta;
           const events = [];
           if (this.providerType === "minimax" && delta) events.push({ type: "minimax_message_snapshot", message: delta });
@@ -2126,18 +3352,15 @@ var init_openai_adapter = __esm({
           }
           return events;
         } catch {
-          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
-        const url = normalizeBaseUrl(input.baseUrl);
+        const url = this.normalizeUrl(input.baseUrl);
         const options = auxiliaryModelOptions(this.providerType, input.modelId, "openai-completions", TITLE_MAX_TOKENS);
         return {
           url: `${url}/chat/completions`,
-          headers: {
-            "Authorization": `Bearer ${input.apiKey}`,
-            "content-type": "application/json"
-          },
+          headers: this.buildHeaders(input.apiKey),
           body: JSON.stringify({
             model: input.modelId,
             messages: [{ role: "user", content: input.prompt }],
@@ -2151,8 +3374,8 @@ var init_openai_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeKimiCompletions(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "openai-completions")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
-        const url = normalizeBaseUrl(input.baseUrl);
+        if (input.jsonSchema && (!isNativeKimiCompletions(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "openai-completions")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
+        const url = this.normalizeUrl(input.baseUrl);
         const options = auxiliaryModelOptions(this.providerType, input.modelId, "openai-completions", input.maxTokens);
         const body = {
           model: input.modelId,
@@ -2169,10 +3392,7 @@ var init_openai_adapter = __esm({
         else if (input.jsonMode) body.response_format = { type: "json_object" };
         return {
           url: `${url}/chat/completions`,
-          headers: {
-            "Authorization": `Bearer ${input.apiKey}`,
-            "content-type": "application/json"
-          },
+          headers: this.buildHeaders(input.apiKey),
           body: JSON.stringify(body)
         };
       }
@@ -2264,7 +3484,7 @@ function appendContinuationMessages3(contents, continuationMessages, input, prov
     } else if (contMsg.role === "tool") {
       const parts = contMsg.results.map((r) => {
         const call = calls.get(r.toolCallId);
-        if (!call) throw new Error(tr(`\u5DE5\u5177\u8C03\u7528\u4E0D\u5B58\u5728\uFF1A${r.toolCallId}`, `Tool call not found: ${r.toolCallId}`));
+        if (!call) throw new Error(tr2(`\u5DE5\u5177\u8C03\u7528\u4E0D\u5B58\u5728\uFF1A${r.toolCallId}`, `Tool call not found: ${r.toolCallId}`));
         return { functionResponse: {
           name: call.name,
           ...call.metadata?.googleCallId ? { id: call.metadata.googleCallId } : {},
@@ -2284,7 +3504,7 @@ var GoogleAdapter;
 var init_google_adapter = __esm({
   "../../packages/core/src/providers/google-adapter.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     init_response_schema();
     init_protocol_history();
     init_native_attachments();
@@ -2328,7 +3548,7 @@ var init_google_adapter = __esm({
         }
         applyResponseSchema("google", input.baseUrl, input.modelId, body, input.jsonSchema);
         const serialized = JSON.stringify(body);
-        if (input.readNativeAttachments && new TextEncoder().encode(serialized).byteLength >= 2e7) throw new Error(tr("Gemini \u8BF7\u6C42\u8D85\u8FC7 20 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Gemini request exceeds 20 MB. Remove some attachments or context."));
+        if (input.readNativeAttachments && new TextEncoder().encode(serialized).byteLength >= 2e7) throw new Error(tr2("Gemini \u8BF7\u6C42\u8D85\u8FC7 20 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Gemini request exceeds 20 MB. Remove some attachments or context."));
         const native = isNativeGoogleEndpoint(input.baseUrl);
         return {
           url: `${url}/models/${encodeURIComponent(input.modelId)}:streamGenerateContent?alt=sse${native ? "" : `&key=${encodeURIComponent(input.apiKey)}`}`,
@@ -2342,8 +3562,8 @@ var init_google_adapter = __esm({
       parseSSELine(jsonLine) {
         try {
           const parsed = JSON.parse(jsonLine);
-          if (parsed.error) return [{ type: "error", error: parsed.error.message || parsed.error.status || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
-          if (parsed.promptFeedback?.blockReason) return [{ type: "error", error: tr(`\u8BF7\u6C42\u88AB\u4F9B\u5E94\u5546\u62E6\u622A\uFF1A${parsed.promptFeedback.blockReason}`, `The provider blocked this request: ${parsed.promptFeedback.blockReason}`) }];
+          if (parsed.error) return [{ type: "error", error: parsed.error.message || parsed.error.status || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (parsed.promptFeedback?.blockReason) return [{ type: "error", error: tr2(`\u8BF7\u6C42\u88AB\u4F9B\u5E94\u5546\u62E6\u622A\uFF1A${parsed.promptFeedback.blockReason}`, `The provider blocked this request: ${parsed.promptFeedback.blockReason}`) }];
           const parts = parsed.candidates?.[0]?.content?.parts ?? [];
           const events = [];
           if (parts.length) events.push({ type: "google_parts", parts });
@@ -2375,7 +3595,7 @@ var init_google_adapter = __esm({
           if (reason) events.push({ type: "done", stopReason: reason === "STOP" ? "end_turn" : reason });
           return events;
         } catch {
-          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
@@ -2397,7 +3617,7 @@ var init_google_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeGoogleEndpoint(input.baseUrl) || getModelCapabilities("google", input.modelId, "google-generative-ai")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model"));
+        if (input.jsonSchema && (!isNativeGoogleEndpoint(input.baseUrl) || getModelCapabilities("google", input.modelId, "google-generative-ai")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model"));
         const url = normalizeGoogleBaseUrl(input.baseUrl);
         const options = auxiliaryModelOptions("google", input.modelId, "google-generative-ai", input.maxTokens);
         return {
@@ -2427,7 +3647,7 @@ var init_google_adapter = __esm({
 });
 
 // ../../packages/core/src/providers/types.ts
-var init_types2 = __esm({
+var init_types3 = __esm({
   "../../packages/core/src/providers/types.ts"() {
     "use strict";
   }
@@ -2461,7 +3681,7 @@ async function readResponseText(response, signal, maxBytes = 4e6) {
       const next = await abortable(reader.read(), signal);
       if (next.done) return result + decoder.decode();
       bytes += next.value.byteLength;
-      if (bytes > maxBytes) throw new Error(tr("\u6A21\u578B\u54CD\u5E94\u8D85\u8FC7\u8BFB\u53D6\u4E0A\u9650", "The model response exceeds the read limit"));
+      if (bytes > maxBytes) throw new Error(tr2("\u6A21\u578B\u54CD\u5E94\u8D85\u8FC7\u8BFB\u53D6\u4E0A\u9650", "The model response exceeds the read limit"));
       result += decoder.decode(next.value, { stream: true });
     }
   } finally {
@@ -2499,7 +3719,7 @@ async function fetchAuxiliary(url, init, fetchFn = fetch) {
 var init_http_request = __esm({
   "../../packages/core/src/providers/http-request.ts"() {
     "use strict";
-    init_src();
+    init_src2();
   }
 });
 
@@ -2519,10 +3739,10 @@ async function streamSSE(options) {
       errorSignal.throwIfAborted();
       return String(error);
     });
-    throw new Error(tr(`${adapter.providerType} API \u9519\u8BEF (${response.status}): ${text2.slice(0, 300)}`, `${adapter.providerType} API error (${response.status}): ${text2.slice(0, 300)}`));
+    throw new Error(tr2(`${adapter.providerType} API \u9519\u8BEF (${response.status}): ${text2.slice(0, 300)}`, `${adapter.providerType} API error (${response.status}): ${text2.slice(0, 300)}`));
   }
   if (!response.body) {
-    throw new Error(tr("\u54CD\u5E94\u4F53\u4E3A\u7A7A", "The response body is empty"));
+    throw new Error(tr2("\u54CD\u5E94\u4F53\u4E3A\u7A7A", "The response body is empty"));
   }
   let content = "";
   let reasoning = "";
@@ -2574,35 +3794,35 @@ async function streamSSE(options) {
         const events = adapter.parseSSELine(data);
         for (const event of events) {
           if (event.type === "input_transformations") {
-            if (inputTransformations !== void 0) throw new Error(tr("\u6A21\u578B\u91CD\u590D\u8FD4\u56DE\u8F93\u5165\u5904\u7406\u8BB0\u5F55", "The model returned input-processing records twice"));
+            if (inputTransformations !== void 0) throw new Error(tr2("\u6A21\u578B\u91CD\u590D\u8FD4\u56DE\u8F93\u5165\u5904\u7406\u8BB0\u5F55", "The model returned input-processing records twice"));
             inputTransformations = event.transformations;
             onEvent(event);
             continue;
           }
           if (event.type === "openai_message_delta") {
             const { tool_calls, ...delta } = event.message;
-            if (delta.role !== void 0 && delta.role !== "assistant") throw new Error(tr("OpenAI \u517C\u5BB9\u6D41\u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "The OpenAI-compatible stream returned an invalid message role"));
+            if (delta.role !== void 0 && delta.role !== "assistant") throw new Error(tr2("OpenAI \u517C\u5BB9\u6D41\u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "The OpenAI-compatible stream returned an invalid message role"));
             openaiMessage ??= { role: "assistant", content: null };
             for (const [key, value2] of Object.entries(delta)) {
               if (["content", "reasoning_content", "refusal"].includes(key)) {
                 if (value2 === null || value2 === void 0) continue;
-                if (typeof value2 !== "string") throw new Error(tr(`OpenAI \u6D88\u606F ${key} \u5FC5\u987B\u662F\u6587\u672C`, `OpenAI message ${key} must be text`));
+                if (typeof value2 !== "string") throw new Error(tr2(`OpenAI \u6D88\u606F ${key} \u5FC5\u987B\u662F\u6587\u672C`, `OpenAI message ${key} must be text`));
                 openaiMessage = { ...openaiMessage, [key]: String(openaiMessage[key] ?? "") + value2 };
               } else {
                 openaiMessage = { ...openaiMessage, [key]: value2 };
               }
             }
-            if (tool_calls !== void 0 && !Array.isArray(tool_calls)) throw new Error(tr("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
+            if (tool_calls !== void 0 && !Array.isArray(tool_calls)) throw new Error(tr2("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
             for (const tool of tool_calls ?? []) {
-              if (!tool || typeof tool !== "object" || Array.isArray(tool)) throw new Error(tr("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
+              if (!tool || typeof tool !== "object" || Array.isArray(tool)) throw new Error(tr2("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
               const { index = 0, function: fn, id, type, ...fields } = tool;
-              if (!Number.isSafeInteger(index) || index < 0) throw new Error(tr("OpenAI \u5DE5\u5177\u7D22\u5F15\u65E0\u6548", "Invalid OpenAI tool index"));
+              if (!Number.isSafeInteger(index) || index < 0) throw new Error(tr2("OpenAI \u5DE5\u5177\u7D22\u5F15\u65E0\u6548", "Invalid OpenAI tool index"));
               const previous = openaiTools.get(index) ?? {};
-              if (id && previous.id && id !== previous.id) throw new Error(tr("OpenAI \u5DE5\u5177\u7D22\u5F15\u5BF9\u5E94\u7684 ID \u6539\u53D8", "The ID for an OpenAI tool index changed"));
-              if (type && type !== "function") throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${type}`, `Unsupported tool call type: ${type}`));
+              if (id && previous.id && id !== previous.id) throw new Error(tr2("OpenAI \u5DE5\u5177\u7D22\u5F15\u5BF9\u5E94\u7684 ID \u6539\u53D8", "The ID for an OpenAI tool index changed"));
+              if (type && type !== "function") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${type}`, `Unsupported tool call type: ${type}`));
               const previousFunction = previous.function;
-              if (fn !== void 0 && (!fn || typeof fn !== "object" || Array.isArray(fn))) throw new Error(tr("OpenAI \u5DE5\u5177\u51FD\u6570\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool function format"));
-              if (fn?.arguments !== void 0 && typeof fn.arguments !== "string") throw new Error(tr("OpenAI \u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F JSON \u5B57\u7B26\u4E32", "OpenAI tool arguments must be a JSON string"));
+              if (fn !== void 0 && (!fn || typeof fn !== "object" || Array.isArray(fn))) throw new Error(tr2("OpenAI \u5DE5\u5177\u51FD\u6570\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool function format"));
+              if (fn?.arguments !== void 0 && typeof fn.arguments !== "string") throw new Error(tr2("OpenAI \u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F JSON \u5B57\u7B26\u4E32", "OpenAI tool arguments must be a JSON string"));
               openaiTools.set(index, { ...previous, ...fields, ...id ? { id } : {}, ...type ? { type } : {}, ...fn ? { function: {
                 ...previousFunction,
                 ...fn,
@@ -2613,20 +3833,20 @@ async function streamSSE(options) {
             continue;
           }
           if (event.type === "minimax_message_snapshot") {
-            if (!event.message || typeof event.message !== "object" || Array.isArray(event.message)) throw new Error(tr("MiniMax \u6D88\u606F\u683C\u5F0F\u65E0\u6548", "Invalid MiniMax message format"));
+            if (!event.message || typeof event.message !== "object" || Array.isArray(event.message)) throw new Error(tr2("MiniMax \u6D88\u606F\u683C\u5F0F\u65E0\u6548", "Invalid MiniMax message format"));
             const { tool_calls: _tools, ...snapshot } = event.message;
             openaiMessage ??= { role: "assistant", content: null };
-            if (snapshot.role !== void 0 && snapshot.role !== "assistant") throw new Error(tr("MiniMax \u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "MiniMax returned an invalid message role"));
+            if (snapshot.role !== void 0 && snapshot.role !== "assistant") throw new Error(tr2("MiniMax \u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "MiniMax returned an invalid message role"));
             for (const [key, value2] of Object.entries(snapshot)) {
               if (["content", "reasoning_content"].includes(key) && (value2 === null || value2 === "")) continue;
               if (key === "reasoning_details" && Array.isArray(value2) && !value2.length) continue;
               openaiMessage = { ...openaiMessage, [key]: value2 };
             }
             const details = openaiMessage.reasoning_details;
-            if (details !== void 0 && (!Array.isArray(details) || details.some((detail) => !detail || typeof detail !== "object" || Array.isArray(detail)))) throw new Error(tr("MiniMax reasoning_details \u683C\u5F0F\u65E0\u6548", "Invalid MiniMax reasoning_details format"));
+            if (details !== void 0 && (!Array.isArray(details) || details.some((detail) => !detail || typeof detail !== "object" || Array.isArray(detail)))) throw new Error(tr2("MiniMax reasoning_details \u683C\u5F0F\u65E0\u6548", "Invalid MiniMax reasoning_details format"));
             const nextReasoning = Array.isArray(details) && details.some((detail) => typeof detail.text === "string") ? details.map((detail) => typeof detail.text === "string" ? detail.text : "").join("") : openaiMessage.reasoning_content ?? "";
             const nextContent = openaiMessage.content ?? "";
-            if (typeof nextContent !== "string" || typeof nextReasoning !== "string" || !nextContent.startsWith(content) || !nextReasoning.startsWith(reasoning)) throw new Error(tr("MiniMax \u7D2F\u8BA1\u6587\u672C\u4E0E\u5DF2\u63A5\u6536\u5185\u5BB9\u4E0D\u4E00\u81F4", "MiniMax\u2019s accumulated text doesn\u2019t match what was received"));
+            if (typeof nextContent !== "string" || typeof nextReasoning !== "string" || !nextContent.startsWith(content) || !nextReasoning.startsWith(reasoning)) throw new Error(tr2("MiniMax \u7D2F\u8BA1\u6587\u672C\u4E0E\u5DF2\u63A5\u6536\u5185\u5BB9\u4E0D\u4E00\u81F4", "MiniMax\u2019s accumulated text doesn\u2019t match what was received"));
             if (nextContent.length > content.length) onEvent({ type: "chunk", delta: nextContent.slice(content.length) });
             if (nextReasoning.length > reasoning.length) onEvent({ type: "reasoning", delta: nextReasoning.slice(reasoning.length) });
             content = nextContent;
@@ -2634,20 +3854,20 @@ async function streamSSE(options) {
             continue;
           }
           if (event.type === "anthropic_block_start") {
-            if (!Number.isSafeInteger(event.index) || event.index < 0 || anthropicBlocks.has(event.index)) throw new Error(tr("Anthropic \u5185\u5BB9\u5757\u7D22\u5F15\u65E0\u6548", "Invalid Anthropic content block index"));
+            if (!Number.isSafeInteger(event.index) || event.index < 0 || anthropicBlocks.has(event.index)) throw new Error(tr2("Anthropic \u5185\u5BB9\u5757\u7D22\u5F15\u65E0\u6548", "Invalid Anthropic content block index"));
             anthropicBlocks.set(event.index, { ...event.block });
             continue;
           }
           if (event.type === "anthropic_block_delta") {
             const block = anthropicBlocks.get(event.index);
-            if (!block) throw new Error(tr("Anthropic \u5185\u5BB9\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u5757", "Anthropic content delta has no matching block"));
+            if (!block) throw new Error(tr2("Anthropic \u5185\u5BB9\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u5757", "Anthropic content delta has no matching block"));
             const delta = event.delta;
             if (delta.type === "input_json_delta") {
             } else if (delta.type === "citations_delta" && delta.citation) {
               block.citations = [...Array.isArray(block.citations) ? block.citations : [], delta.citation];
             } else {
               const field = delta.type === "text_delta" ? "text" : delta.type === "thinking_delta" ? "thinking" : delta.type === "signature_delta" ? "signature" : void 0;
-              if (!field || typeof delta[field] !== "string") throw new Error(tr(`\u4E0D\u652F\u6301\u7684 Anthropic \u5185\u5BB9\u589E\u91CF\uFF1A${delta.type}`, `Unsupported Anthropic content delta: ${delta.type}`));
+              if (!field || typeof delta[field] !== "string") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684 Anthropic \u5185\u5BB9\u589E\u91CF\uFF1A${delta.type}`, `Unsupported Anthropic content delta: ${delta.type}`));
               block[field] = String(block[field] ?? "") + delta[field];
             }
             continue;
@@ -2683,7 +3903,7 @@ async function streamSSE(options) {
             const id = event.toolCallId || `local-tool-${crypto.randomUUID()}`;
             currentToolCallId = id;
             if (event.toolCallIndex !== void 0) toolIdsByIndex.set(event.toolCallIndex, id);
-            if (pendingToolCalls.has(id)) throw new Error(tr(`\u91CD\u590D\u7684\u5DE5\u5177\u8C03\u7528 ID\uFF1A${id}`, `Duplicate tool call ID: ${id}`));
+            if (pendingToolCalls.has(id)) throw new Error(tr2(`\u91CD\u590D\u7684\u5DE5\u5177\u8C03\u7528 ID\uFF1A${id}`, `Duplicate tool call ID: ${id}`));
             pendingToolCalls.set(id, {
               id,
               name: event.toolName,
@@ -2695,7 +3915,7 @@ async function streamSSE(options) {
           } else if (event.type === "tool_call_delta") {
             const tcId = event.toolCallId || (event.toolCallIndex !== void 0 ? toolIdsByIndex.get(event.toolCallIndex) : currentToolCallId);
             const pending = tcId ? pendingToolCalls.get(tcId) : void 0;
-            if (!pending) throw new Error(tr("\u5DE5\u5177\u53C2\u6570\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u8C03\u7528", "Tool argument delta has no matching call"));
+            if (!pending) throw new Error(tr2("\u5DE5\u5177\u53C2\u6570\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u8C03\u7528", "Tool argument delta has no matching call"));
             pending.args += event.argumentsDelta;
             onEvent({ ...event, toolCallId: pending.id });
             continue;
@@ -2718,16 +3938,16 @@ async function streamSSE(options) {
     });
     reader.releaseLock();
   }
-  if (!terminalReceived) throw new Error(tr("\u6A21\u578B\u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230\u7ED3\u675F\u4E8B\u4EF6", "The model response was cut off: no end event received"));
-  if (adapter.providerType === "moonshot" && !doneSentinelReceived) throw new Error(tr("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230 [DONE]", "The Kimi response was cut off: no [DONE] received"));
-  if (adapter.providerType === "moonshot" && !stopReason) throw new Error(tr("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u7F3A\u5C11 finish_reason", "The Kimi response was cut off: missing finish_reason"));
-  if (["length", "max_tokens", "MAX_TOKENS"].includes(stopReason ?? "")) throw new Error(IPC_ERRORS.outputLimit());
-  if (stopReason && !["stop", "end_turn", "tool_use", "stop_sequence"].includes(stopReason)) throw new Error(tr(`\u6A21\u578B\u54CD\u5E94\u672A\u5B8C\u6210\uFF1A${stopReason}`, `The model response didn\u2019t finish: ${stopReason}`));
+  if (!terminalReceived) throw new Error(tr2("\u6A21\u578B\u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230\u7ED3\u675F\u4E8B\u4EF6", "The model response was cut off: no end event received"));
+  if (adapter.providerType === "moonshot" && !doneSentinelReceived) throw new Error(tr2("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230 [DONE]", "The Kimi response was cut off: no [DONE] received"));
+  if (adapter.providerType === "moonshot" && !stopReason) throw new Error(tr2("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u7F3A\u5C11 finish_reason", "The Kimi response was cut off: missing finish_reason"));
+  if (["length", "max_tokens", "MAX_TOKENS"].includes(stopReason ?? "")) throw new Error(IPC_ERRORS2.outputLimit());
+  if (stopReason && !["stop", "end_turn", "tool_use", "stop_sequence"].includes(stopReason)) throw new Error(tr2(`\u6A21\u578B\u54CD\u5E94\u672A\u5B8C\u6210\uFF1A${stopReason}`, `The model response didn\u2019t finish: ${stopReason}`));
   const toolCalls = [];
   for (const [, pending] of pendingToolCalls) {
     try {
       const args = pending.args ? JSON.parse(pending.args) : {};
-      if (!args || typeof args !== "object" || Array.isArray(args)) throw new Error(tr("\u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61", "Tool arguments must be an object"));
+      if (!args || typeof args !== "object" || Array.isArray(args)) throw new Error(tr2("\u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61", "Tool arguments must be an object"));
       toolCalls.push({
         id: pending.id,
         name: pending.name,
@@ -2735,26 +3955,26 @@ async function streamSSE(options) {
         metadata: pending.metadata
       });
     } catch {
-      throw new Error(tr(`\u5DE5\u5177 ${pending.name} \u7684\u53C2\u6570 JSON \u65E0\u6548`, `Invalid argument JSON for tool ${pending.name}`));
+      throw new Error(tr2(`\u5DE5\u5177 ${pending.name} \u7684\u53C2\u6570 JSON \u65E0\u6548`, `Invalid argument JSON for tool ${pending.name}`));
     }
   }
   for (const [index, raw] of openaiTools) {
     const call = pendingToolCalls.get(String(raw.id ?? toolIdsByIndex.get(index) ?? `tc_${index}`));
     const fn = raw.function;
-    if (!call || fn?.name !== call.name || fn.arguments !== call.args) throw new Error(tr("OpenAI \u5DE5\u5177\u539F\u59CB\u6D88\u606F\u4E0E\u6267\u884C\u53C2\u6570\u4E0D\u4E00\u81F4", "The OpenAI tool\u2019s raw message doesn\u2019t match its arguments"));
+    if (!call || fn?.name !== call.name || fn.arguments !== call.args) throw new Error(tr2("OpenAI \u5DE5\u5177\u539F\u59CB\u6D88\u606F\u4E0E\u6267\u884C\u53C2\u6570\u4E0D\u4E00\u81F4", "The OpenAI tool\u2019s raw message doesn\u2019t match its arguments"));
   }
   if (openaiMessage && toolCalls.length) {
     openaiMessage.tool_calls = toolCalls.map((call) => {
       const raw = [...openaiTools.values()].find((tool) => tool.id === call.id);
       const fn = raw?.function;
-      if (raw?.type !== void 0 && raw.type !== "function") throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${raw.type}`, `Unsupported tool call type: ${raw.type}`));
+      if (raw?.type !== void 0 && raw.type !== "function") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${raw.type}`, `Unsupported tool call type: ${raw.type}`));
       return { ...raw, id: call.id, type: "function", function: { ...fn, name: call.name, arguments: pendingToolCalls.get(call.id).args || "{}" } };
     });
   }
   for (const block of anthropicBlocks.values()) {
     if (block.type === "tool_use") {
       const call = toolCalls.find((tool) => tool.id === block.id);
-      if (!call) throw new Error(tr("Anthropic \u5DE5\u5177\u5757\u7F3A\u5C11\u5DF2\u9A8C\u8BC1\u53C2\u6570", "The Anthropic tool block has no validated arguments"));
+      if (!call) throw new Error(tr2("Anthropic \u5DE5\u5177\u5757\u7F3A\u5C11\u5DF2\u9A8C\u8BC1\u53C2\u6570", "The Anthropic tool block has no validated arguments"));
       block.input = call.arguments;
     }
   }
@@ -2789,7 +4009,7 @@ async function fetchTitle(request, adapter, fetchFn = fetch, requestSignal) {
 var init_sse_reader = __esm({
   "../../packages/core/src/providers/sse-reader.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     init_http_request();
   }
 });
@@ -2846,7 +4066,7 @@ function getAdapter(provider, baseUrl) {
   if (isNativeMiniMaxMessages(provider, baseUrl)) return miniMaxMessagesAdapter;
   const adapter = adapterRegistry.get(provider);
   if (!adapter) {
-    throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${provider}\u3002\u8BF7\u5728\u300C\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u300D\u91CC\u6539\u7528\u53D7\u652F\u6301\u7684\u4F9B\u5E94\u5546\u7C7B\u578B\u3002`, `Unsupported provider: ${provider}. Choose a supported provider type in Models & providers.`));
+    throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${provider}\u3002\u8BF7\u5728\u300C\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u300D\u91CC\u6539\u7528\u53D7\u652F\u6301\u7684\u4F9B\u5E94\u5546\u7C7B\u578B\u3002`, `Unsupported provider: ${provider}. Choose a supported provider type in Models & providers.`));
   }
   return adapter;
 }
@@ -2854,12 +4074,12 @@ var adapterRegistry, miniMaxMessagesAdapter, deepSeekCompletionsAdapter;
 var init_providers = __esm({
   "../../packages/core/src/providers/index.ts"() {
     "use strict";
-    init_src();
+    init_src2();
     init_anthropic_adapter();
     init_openai_adapter();
     init_google_adapter();
     init_url_utils();
-    init_types2();
+    init_types3();
     init_sse_reader();
     init_http_request();
     init_url_utils();
@@ -2880,8 +4100,8 @@ var init_providers = __esm({
       ["moonshot", new OpenAIAdapter("moonshot")],
       ["kimi-api", new AnthropicAdapter("kimi-api")],
       // Kimi API 的 Anthropic 协议端点
-      ["kimi-coding", new AnthropicAdapter("kimi-coding")],
-      // Kimi Coding Plan 订阅制（强制 User-Agent）
+      ["kimi-coding", new OpenAIAdapter("kimi-coding")],
+      // Kimi Coding Plan 订阅制（OpenAI 协议，强制 User-Agent）
       ["zhipu", new OpenAIAdapter("zhipu")],
       ["minimax", new OpenAIAdapter("minimax")],
       ["doubao", new OpenAIAdapter("doubao")],
@@ -2910,7 +4130,7 @@ var init_highlight = __esm({
 });
 
 // ../../packages/core/src/index.ts
-var init_src2 = __esm({
+var init_src3 = __esm({
   "../../packages/core/src/index.ts"() {
     "use strict";
     init_providers();
@@ -3208,9 +4428,9 @@ var init_config_paths = __esm({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/symbols.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js
 var require_symbols = __commonJS({
-  "../electron/node_modules/undici/lib/core/symbols.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kClose: Symbol("close"),
@@ -3287,9 +4507,9 @@ var require_symbols = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/timers.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js
 var require_timers = __commonJS({
-  "../electron/node_modules/undici/lib/util/timers.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js"(exports2, module2) {
     "use strict";
     var fastNow = 0;
     var RESOLUTION_MS = 1e3;
@@ -3516,9 +4736,9 @@ var require_timers = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/errors.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js
 var require_errors = __commonJS({
-  "../electron/node_modules/undici/lib/core/errors.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js"(exports2, module2) {
     "use strict";
     var kUndiciError = Symbol.for("undici.error.UND_ERR");
     var UndiciError = class extends Error {
@@ -3900,9 +5120,9 @@ var require_errors = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/constants.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js
 var require_constants = __commonJS({
-  "../electron/node_modules/undici/lib/core/constants.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js"(exports2, module2) {
     "use strict";
     var wellknownHeaderNames = (
       /** @type {const} */
@@ -4028,9 +5248,9 @@ var require_constants = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/tree.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js
 var require_tree = __commonJS({
-  "../electron/node_modules/undici/lib/core/tree.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js"(exports2, module2) {
     "use strict";
     var {
       wellknownHeaderNames,
@@ -4170,9 +5390,9 @@ var require_tree = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js
 var require_util = __commonJS({
-  "../electron/node_modules/undici/lib/core/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kDestroyed, kBodyUsed, kListeners, kBody } = require_symbols();
@@ -4975,9 +6195,9 @@ var require_util = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/stats.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js
 var require_stats = __commonJS({
-  "../electron/node_modules/undici/lib/util/stats.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js"(exports2, module2) {
     "use strict";
     var {
       kConnected,
@@ -5009,9 +6229,9 @@ var require_stats = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/diagnostics.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js
 var require_diagnostics = __commonJS({
-  "../electron/node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require("node:util");
@@ -5224,9 +6444,9 @@ var require_diagnostics = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/request.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js
 var require_request = __commonJS({
-  "../electron/node_modules/undici/lib/core/request.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js"(exports2, module2) {
     "use strict";
     var {
       InvalidArgumentError,
@@ -5563,9 +6783,9 @@ var require_request = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/wrap-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js
 var require_wrap_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     module2.exports = class WrapHandler {
@@ -5640,9 +6860,9 @@ var require_wrap_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/dispatcher.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js
 var require_dispatcher = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
     "use strict";
     var EventEmitter2 = require("node:events");
     var WrapHandler = require_wrap_handler();
@@ -5682,9 +6902,9 @@ var require_dispatcher = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/unwrap-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js
 var require_unwrap_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
     "use strict";
     var { parseHeaders } = require_util();
     var { InvalidArgumentError } = require_errors();
@@ -5762,9 +6982,9 @@ var require_unwrap_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/dispatcher-base.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js
 var require_dispatcher_base = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var UnwrapHandler = require_unwrap_handler();
@@ -5896,9 +7116,9 @@ var require_dispatcher_base = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/core/connect.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js
 var require_connect = __commonJS({
-  "../electron/node_modules/undici/lib/core/connect.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js"(exports2, module2) {
     "use strict";
     var net = require("node:net");
     var assert = require("node:assert");
@@ -6008,9 +7228,9 @@ var require_connect = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/llhttp/utils.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js
 var require_utils = __commonJS({
-  "../electron/node_modules/undici/lib/llhttp/utils.js"(exports2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.enumToMap = enumToMap;
@@ -6024,9 +7244,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/llhttp/constants.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js
 var require_constants2 = __commonJS({
-  "../electron/node_modules/undici/lib/llhttp/constants.js"(exports2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SPECIAL_HEADERS = exports2.MINOR = exports2.MAJOR = exports2.HTAB_SP_VCHAR_OBS_TEXT = exports2.QUOTED_STRING = exports2.CONNECTION_TOKEN_CHARS = exports2.HEADER_CHARS = exports2.TOKEN = exports2.HEX = exports2.URL_CHAR = exports2.USERINFO_CHARS = exports2.MARK = exports2.ALPHANUM = exports2.NUM = exports2.HEX_MAP = exports2.NUM_MAP = exports2.ALPHA = exports2.STATUSES_HTTP = exports2.H_METHOD_MAP = exports2.METHOD_MAP = exports2.METHODS_RTSP = exports2.METHODS_ICE = exports2.METHODS_HTTP = exports2.HEADER_STATE = exports2.FINISH = exports2.STATUSES = exports2.METHODS = exports2.LENIENT_FLAGS = exports2.FLAGS = exports2.TYPE = exports2.ERROR = void 0;
@@ -6647,9 +7867,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/llhttp/llhttp-wasm.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js
 var require_llhttp_wasm = __commonJS({
-  "../electron/node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRwX3NldF9sZW5pZW50X2hlYWRlcnMAISFsbGh0dHBfc2V0X2xlbmllbnRfY2h1bmtlZF9sZW5ndGgAIh1sbGh0dHBfc2V0X2xlbmllbnRfa2VlcF9hbGl2ZQAjJGxsaHR0cF9zZXRfbGVuaWVudF90cmFuc2Zlcl9lbmNvZGluZwAkGmxsaHR0cF9zZXRfbGVuaWVudF92ZXJzaW9uACUjbGxodHRwX3NldF9sZW5pZW50X2RhdGFfYWZ0ZXJfY2xvc2UAJidsbGh0dHBfc2V0X2xlbmllbnRfb3B0aW9uYWxfbGZfYWZ0ZXJfY3IAJyxsbGh0dHBfc2V0X2xlbmllbnRfb3B0aW9uYWxfY3JsZl9hZnRlcl9jaHVuawAoKGxsaHR0cF9zZXRfbGVuaWVudF9vcHRpb25hbF9jcl9iZWZvcmVfbGYAKSpsbGh0dHBfc2V0X2xlbmllbnRfc3BhY2VzX2FmdGVyX2NodW5rX3NpemUAKhhsbGh0dHBfbWVzc2FnZV9uZWVkc19lb2YANgkYAQBBAQsSAQIDBAUKBgcyNDMuKy8tLDAxCq/ZAjQWAEHA1QAoAgAEQAALQcDVAEEBNgIACxQAIAAQOCAAIAI2AjggACABOgAoCxQAIAAgAC8BNCAALQAwIAAQNxAACx4BAX9BwAAQOiIBEDggAUGACDYCOCABIAA6ACggAQuPDAEHfwJAIABFDQAgAEEIayIBIABBBGsoAgAiAEF4cSIEaiEFAkAgAEEBcQ0AIABBA3FFDQEgASABKAIAIgBrIgFB1NUAKAIASQ0BIAAgBGohBAJAAkBB2NUAKAIAIAFHBEAgAEH/AU0EQCAAQQN2IQMgASgCCCIAIAEoAgwiAkYEQEHE1QBBxNUAKAIAQX4gA3dxNgIADAULIAIgADYCCCAAIAI2AgwMBAsgASgCGCEGIAEgASgCDCIARwRAIAAgASgCCCICNgIIIAIgADYCDAwDCyABQRRqIgMoAgAiAkUEQCABKAIQIgJFDQIgAUEQaiEDCwNAIAMhByACIgBBFGoiAygCACICDQAgAEEQaiEDIAAoAhAiAg0ACyAHQQA2AgAMAgsgBSgCBCIAQQNxQQNHDQIgBSAAQX5xNgIEQczVACAENgIAIAUgBDYCACABIARBAXI2AgQMAwtBACEACyAGRQ0AAkAgASgCHCICQQJ0QfTXAGoiAygCACABRgRAIAMgADYCACAADQFByNUAQcjVACgCAEF+IAJ3cTYCAAwCCyAGQRBBFCAGKAIQIAFGG2ogADYCACAARQ0BCyAAIAY2AhggASgCECICBEAgACACNgIQIAIgADYCGAsgAUEUaigCACICRQ0AIABBFGogAjYCACACIAA2AhgLIAEgBU8NACAFKAIEIgBBAXFFDQACQAJAAkACQCAAQQJxRQRAQdzVACgCACAFRgRAQdzVACABNgIAQdDVAEHQ1QAoAgAgBGoiADYCACABIABBAXI2AgQgAUHY1QAoAgBHDQZBzNUAQQA2AgBB2NUAQQA2AgAMBgtB2NUAKAIAIAVGBEBB2NUAIAE2AgBBzNUAQczVACgCACAEaiIANgIAIAEgAEEBcjYCBCAAIAFqIAA2AgAMBgsgAEF4cSAEaiEEIABB/wFNBEAgAEEDdiEDIAUoAggiACAFKAIMIgJGBEBBxNUAQcTVACgCAEF+IAN3cTYCAAwFCyACIAA2AgggACACNgIMDAQLIAUoAhghBiAFIAUoAgwiAEcEQEHU1QAoAgAaIAAgBSgCCCICNgIIIAIgADYCDAwDCyAFQRRqIgMoAgAiAkUEQCAFKAIQIgJFDQIgBUEQaiEDCwNAIAMhByACIgBBFGoiAygCACICDQAgAEEQaiEDIAAoAhAiAg0ACyAHQQA2AgAMAgsgBSAAQX5xNgIEIAEgBGogBDYCACABIARBAXI2AgQMAwtBACEACyAGRQ0AAkAgBSgCHCICQQJ0QfTXAGoiAygCACAFRgRAIAMgADYCACAADQFByNUAQcjVACgCAEF+IAJ3cTYCAAwCCyAGQRBBFCAGKAIQIAVGG2ogADYCACAARQ0BCyAAIAY2AhggBSgCECICBEAgACACNgIQIAIgADYCGAsgBUEUaigCACICRQ0AIABBFGogAjYCACACIAA2AhgLIAEgBGogBDYCACABIARBAXI2AgQgAUHY1QAoAgBHDQBBzNUAIAQ2AgAMAQsgBEH/AU0EQCAEQXhxQezVAGohAAJ/QcTVACgCACICQQEgBEEDdnQiA3FFBEBBxNUAIAIgA3I2AgAgAAwBCyAAKAIICyICIAE2AgwgACABNgIIIAEgADYCDCABIAI2AggMAQtBHyECIARB////B00EQCAEQSYgBEEIdmciAGt2QQFxIABBAXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgL5YUCAgd/A34gASACaiEEAkAgACIDKAIMIgANACADKAIEBEAgAyABNgIECyMAQRBrIgkkAAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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C0HjAQwHC0HXAQwGC0HYAQwFC0HZAQwEC0HaAQwDC0HbAQwCC0HdAQwBC0HcAQshAgNAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQCADAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJ/AkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAg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ogKiAqICogKiAqICogKiAqICogKiAqICogIAogILIAQgAUEBaiIBRw0AC0HJACECDOwCCyABQQFqIQEgA0Evai0AAEEBcQ2lAiADQQA2AhwgAyABNgIUIANBlxA2AhAgA0EKNgIMQQAhAgzrAgsgASAERwRAA0AgAS0AAEEgRw0VIAQgAUEBaiIBRw0AC0H4ACECDOsCC0H4ACECDOoCCyADQQI6ACgMOAtBACECIANBADYCHCADQb8LNgIQIANBAjYCDCADIAFBAWo2AhQM6AILQQAhAgzOAgtBDSECDM0CC0ETIQIMzAILQRUhAgzLAgtBFiECDMoCC0EYIQIMyQILQRkhAgzIAgtBGiECDMcCC0EbIQIMxgILQRwhAgzFAgtBHSECDMQCC0EeIQIMwwILQR8hAgzCAgtBICECDMECC0EiIQIMwAILQSMhAgy/AgtBJSECDL4CC0HlACECDL0CCyADQT02AhwgAyABNgIUIAMgADYCDEEAIQIM1QILIANBGzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDNQCCyADQSA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzTAgsgA0ETNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0gILIANBCzYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNECCyADQRA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzQAgsgA0EgNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzwILIANBCzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM4CCyADQQw2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzNAgtBACECIANBADYCHCADIAE2AhQgA0HdDjYCECADQRI2AgwMzAILAkADQAJAIAEtAABBCmsOBAACAgACCyAEIAFBAWoiAUcNAAtB/QEhAgzMAgsCQAJAIAMtADZBAUcNAEEAIQACQCADKAI4IgJFDQAgAigCYCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUcNASADQfwBNgIcIAMgATYCFCADQdwZNgIQIANBFTYCDEEAIQIMzQILQdwBIQIMswILIANBADYCHCADIAE2AhQgA0H5CzYCECADQR82AgxBACECDMsCCwJAAkAgAy0AKEEBaw4CBAEAC0HbASECDLICC0HUASECDLECCyADQQI6ADFBACEAAkAgAygCOCICRQ0AIAIoAgAiAkUNACADIAIRAAAhAAsgAEUEQEHdASECDLECCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQbQMNgIQIANBEDYCDEEAIQIMygILIANB+wE2AhwgAyABNgIUIANBgRo2AhAgA0EVNgIMQQAhAgzJAgsgASAERgRAQfoBIQIMyQILIAEtAABByABGDQEgA0EBOgAoC0HAASECDK4CC0HaASECDK0CCyABIARHBEAgA0EMNgIIIAMgATYCBEHZASECDK0CC0H5ASECDMUCCyABIARGBEBB+AEhAgzFAgsgAS0AAEHIAEcNBCABQQFqIQFB2AEhAgyrAgsgASAERgRAQfcBIQIMxAILAkACQCABLQAAQcUAaw4QAAUFBQUFBQUFBQUFBQUFAQULIAFBAWohAUHWASECDKsCCyABQQFqIQFB1wEhAgyqAgtB9gEhAiABIARGDcICIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbrVAGotAABHDQMgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMMCCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIARQRAQeMBIQIMqgILIANB9QE2AhwgAyABNgIUIAMgADYCDEEAIQIMwgILQfQBIQIgASAERg3BAiADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEG41QBqLQAARw0CIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzCAgsgA0GBBDsBKCADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIADQMMAgsgA0EANgIAC0EAIQIgA0EANgIcIAMgATYCFCADQeUfNgIQIANBCDYCDAy/AgtB1QEhAgylAgsgA0HzATYCHCADIAE2AhQgAyAANgIMQQAhAgy9AgtBACEAAkAgAygCOCICRQ0AIAIoAkAiAkUNACADIAIRAAAhAAsgAEUNbiAAQRVHBEAgA0EANgIcIAMgATYCFCADQYIPNgIQIANBIDYCDEEAIQIMvQILIANBjwE2AhwgAyABNgIUIANB7Bs2AhAgA0EVNgIMQQAhAgy8AgsgASAERwRAIANBDTYCCCADIAE2AgRB0wEhAgyjAgtB8gEhAgy7AgsgASAERgRAQfEBIQIMuwILAkACQAJAIAEtAABByABrDgsAAQgICAgICAgIAggLIAFBAWohAUHQASECDKMCCyABQQFqIQFB0QEhAgyiAgsgAUEBaiEBQdIBIQIMoQILQfABIQIgASAERg25AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBtdUAai0AAEcNBCAAQQJGDQMgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuQILQe8BIQIgASAERg24AiADKAIAIgAgBCABa2ohBiABIABrQQFqIQUDQCABLQAAIABBs9UAai0AAEcNAyAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuAILQe4BIQIgASAERg23AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMtwILIAMoAgQhACADQgA3AwAgAyAAIAVBAWoiARArIgBFDQIgA0HsATYCHCADIAE2AhQgAyAANgIMQQAhAgy2AgsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNnAIgA0HtATYCHCADIAE2AhQgAyAANgIMQQAhAgy0AgtBzwEhAgyaAgtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDLQCC0HOASECDJoCCyADQesBNgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMsgILIAEgBEYEQEHrASECDLICCyABLQAAQS9GBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GyODYCECADQQg2AgxBACECDLECC0HNASECDJcCCyABIARHBEAgA0EONgIIIAMgATYCBEHMASECDJcCC0HqASECDK8CCyABIARGBEBB6QEhAgyvAgsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFBywEhAgyWAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZcCIANB6AE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAEgBEYEQEHnASECDK4CCwJAIAEtAABBLkYEQCABQQFqIQEMAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5gE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILQcoBIQIMlAILIAEgBEYEQEHlASECDK0CC0EAIQBBASEFQQEhB0EAIQICQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQCABLQAAQTBrDgoKCQABAgMEBQYICwtBAgwGC0EDDAULQQQMBAtBBQwDC0EGDAILQQcMAQtBCAshAkEAIQVBACEHDAILQQkhAkEBIQBBACEFQQAhBwwBC0EAIQVBASECCyADIAI6ACsgAUEBaiEBAkACQCADLQAuQRBxDQACQAJAAkAgAy0AKg4DAQACBAsgB0UNAwwCCyAADQEMAgsgBUUNAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDQIgA0HiATYCHCADIAE2AhQgAyAANgIMQQAhAgyvAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZoCIANB4wE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ2YAiADQeQBNgIcIAMgATYCFCADIAA2AgwMrQILQckBIQIMkwILQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANBpA02AhAgA0EhNgIMQQAhAgytAgtByAEhAgyTAgsgA0HhATYCHCADIAE2AhQgA0HQGjYCECADQRU2AgxBACECDKsCCyABIARGBEBB4QEhAgyrAgsCQCABLQAAQSBGBEAgA0EAOwE0IAFBAWohAQwBCyADQQA2AhwgAyABNgIUIANBmRE2AhAgA0EJNgIMQQAhAgyrAgtBxwEhAgyRAgsgASAERgRAQeABIQIMqgILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyrAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqgILQcYBIQIMkAILIAEgBEYEQEHfASECDKkCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqgILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKkCC0HFASECDI8CCyABIARGBEBB3gEhAgyoAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKkCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyoAgtBxAEhAgyOAgsgASAERgRAQd0BIQIMpwILAkACQAJAAkAgAS0AAEEKaw4XAgMDAAMDAwMDAwMDAwMDAwMDAwMDAwEDCyABQQFqDAULIAFBAWohAUHDASECDI8CCyABQQFqIQEgA0Evai0AAEEBcQ0IIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKcCCyADQQA2AhwgAyABNgIUIANBjQs2AhAgA0ENNgIMQQAhAgymAgsgASAERwRAIANBDzYCCCADIAE2AgRBASECDI0CC0HcASECDKUCCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtB2wEhAgymAgsgAygCBCEAIANBADYCBCADIAAgARAtIgBFBEAgAUEBaiEBDAQLIANB2gE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMpQILIAMoAgQhACADQQA2AgQgAyAAIAEQLSIADQEgAUEBagshAUHBASECDIoCCyADQdkBNgIcIAMgADYCDCADIAFBAWo2AhRBACECDKICC0HCASECDIgCCyADQS9qLQAAQQFxDQEgA0EANgIcIAMgATYCFCADQeQcNgIQIANBGTYCDEEAIQIMoAILIAEgBEYEQEHZASEC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IAFBAWohAUGeASECDOQBCyABQQFqIQFBnwEhAgzjAQtBtwEhAiABIARGDfsBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQezUAGotAABHDSggAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPwBCyADQQA2AgAgBkEBaiEBQQ0MKAtBtgEhAiABIARGDfoBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDScgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPsBCyADQQA2AgAgBkEBaiEBQQwMJwtBtQEhAiABIARGDfkBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQerUAGotAABHDSYgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPoBCyADQQA2AgAgBkEBaiEBQQMMJgtBtAEhAiABIARGDfgBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQejUAGotAABHDSUgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPkBCyADQQA2AgAgBkEBaiEBQSYMJQsgASAERgRAQbMBIQIM+AELAkACQCABLQAAQdQAaw4CAAEnCyABQQFqIQFBmQEhAgzfAQsgAUEBaiEBQZoBIQIM3gELQbIBIQIgASAERg32ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHm1ABqLQAARw0jIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz3AQsgA0EANgIAIAZBAWohAUEnDCMLQbEBIQIgASAERg31ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHk1ABqLQAARw0iIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz2AQsgA0EANgIAIAZBAWohAUEcDCILQbABIQIgASAERg30ASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHe1ABqLQAARw0hIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz1AQsgA0EANgIAIAZBAWohAUEGDCELQa8BIQIgASAERg3zASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEHZ1ABqLQAARw0gIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz0AQsgA0EANgIAIAZBAWohAUEZDCALIAEgBEYEQEGuASECDPMBCwJAAkACQAJAIAEtAABBLWsOIwAkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJAEkJCQkJAIkJCQDJAsgAUEBaiEBQY4BIQIM3AELIAFBAWohAUGPASECDNsBCyABQQFqIQFBlAEhAgzaAQsgAUEBaiEBQZUBIQIM2QELQa0BIQIgASAERg3xASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHX1ABqLQAARw0eIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzyAQsgA0EANgIAIAZBAWohAUELDB4LIAEgBEYEQEGsASECDPEBCwJAAkAgAS0AAEHBAGsOAwAgASALIAFBAWohAUGQASECDNgBCyABQQFqIQFBkwEhAgzXAQsgASAERgRAQasBIQIM8AELAkACQCABLQAAQcEAaw4PAB8fHx8fHx8fHx8fHx8BHwsgAUEBaiEBQZEBIQIM1wELIAFBAWohAUGSASECDNYBCyABIARGBEBBqgEhAgzvAQsgAS0AAEHMAEcNHCABQQFqIQFBCgwbC0GpASECIAEgBEYN7QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABB0dQAai0AAEcNGiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7gELIANBADYCACAGQQFqIQFBHgwaC0GoASECIAEgBEYN7AEgAygCACIAIAQgAWtqIQUgASAAa0EGaiEGAkADQCABLQAAIABBytQAai0AAEcNGSAAQQZGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7QELIANBADYCACAGQQFqIQFBFQwZC0GnASECIAEgBEYN6wEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBx9QAai0AAEcNGCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7AELIANBADYCACAGQQFqIQFBFwwYC0GmASECIAEgBEYN6gEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBwdQAai0AAEcNFyAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6wELIANBADYCACAGQQFqIQFBGAwXCyABIARGBEBBpQEhAgzqAQsCQAJAIAEtAABByQBrDgcAGRkZGRkBGQsgAUEBaiEBQYsBIQIM0QELIAFBAWohAUGMASECDNABC0GkASECIAEgBEYN6AEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBptUAai0AAEcNFSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6QELIANBADYCACAGQQFqIQFBCQwVC0GjASECIAEgBEYN5wEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBpNUAai0AAEcNFCAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6AELIANBADYCACAGQQFqIQFBHwwUC0GiASECIAEgBEYN5gEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBvtQAai0AAEcNEyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5wELIANBADYCACAGQQFqIQFBAgwTC0GhASECIAEgBEYN5QEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGA0AgAS0AACAAQbzUAGotAABHDREgAEEBRg0CIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADOUBCyABIARGBEBBoAEhAgzlAQtBASABLQAAQd8ARw0RGiABQQFqIQFBhwEhAgzLAQsgA0EANgIAIAZBAWohAUGIASECDMoBC0GfASECIAEgBEYN4gEgAygCACIAIAQgAWtqIQUgASAAa0EIaiEGAkADQCABLQAAIABBhNUAai0AAEcNDyAAQQhGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4wELIANBADYCACAGQQFqIQFBKQwPC0GeASECIAEgBEYN4QEgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBuNQAai0AAEcNDiAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4gELIANBADYCACAGQQFqIQFBLQwOCyABIARGBEBBnQEhAgzhAQsgAS0AAEHFAEcNDiABQQFqIQFBhAEhAgzHAQsgASAERgRAQZwBIQIM4AELAkACQCABLQAAQcwAaw4IAA8PDw8PDwEPCyABQQFqIQFBggEhAgzHAQsgAUEBaiEBQYMBIQIMxgELQZsBIQIgASAERg3eASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEGz1ABqLQAARw0LIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzfAQsgA0EANgIAIAZBAWohAUEjDAsLQZoBIQIgASAERg3dASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGw1ABqLQAARw0KIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzeAQsgA0EANgIAIAZBAWohAUEADAoLIAEgBEYEQEGZASECDN0BCwJAAkAgAS0AAEHIAGsOCAAMDAwMDAwBDAsgAUEBaiEBQf0AIQIMxAELIAFBAWohAUGAASECDMMBCyABIARGBEBBmAEhAgzcAQsCQAJAIAEtAABBzgBrDgMACwELCyABQQFqIQFB/gAhAgzDAQsgAUEBaiEBQf8AIQIMwgELIAEgBEYEQEGXASECDNsBCyABLQAAQdkARw0IIAFBAWohAUEIDAcLQZYBIQIgASAERg3ZASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEGs1ABqLQAARw0GIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzaAQsgA0EANgIAIAZBAWohAUEFDAYLQZUBIQIgASAERg3YASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEGm1ABqLQAARw0FIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzZAQsgA0EANgIAIAZBAWohAUEWDAULQZQBIQIgASAERg3XASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGh1QBqLQAARw0EIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzYAQsgA0EANgIAIAZBAWohAUEQDAQLIAEgBEYEQEGTASECDNcBCwJAAkAgAS0AAEHDAGsODAAGBgYGBgYGBgYGAQYLIAFBAWohAUH5ACECDL4BCyABQQFqIQFB+gAhAgy9AQtBkgEhAiABIARGDdUBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQaDUAGotAABHDQIgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNYBCyADQQA2AgAgBkEBaiEBQSQMAgsgA0EANgIADAILIAEgBEYEQEGRASECDNQBCyABLQAAQcwARw0BIAFBAWohAUETCzoAKSADKAIEIQAgA0EANgIEIAMgACABEC4iAA0CDAELQQAhAiADQQA2AhwgAyABNgIUIANB/h82AhAgA0EGNgIMDNEBC0H4ACECDLcBCyADQZABNgIcIAMgATYCFCADIAA2AgxBACECDM8BC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUYNASADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgzOAQtB9wAhAgy0AQsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDMwBCyABIARGBEBBjwEhAgzMAQsCQCABLQAAQSBGBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GbHzYCECADQQY2AgxBACECDMwBC0ECIQIMsgELA0AgAS0AAEEgRw0CIAQgAUEBaiIBRw0AC0GOASECDMoBCyABIARGBEBBjQEhAgzKAQsCQCABLQAAQQlrDgRKAABKAAtB9QAhAgywAQsgAy0AKUEFRgRAQfYAIQIMsAELQfQAIQIMrwELIAEgBEYEQEGMASECDMgBCyADQRA2AgggAyABNgIEDAoLIAEgBEYEQEGLASECDMcBCwJAIAEtAABBCWsOBEcAAEcAC0HzACECDK0BCyABIARHBEAgA0EQNgIIIAMgATYCBEHxACECDK0BC0GKASECDMUBCwJAIAEgBEcEQANAIAEtAABBoNAAai0AACIAQQNHBEACQCAAQQFrDgJJAAQLQfAAIQIMrwELIAQgAUEBaiIBRw0AC0GIASEC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BCABQQFqIgFHDQALQfsAIQIMpwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMpgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMpQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMpAELIANBADYCHCADIAE2AhQgA0G8CjYCECADQQc2AgxBACECDKMBC0HPACECDIkBC0HRACECDIgBC0HnACECDIcBCyABIARGBEBB+gAhAgygAQsCQCABLQAAQQlrDgQgAAAgAAsgAUEBaiEBQeYAIQIMhgELIAEgBEYEQEH5ACECDJ8BCwJAIAEtAABBCWsOBB8AAB8AC0EAIQACQCADKAI4IgJFDQAgAigCOCICRQ0AIAMgAhEAACEACyAARQRAQeIBIQIMhgELIABBFUcEQCADQQA2AhwgAyABNgIUIANByQ02AhAgA0EaNgIMQQAhAgyfAQsgA0H4ADYCHCADIAE2AhQgA0HqGjYCECADQRU2AgxBACECDJ4BCyABIARHBEAgA0ENNgIIIAMgATYCBEHkACECDIUBC0H3ACECDJ0BCyABIARGBEBB9gAhAgydAQsCQAJAAkAgAS0AAEHIAGsOCwABCwsLCwsLCwsCCwsgAUEBaiEBQd0AIQIMhQELIAFBAWohAUHgACECDIQBCyABQQFqIQFB4wAhAgyDAQtB9QAhAiABIARGDZsBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbXVAGotAABHDQggAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJwBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIABEAgA0H0ADYCHCADIAE2AhQgAyAANgIMQQAhAgycAQtB4gAhAgyCAQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJwBC0HhACECDIIBCyADQfMANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMmgELIAMtACkiAEEja0ELSQ0JAkAgAEEGSw0AQQEgAHRBygBxRQ0ADAoLQQAhAiADQQA2AhwgAyABNgIUIANB7Qk2AhAgA0EINgIMDJkBC0HyACECIAEgBEYNmAEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBs9UAai0AAEcNBSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMmQELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfEANgIcIAMgATYCFCADIAA2AgxBACECDJkBC0HfACECDH8LQQAhAAJAIAMoAjgiAkUNACACKAI0IgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANB6g02AhAgA0EmNgIMQQAhAgyZAQtB3gAhAgx/CyADQfAANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMlwELIAMtAClBIUYNBiADQQA2AhwgAyABNgIUIANBkQo2AhAgA0EINgIMQQAhAgyWAQtB7wAhAiABIARGDZUBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDVAGotAABHDQIgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJYBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIARQ0CIANB7QA2AhwgAyABNgIUIAMgADYCDEEAIQIMlQELIANBADYCAAsgAygCBCEAIANBADYCBCADIAAgARArIgBFDYABIANB7gA2AhwgAyABNgIUIAMgADYCDEEAIQIMkwELQdwAIQIMeQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJMBC0HbACECDHkLIANB7AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyRAQsgAy0AKSIAQSNJDQAgAEEuRg0AIANBADYCHCADIAE2AhQgA0HJCTYCECADQQg2AgxBACECDJABC0HaACECDHYLIAEgBEYEQEHrACECDI8BCwJAIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMjwELQdkAIQIMdQsgASAERwRAIANBDjYCCCADIAE2AgRB2AAhAgx1C0HqACECDI0BCyABIARGBEBB6QAhAgyNAQsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFB1wAhAgx0CyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeiADQegANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyABIARGBEBB5wAhAgyMAQsCQCABLQAAQS5GBEAgAUEBaiEBDAELIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ17IANB5gA2AhwgAyABNgIUIAMgADYCDEEAIQIMjAELQdYAIQIMcgsgASAERgRAQeUAIQIMiwELQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIANgIcIAMgATYCFCADIAA2AgxBACECDI0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNfSADQeMANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeyADQeQANgIcIAMgATYCFCADIAA2AgwMiwELQdQAIQIMcQsgAy0AKUEiRg2GAUHTACECDHALQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALIABFBEBB1QAhAgxwCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQaQNNgIQIANBITYCDEEAIQIMiQELIANB4QA2AhwgAyABNgIUIANB0Bo2AhAgA0EVNgIMQQAhAgyIAQsgASAERgRAQeAAIQIMiAELAkACQAJAAkACQCABLQAAQQprDgQBBAQABAsgAUEBaiEBDAELIAFBAWohASADQS9qLQAAQQFxRQ0BC0HSACECDHALIANBADYCHCADIAE2AhQgA0G2ETYCECADQQk2AgxBACECDIgBCyADQQA2AhwgAyABNgIUIANBthE2AhAgA0EJNgIMQQAhAgyHAQsgASAERgRAQd8AIQIMhwELIAEtAABBCkYEQCABQQFqIQEMCQsgAy0ALkHAAHENCCADQQA2AhwgAyABNgIUIANBthE2AhAgA0ECNgIMQQAhAgyGAQsgASAERgRAQd0AIQIMhgELIAEtAAAiAkENRgRAIAFBAWohAUHQACECDG0LIAEhACACQQlrDgQFAQEFAQsgBCABIgBGBEBB3AAhAgyFAQsgAC0AAEEKRw0AIABBAWoMAgtBACECIANBADYCHCADIAA2AhQgA0HKLTYCECADQQc2AgwMgwELIAEgBEYEQEHbACECDIMBCwJAIAEtAABBCWsOBAMAAAMACyABQQFqCyEBQc4AIQIMaAsgASAERgRAQdoAIQIMgQELIAEtAABBCWsOBAABAQABC0EAIQIgA0EANgIcIANBmhI2AhAgA0EHNgIMIAMgAUEBajYCFAx/CyADQYASOwEqQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB2QA2AhwgAyABNgIUIANB6ho2AhAgA0EVNgIMQQAhAgx+C0HNACECDGQLIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDHwLIAEgBEYEQEHZACECDHwLIAEtAABBIEcNPSABQQFqIQEgAy0ALkEBcQ09IANBADYCHCADIAE2AhQgA0HCHDYCECADQR42AgxBACECDHsLIAEgBEYEQEHYACECDHsLAkACQAJAAkACQCABLQAAIgBBCmsOBAIDAwABCyABQQFqIQFBLCECDGULIABBOkcNASADQQA2AhwgAyABNgIUIANB5xE2AhAgA0EKNgIMQQAhAgx9CyABQQFqIQEgA0Evai0AAEEBcUUNcyADLQAyQYABcUUEQCADQTJqIQIgAxA1QQAhAAJAIAMoAjgiBkUNACAGKAIoIgZFDQAgAyAGEQAAIQALAkACQCAADhZNTEsBAQEBAQEBAQEBAQEBAQEBAQEAAQsgA0EpNgIcIAMgATYCFCADQawZNgIQIANBFTYCDEEAIQIMfgsg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c3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -6662,9 +7882,9 @@ var require_llhttp_wasm = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
 var require_llhttp_simd_wasm = __commonJS({
-  "../electron/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRw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AXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgLhocCAwd/A34BeyABIAJqIQQCQCAAIgMoAgwiAA0AIAMoAgQEQCADIAE2AgQLIwBBEGsiCSQAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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DAgLQeMBDAcLQdcBDAYLQdgBDAULQdkBDAQLQdoBDAMLQdsBDAILQd0BDAELQdwBCyECA0ACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAn8CQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAgAwJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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A0EXNgIcIAMgADYCDCADIAFBAWo2AhQM+AILIABBFUYNI0EAIQIgA0EANgIcIAMgATYCFCADQdYMNgIQIANBIzYCDAz3AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQwdCyADQRk2AhwgAyAANgIMIAMgAUEBajYCFAz2AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQzvAgsgA0EaNgIcIAMgADYCDCADIAFBAWo2AhQM9QILIABBFUYNH0EAIQIgA0EANgIcIAMgATYCFCADQdAPNgIQIANBIjYCDAz0AgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDBsLIANBHDYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgzzAgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDOsCCyADQR02AhwgAyAANgIMIAMgAUEBajYCFEEAIQIM8gILIABBO0cNASABQQFqIQELQSYhAgzXAgtBACECIANBADYCHCADIAE2AhQgA0GfFTYCECADQQw2AgwM7wILIAEgBEcEQANAIAEtAABBIEcNhAIgBCABQQFqIgFHDQALQSwhAgzvAgtBLCECDO4CCyABIARGBEBBNCECDO4CCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtBNCECDO8CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUNnwIgA0EyNgIcIAMgATYCFCADIAA2AgxBACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUEQCABQQFqIQEMnwILIANBMjYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgztAgsgASAERwRAAkADQCABLQAAQTBrIgBB/wFxQQpPBEBBOiECDNcCCyADKQMgIgtCmbPmzJmz5swZVg0BIAMgC0IKfiIKNwMgIAogAK1C/wGDIgtCf4VWDQEgAyAKIAt8NwMgIAQgAUEBaiIBRw0AC0HAACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABQQFqIgEQMSIADRcM4gILQcAAIQIM7AILIAEgBEYEQEHJACECDOwCCwJAA0ACQCABLQAAQQlrDhgAAqICogKpAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAgCiAgsgBCABQQFqIgFHDQALQckAIQIM7AILIAFBAWohASADQS9qLQAAQQFxDaUCIANBADYCHCADIAE2AhQgA0GXEDYCECADQQo2AgxBACECDOsCCyABIARHBEADQCABLQAAQSBHDRUgBCABQQFqIgFHDQALQfgAIQIM6wILQfgAIQIM6gILIANBAjoAKAw4C0EAIQIgA0EANgIcIANBvws2AhAgA0ECNgIMIAMgAUEBajYCFAzoAgtBACECDM4CC0ENIQIMzQILQRMhAgzMAgtBFSECDMsCC0EWIQIMygILQRghAgzJAgtBGSECDMgCC0EaIQIMxwILQRshAgzGAgtBHCECDMUCC0EdIQIMxAILQR4hAgzDAgtBHyECDMICC0EgIQIMwQILQSIhAgzAAgtBIyECDL8CC0ElIQIMvgILQeUAIQIMvQILIANBPTYCHCADIAE2AhQgAyAANgIMQQAhAgzVAgsgA0EbNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIM1AILIANBIDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNMCCyADQRM2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzSAgsgA0ELNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0QILIANBEDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNACCyADQSA2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzPAgsgA0ELNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzgILIANBDDYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM0CC0EAIQIgA0EANgIcIAMgATYCFCADQd0ONgIQIANBEjYCDAzMAgsCQANAAkAgAS0AAEEKaw4EAAICAAILIAQgAUEBaiIBRw0AC0H9ASECDMwCCwJAAkAgAy0ANkEBRw0AQQAhAAJAIAMoAjgiAkUNACACKAJgIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB/AE2AhwgAyABNgIUIANB3Bk2AhAgA0EVNgIMQQAhAgzNAgtB3AEhAgyzAgsgA0EANgIcIAMgATYCFCADQfkLNgIQIANBHzYCDEEAIQIMywILAkACQCADLQAoQQFrDgIEAQALQdsBIQIMsgILQdQBIQIMsQILIANBAjoAMUEAIQACQCADKAI4IgJFDQAgAigCACICRQ0AIAMgAhEAACEACyAARQRAQd0BIQIMsQILIABBFUcEQCADQQA2AhwgAyABNgIUIANBtAw2AhAgA0EQNgIMQQAhAgzKAgsgA0H7ATYCHCADIAE2AhQgA0GBGjYCECADQRU2AgxBACECDMkCCyABIARGBEBB+gEhAgzJAgsgAS0AAEHIAEYNASADQQE6ACgLQcABIQIMrgILQdoBIQIMrQILIAEgBEcEQCADQQw2AgggAyABNgIEQdkBIQIMrQILQfkBIQIMxQILIAEgBEYEQEH4ASECDMUCCyABLQAAQcgARw0EIAFBAWohAUHYASECDKsCCyABIARGBEBB9wEhAgzEAgsCQAJAIAEtAABBxQBrDhAABQUFBQUFBQUFBQUFBQUBBQsgAUEBaiEBQdYBIQIMqwILIAFBAWohAUHXASECDKoCC0H2ASECIAEgBEYNwgIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABButUAai0AAEcNAyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMwwILIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgBFBEBB4wEhAgyqAgsgA0H1ATYCHCADIAE2AhQgAyAANgIMQQAhAgzCAgtB9AEhAiABIARGDcECIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQbjVAGotAABHDQIgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMICCyADQYEEOwEoIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgANAwwCCyADQQA2AgALQQAhAiADQQA2AhwgAyABNgIUIANB5R82AhAgA0EINgIMDL8CC0HVASECDKUCCyADQfMBNgIcIAMgATYCFCADIAA2AgxBACECDL0CC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ1uIABBFUcEQCADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgy9AgsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDLwCCyABIARHBEAgA0ENNgIIIAMgATYCBEHTASECDKMCC0HyASECDLsCCyABIARGBEBB8QEhAgy7AgsCQAJAAkAgAS0AAEHIAGsOCwABCAgICAgICAgCCAsgAUEBaiEBQdABIQIMowILIAFBAWohAUHRASECDKICCyABQQFqIQFB0gEhAgyhAgtB8AEhAiABIARGDbkCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEG11QBqLQAARw0EIABBAkYNAyAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy5AgtB7wEhAiABIARGDbgCIAMoAgAiACAEIAFraiEGIAEgAGtBAWohBQNAIAEtAAAgAEGz1QBqLQAARw0DIABBAUYNAiAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy4AgtB7gEhAiABIARGDbcCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEGw1QBqLQAARw0CIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy3AgsgAygCBCEAIANCADcDACADIAAgBUEBaiIBECsiAEUNAiADQewBNgIcIAMgATYCFCADIAA2AgxBACECDLYCCyADQQA2AgALIAMoAgQhACADQQA2AgQgAyAAIAEQKyIARQ2cAiADQe0BNgIcIAMgATYCFCADIAA2AgxBACECDLQCC0HPASECDJoCC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMtAILQc4BIQIMmgILIANB6wE2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyyAgsgASAERgRAQesBIQIMsgILIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMsQILQc0BIQIMlwILIAEgBEcEQCADQQ42AgggAyABNgIEQcwBIQIMlwILQeoBIQIMrwILIAEgBEYEQEHpASECDK8CCyABLQAAQTBrIgBB/wFxQQpJBEAgAyAAOgAqIAFBAWohAUHLASECDJYCCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNlwIgA0HoATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgASAERgRAQecBIQIMrgILAkAgAS0AAEEuRgRAIAFBAWohAQwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmAIgA0HmATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgtBygEhAgyUAgsgASAERgRAQeUBIQIMrQILQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIBNgIcIAMgATYCFCADIAA2AgxBACECDK8CCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmgIgA0HjATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5AE2AhwgAyABNgIUIAMgADYCDAytAgtByQEhAgyTAgtBACEAAkAgAygCOCICRQ0AIAIoAkQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GkDTYCECADQSE2AgxBACECDK0CC0HIASECDJMCCyADQeEBNgIcIAMgATYCFCADQdAaNgIQIANBFTYCDEEAIQIMqwILIAEgBEYEQEHhASECDKsCCwJAIAEtAABBIEYEQCADQQA7ATQgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GZETYCECADQQk2AgxBACECDKsCC0HHASECDJECCyABIARGBEBB4AEhAgyqAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKsCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyqAgtBxgEhAgyQAgsgASAERgRAQd8BIQIMqQILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyqAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqQILQcUBIQIMjwILIAEgBEYEQEHeASECDKgCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqQILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKgCC0HEASECDI4CCyABIARGBEBB3QEhAgynAgsCQAJAAkACQCABLQAAQQprDhcCAwMAAwMDAwMDAwMDAwMDAwMDAwMDAQMLIAFBAWoMBQsgAUEBaiEBQcMBIQIMjwILIAFBAWohASADQS9qLQAAQQFxDQggA0EANgIcIAMgATYCFCADQY0LNgIQIANBDTYCDEEAIQIMpwILIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKYCCyABIARHBEAgA0EPNgIIIAMgATYCBEEBIQIMjQILQdwBIQIMpQILAkACQANAAkAgAS0AAEEKaw4EAgAAAwALIAQgAUEBaiIBRw0AC0HbASECDKYCCyADKAIEIQAgA0EANgIEIAMgACABEC0iAEUEQCABQQFqIQEMBAsgA0HaATYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgylAgsgAygCBCEAIANBADYCBCADIAAgARAtIgANASABQQFqCyEBQcEBIQIMigILIANB2QE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMogILQcIBIQIMiAILIANBL2otAABBAXENASADQQA2AhwgAyABNgIUIANB5Bw2AhAgA0EZNgIMQQAhAgygAgsgASAERgRAQdkB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CyADIAU2AgAMkAILIANBADYCACAGQQFqIQFBGgw8C0HKASECIAEgBEYNjgIgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBjdUAai0AAEcNOyAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMjwILIANBADYCACAGQQFqIQFBIQw7CyABIARGBEBByQEhAgyOAgsCQAJAIAEtAABBwQBrDhQAPT09PT09PT09PT09PT09PT09AT0LIAFBAWohAUGtASECDPUBCyABQQFqIQFBsAEhAgz0AQsgASAERgRAQcgBIQIMjQILAkACQCABLQAAQdUAaw4LADw8PDw8PDw8PAE8CyABQQFqIQFBrgEhAgz0AQsgAUEBaiEBQa8BIQIM8wELQccBIQIgASAERg2LAiADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw04IABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyMAgsgA0EANgIAIAZBAWohAUEqDDgLIAEgBEYEQEHGASECDIsCCyABLQAAQdAARw04IAFBAWohAUElDDcLQcUBIQIgASAERg2JAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGB1QBqLQAARw02IABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyKAgsgA0EANgIAIAZBAWohAUEODDYLIAEgBEYEQEHEASECDIkCCyABLQAAQcUARw02IAFBAWohAUGrASECDO8BCyABIARGBEBBwwEhAgyIAgsCQAJAAkACQCABLQAAQcIAaw4PAAECOTk5OTk5OTk5OTkDOQsgAUEBaiEBQacBIQIM8QELIAFBAWohAUGoASECDPABCyABQQFqIQFBqQEhAgzvAQsgAUEBaiEBQaoBIQIM7gELQcIBIQIgASAERg2GAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEH+1ABqLQAARw0zIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyHAgsgA0EANgIAIAZBAWohAUEUDDMLQcEBIQIgASAERg2FAiADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANA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BTYCAAzsAQsgA0EANgIAIAZBAWohAUEXDBgLQaYBIQIgASAERg3qASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHB1ABqLQAARw0XIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzrAQsgA0EANgIAIAZBAWohAUEYDBcLIAEgBEYEQEGlASECDOoBCwJAAkAgAS0AAEHJAGsOBwAZGRkZGQEZCyABQQFqIQFBiwEhAgzRAQsgAUEBaiEBQYwBIQIM0AELQaQBIQIgASAERg3oASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGm1QBqLQAARw0VIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzpAQsgA0EANgIAIAZBAWohAUEJDBULQaMBIQIgASAERg3nASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGk1QBqLQAARw0UIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzoAQsgA0EANgIAIAZBAWohAUEfDBQLQaIBIQIgASAERg3mASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEG+1ABqLQAARw0TIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAznAQsgA0EANgIAIAZBAWohAUECDBMLQaEBIQIgASAERg3lASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYDQCABLQAAIABBvNQAai0AAEcNESAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5QELIAEgBEYEQEGgASECDOUBC0EBIAEtAABB3wBHDREaIAFBAWohAUGHASECDMsBCyADQQA2AgAgBkEBaiEBQYgBIQIMygELQZ8BIQIgASAERg3iASADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw0PIABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzjAQsgA0EANgIAIAZBAWohAUEpDA8LQZ4BIQIgASAERg3hASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEG41ABqLQAARw0OIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAziAQsgA0EANgIAIAZBAWohAUEtDA4LIAEgBEYEQEGdASECDOEBCyABLQAAQcUARw0OIAFBAWohAUGEASECDMcBCyABIARGBEBBnAEhAgzgAQsCQAJAIAEtAABBzABrDggADw8PDw8PAQ8LIAFBAWohAUGCASECDMcBCyABQQFqIQFBgwEhAgzGAQtBmwEhAiABIARGDd4BIAMoAgAiACAEIAFraiEFIAEgAGtBBGohBgJAA0AgAS0AACAAQbPUAGotAABHDQsgAEEERg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN8BCyADQQA2AgAgBkEBaiEBQSMMCwtBmgEhAiABIARGDd0BIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDUAGotAABHDQogAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN4BCyADQQA2AgAgBkEBaiEBQQAMCgsgASAERgRAQZkBIQIM3QELAkACQCABLQAAQcgAaw4IAAwMDAwMDAEMCyABQQFqIQFB/QAhAgzEAQsgAUEBaiEBQYABIQIMwwELIAEgBEYEQEGYASECDNwBCwJAAkAgAS0AAEHOAGsOAwALAQsLIAFBAWohAUH+ACECDMMBCyABQQFqIQFB/wAhAgzCAQsgASAERgRAQZcBIQIM2wELIAEtAABB2QBHDQggAUEBaiEBQQgMBwtBlgEhAiABIARGDdkBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQazUAGotAABHDQYgAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNoBCyADQQA2AgAgBkEBaiEBQQUMBgtBlQEhAiABIARGDdgBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQabUAGotAABHDQUgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNkBCyADQQA2AgAgBkEBaiEBQRYMBQtBlAEhAiABIARGDdcBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDQQgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNgBCyADQQA2AgAgBkEBaiEBQRAMBAsgASAERgRAQZMBIQIM1wELAkACQCABLQAAQcMAaw4MAAYGBgYGBgYGBgYBBgsgAUEBaiEBQfkAIQIMvgELIAFBAWohAUH6ACECDL0BC0GSASECIAEgBEYN1QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBoNQAai0AAEcNAiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM1gELIANBADYCACAGQQFqIQFBJAwCCyADQQA2AgAMAgsgASAERgRAQZEBIQIM1AELIAEtAABBzABHDQEgAUEBaiEBQRMLOgApIAMoAgQhACADQQA2AgQgAyAAIAEQLiIADQIMAQtBACECIANBADYCHCADIAE2AhQgA0H+HzYCECADQQY2AgwM0QELQfgAIQIMtwELIANBkAE2AhwgAyABNgIUIAMgADYCDEEAIQIMzwELQQAhAAJAIAMoAjgiAkUNACACKAJAIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GCDzYCECADQSA2AgxBACECDM4BC0H3ACECDLQBCyADQY8BNgIcIAMgATYCFCADQewbNgIQIANBFTYCDEEAIQIMzAELIAEgBEYEQEGPASECDMwBCwJAIAEtAABBIEYEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQZsfNgIQIANBBjYCDEEAIQIMzAELQQIhAgyyAQsDQCABLQAAQSBHDQIgBCABQQFqIgFHDQALQY4BIQIMygELIAEgBEYEQEGNASECDMoBCwJAIAEtAABBCWsOBEoAAEoAC0H1ACECDLABCyADLQApQQVGBEBB9gAhAgywAQtB9AAhAgyvAQsgASAERgRAQYwBIQIMyAELIANBEDYCCCADIAE2AgQMCgsgASAERgRAQYsBIQIMxwELAkAgAS0AAEEJaw4ERwAARwALQfMAIQIMrQELIAEgBEcEQCADQRA2AgggAyABNgIEQfEAIQIMrQELQYoBIQIMxQELAkAgASAERwRAA0AgAS0AAEGg0ABqLQAAIgBBA0cEQAJAIABBAWsOAkkABAtB8AAhAgyvAQsgBCABQQFqIgFHDQALQYgBIQIMxgELQYgBIQIMxQELIANBADYCHCADIAE2AhQgA0HbIDYCECADQQc2AgxBACECDMQBCyABIARGBEBBiQEhAgzEAQsCQAJAAkAgAS0AAEGg0gBqLQAAQQFrDgNGAgABC0HyACECDKwBCyADQQA2AhwgAyABNgIUIANBtBI2AhAgA0EHNgIMQQAhAgzEAQtB6gAhAgyqAQsgASAERwRAIAFBAWohAUHvACECDKoBC0GHASECDMIBCyAEIAEiAEYEQEGGASECDMIBCyAALQAAIgFBL0YEQCAAQQFqIQFB7gAhAgypAQsgAUEJayICQRdLDQEgACEBQQEgAnRBm4CABHENQQwBCyAEIAEiAEYEQEGFASECDMEBCyAALQAAQS9HDQAgAEEBaiEBDAMLQQAhAiADQQA2AhwgAyAANgIUIANB2yA2AhAgA0EHNgIMDL8BCwJAAkACQAJAAkADQCABLQAAQaDOAGotAAAiAEEFRwRAAkACQCAAQQFrDghHBQYHCAAEAQgLQesAIQIMrQELIAFBAWohAUHtACECDKwBCyAEIAFBAWoiAUcNAAtBhAEhAgzDAQsgAUEBagwUCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDMEBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDMABCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDL8BCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy+AQsgASAERgRAQYMBIQIMvgELAkAgAS0AAEGgzgBqLQAAQQFrDgg+BAUGAAgCAwcLIAFBAWohAQtBAyECDKMBCyABQQFqDA0LQQAhAiADQQA2AhwgA0HREjYCECADQQc2AgwgAyABQQFqNgIUDLoBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDLkBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDLgBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDLcBCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy2AQtB7AAhAgycAQsgASAERgRAQYIBIQIMtQELIAFBAWoMAgsgASAERgRAQYEBIQIMtAELIAFBAWoMAQsgASAERg0BIAFBAWoLIQFBBCECDJgBC0GAASECDLABCwNAIAEtAABBoMwAai0AACIAQQJHBEAgAEEBRwRAQekAIQIMmQELDDELIAQgAUEBaiIBRw0AC0H/ACECDK8BCyABIARGBEBB/gAhAgyvAQsCQCABLQAAQQlrDjcvAwYvBAYGBgYGBgYGBgYGBgYGBgYGBgUGBgIGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYABgsgAUEBagshAUEFIQIMlAELIAFBAWoMBgsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgyrAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgyqAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgypAQsgA0EANgIcIAMgATYCFCADQY0UNgIQIANBBzYCDEEAIQIMqAELAkACQAJAAkADQCABLQAAQaDKAGotAAAiAEEFRwRAAkAgAEEBaw4GLgMEBQYABgtB6AAhAgyUAQsgBCABQQFqIgFHDQALQf0AIQIMqwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMqgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMqQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMqAELIANBADYCHCADIAE2AhQgA0HkCDYCECADQQc2AgxBACECDKcBCyABIARGDQEgAUEBagshAUEGIQIMjAELQfwAIQIMpAELAkACQAJAAkADQCABLQAAQaDIAGotAAAiAEEFRwRAIABBAWsOBCkCAwQFCyAEIAFBAWoiAUcNAAtB+wAhAgynAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgymAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgylAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgykAQsgA0EANgIcIAMgATYCFCADQbwKNgIQIANBBzYCDEEAIQIMowELQc8AIQIMiQELQdEAIQIMiAELQecAIQIMhwELIAEgBEYEQEH6ACECDKABCwJAIAEtAABBCWsOBCAAACAACyABQQFqIQFB5gAhAgyGAQsgASAERgRAQfkAIQIMnwELAkAgAS0AAEEJaw4EHwAAHwALQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFBEBB4gEhAgyGAQsgAEEVRwRAIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDJ8BCyADQfgANgIcIAMgATYCFCADQeoaNgIQIANBFTYCDEEAIQIMngELIAEgBEcEQCADQQ02AgggAyABNgIEQeQAIQIMhQELQfcAIQIMnQELIAEgBEYEQEH2ACECDJ0BCwJAAkACQCABLQAAQcgAaw4LAAELCwsLCwsLCwILCyABQQFqIQFB3QAhAgyFAQsgAUEBaiEBQeAAIQIMhAELIAFBAWohAUHjACECDIMBC0H1ACECIAEgBEYNmwEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBtdUAai0AAEcNCCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMnAELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfQANgIcIAMgATYCFCADIAA2AgxBACECDJwBC0HiACECDIIBC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMnAELQeEAIQIMggELIANB8wA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyaAQsgAy0AKSIAQSNrQQtJDQkCQCAAQQZLDQBBASAAdEHKAHFFDQAMCgtBACECIANBADYCHCADIAE2AhQgA0HtCTYCECADQQg2AgwMmQELQfIAIQIgASAERg2YASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGz1QBqLQAARw0FIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyZAQsgAygCBCEAIANCADcDACADIAAgBkEBaiIBECsiAARAIANB8QA2AhwgAyABNgIUIAMgADYCDEEAIQIMmQELQd8AIQIMfwtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJkBC0HeACECDH8LIANB8AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyXAQsgAy0AKUEhRg0GIANBADYCHCADIAE2AhQgA0GRCjYCECADQQg2AgxBACECDJYBC0HvACECIAEgBEYNlQEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMlgELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgBFDQIgA0HtADYCHCADIAE2AhQgAyAANgIMQQAhAgyVAQsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNgAEgA0HuADYCHCADIAE2AhQgAyAANgIMQQAhAgyTAQtB3AAhAgx5C0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMkwELQdsAIQIMeQsgA0HsADYCHCADIAE2AhQgA0GAGzYCECADQRU2AgxBACECDJEBCyADLQApIgBBI0kNACAAQS5GDQAgA0EANgIcIAMgATYCFCADQckJNgIQIANBCDYCDEEAIQIMkAELQdoAIQIMdgsgASAERgRAQesAIQIMjwELAkAgAS0AAEEvRgRAIAFBAWohAQwBCyAD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ciBIVFRQL3gueCByZXF1ZXN0AEludmFsaWQgbWV0aG9kIGZvciBSVFNQL3gueCByZXF1ZXN0AEV4cGVjdGVkIFNPVVJDRSBtZXRob2QgZm9yIElDRS94LnggcmVxdWVzdABJbnZhbGlkIGNoYXIgaW4gdXJsIGZyYWdtZW50IHN0YXJ0AEV4cGVjdGVkIGRvdABTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3N0YXR1cwBJbnZhbGlkIHJlc3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -6677,9 +7897,9 @@ var require_llhttp_simd_wasm = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/constants.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js
 var require_constants3 = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
     "use strict";
     var corsSafeListedMethods = (
       /** @type {const} */
@@ -6901,9 +8121,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/global.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js
 var require_global = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
     "use strict";
     var globalOrigin = Symbol.for("undici.globalOrigin.1");
     function getGlobalOrigin() {
@@ -6937,9 +8157,9 @@ var require_global = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/encoding/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js
 var require_encoding = __commonJS({
-  "../electron/node_modules/undici/lib/encoding/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js"(exports2, module2) {
     "use strict";
     var textDecoder = new TextDecoder();
     function utf8DecodeBytes(buffer) {
@@ -6958,9 +8178,9 @@ var require_encoding = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/infra/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js
 var require_infra = __commonJS({
-  "../electron/node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { utf8DecodeBytes } = require_encoding();
@@ -7071,9 +8291,9 @@ var require_infra = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/data-url.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js
 var require_data_url = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { forgivingBase64, collectASequenceOfCodePoints, collectASequenceOfCodePointsFast, isomorphicDecode, removeASCIIWhitespace, removeChars } = require_infra();
@@ -7350,9 +8570,9 @@ var require_data_url = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/runtime-features.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js
 var require_runtime_features = __commonJS({
-  "../electron/node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
     "use strict";
     var lazyLoaders = {
       __proto__: null,
@@ -7452,9 +8672,9 @@ var require_runtime_features = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/webidl/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js
 var require_webidl = __commonJS({
-  "../electron/node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { types, inspect } = require("node:util");
@@ -7478,8 +8698,8 @@ var require_webidl = __commonJS({
       return new TypeError(`${message.header}: ${message.message}`);
     };
     webidl.errors.conversionFailed = function(opts) {
-      const plural2 = opts.types.length === 1 ? "" : " one of";
-      const message = `${opts.argument} could not be converted to${plural2}: ${opts.types.join(", ")}.`;
+      const plural3 = opts.types.length === 1 ? "" : " one of";
+      const message = `${opts.argument} could not be converted to${plural3}: ${opts.types.join(", ")}.`;
       return webidl.errors.exception({
         header: opts.prefix,
         message
@@ -8053,9 +9273,9 @@ var require_webidl = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js
 var require_util2 = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var zlib = require("node:zlib");
@@ -8820,9 +10040,9 @@ var require_util2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/formdata.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js
 var require_formdata = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
     "use strict";
     var { iteratorMixin } = require_util2();
     var { kEnumerableProperty } = require_util();
@@ -8982,9 +10202,9 @@ var require_formdata = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/formdata-parser.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js
 var require_formdata_parser = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
     "use strict";
     var { bufferToLowerCasedHeaderName } = require_util();
     var { HTTP_TOKEN_CODEPOINTS } = require_data_url();
@@ -9306,9 +10526,9 @@ var require_formdata_parser = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/promise.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js
 var require_promise = __commonJS({
-  "../electron/node_modules/undici/lib/util/promise.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js"(exports2, module2) {
     "use strict";
     function createDeferredPromise() {
       let res;
@@ -9325,9 +10545,9 @@ var require_promise = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/body.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js
 var require_body = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -9608,9 +10828,9 @@ Content-Type: ${value.type || "application/octet-stream"}\r
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/client-h1.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js
 var require_client_h1 = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var util = require_util();
@@ -10771,9 +11991,9 @@ ${len.toString(16)}\r
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/client-h2.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js
 var require_client_h2 = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { pipeline } = require("node:stream");
@@ -11494,9 +12714,9 @@ var require_client_h2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/client.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js
 var require_client = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var net = require("node:net");
@@ -12005,9 +13225,9 @@ var require_client = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/fixed-queue.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js
 var require_fixed_queue = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
     "use strict";
     var kSize = 2048;
     var kMask = kSize - 1;
@@ -12076,9 +13296,9 @@ var require_fixed_queue = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/pool-base.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js
 var require_pool_base = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
     "use strict";
     var { PoolStats } = require_stats();
     var DispatcherBase = require_dispatcher_base();
@@ -12252,9 +13472,9 @@ var require_pool_base = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/pool.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js
 var require_pool = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -12354,9 +13574,9 @@ var require_pool = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/balanced-pool.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js
 var require_balanced_pool = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
     "use strict";
     var {
       BalancedPoolMissingUpstreamError,
@@ -12384,9 +13604,9 @@ var require_balanced_pool = __commonJS({
     function getGreatestCommonDivisor(a, b) {
       if (a === 0) return b;
       while (b !== 0) {
-        const t2 = b;
+        const t3 = b;
         b = a % b;
-        a = t2;
+        a = t3;
       }
       return a;
     }
@@ -12501,9 +13721,9 @@ var require_balanced_pool = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/round-robin-pool.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js
 var require_round_robin_pool = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -12618,9 +13838,9 @@ var require_round_robin_pool = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js
 var require_agent = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, MaxOriginsReachedError } = require_errors();
     var { kClients, kRunning, kClose, kDestroy, kDispatch, kUrl } = require_symbols();
@@ -12751,9 +13971,9 @@ var require_agent = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/proxy-agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js
 var require_proxy_agent = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
     "use strict";
     var { kProxy, kClose, kDestroy, kDispatch } = require_symbols();
     var Agent2 = require_agent();
@@ -12986,9 +14206,9 @@ var require_proxy_agent = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
 var require_env_http_proxy_agent = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
     "use strict";
     var DispatcherBase = require_dispatcher_base();
     var { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = require_symbols();
@@ -13111,9 +14331,9 @@ var require_env_http_proxy_agent = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/retry-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js
 var require_retry_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kRetryHandlerDefaultRetry } = require_symbols();
@@ -13420,9 +14640,9 @@ var require_retry_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/retry-agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js
 var require_retry_agent = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var RetryHandler = require_retry_handler();
@@ -13455,9 +14675,9 @@ var require_retry_agent = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/dispatcher/h2c-client.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js
 var require_h2c_client = __commonJS({
-  "../electron/node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var Client = require_client();
@@ -13498,9 +14718,9 @@ var require_h2c_client = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/readable.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js
 var require_readable = __commonJS({
-  "../electron/node_modules/undici/lib/api/readable.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -13900,9 +15120,9 @@ var require_readable = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/api-request.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js
 var require_api_request = __commonJS({
-  "../electron/node_modules/undici/lib/api/api-request.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -14078,9 +15298,9 @@ var require_api_request = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/abort-signal.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js
 var require_abort_signal = __commonJS({
-  "../electron/node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
     "use strict";
     var { addAbortListener } = require_util();
     var { RequestAbortedError } = require_errors();
@@ -14130,9 +15350,9 @@ var require_abort_signal = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/api-stream.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js
 var require_api_stream = __commonJS({
-  "../electron/node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { finished } = require("node:stream");
@@ -14291,9 +15511,9 @@ var require_api_stream = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/api-pipeline.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js
 var require_api_pipeline = __commonJS({
-  "../electron/node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
     "use strict";
     var {
       Readable,
@@ -14492,9 +15712,9 @@ var require_api_pipeline = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/api-upgrade.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js
 var require_api_upgrade = __commonJS({
-  "../electron/node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, SocketError } = require_errors();
     var { AsyncResource } = require("node:async_hooks");
@@ -14586,9 +15806,9 @@ var require_api_upgrade = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/api-connect.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js
 var require_api_connect = __commonJS({
-  "../electron/node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -14677,9 +15897,9 @@ var require_api_connect = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/api/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js
 var require_api = __commonJS({
-  "../electron/node_modules/undici/lib/api/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js"(exports2, module2) {
     "use strict";
     module2.exports.request = require_api_request();
     module2.exports.stream = require_api_stream();
@@ -14689,9 +15909,9 @@ var require_api = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-errors.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js
 var require_mock_errors = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
     "use strict";
     var { UndiciError } = require_errors();
     var kMockNotMatchedError = Symbol.for("undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED");
@@ -14715,9 +15935,9 @@ var require_mock_errors = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-symbols.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js
 var require_mock_symbols = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kAgent: Symbol("agent"),
@@ -14751,9 +15971,9 @@ var require_mock_symbols = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-utils.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js
 var require_mock_utils = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
     "use strict";
     var { MockNotMatchedError } = require_mock_errors();
     var {
@@ -15123,9 +16343,9 @@ var require_mock_utils = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-interceptor.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js
 var require_mock_interceptor = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
     "use strict";
     var { getResponseData, buildKey, addMockDispatch } = require_mock_utils();
     var {
@@ -15287,11 +16507,11 @@ var require_mock_interceptor = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-client.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js
 var require_mock_client = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
     "use strict";
-    var { promisify: promisify2 } = require("node:util");
+    var { promisify: promisify3 } = require("node:util");
     var Client = require_client();
     var { buildMockDispatch } = require_mock_utils();
     var {
@@ -15339,7 +16559,7 @@ var require_mock_client = __commonJS({
         this[kDispatches] = [];
       }
       async [kClose]() {
-        await promisify2(this[kOriginalClose])();
+        await promisify3(this[kOriginalClose])();
         this[kConnected] = 0;
         this[kMockAgent][Symbols2.kClients].delete(this[kOrigin]);
       }
@@ -15348,9 +16568,9 @@ var require_mock_client = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-call-history.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js
 var require_mock_call_history = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
     "use strict";
     var { kMockCallHistoryAddLog } = require_mock_symbols();
     var { InvalidArgumentError } = require_errors();
@@ -15548,11 +16768,11 @@ var require_mock_call_history = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-pool.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js
 var require_mock_pool = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
     "use strict";
-    var { promisify: promisify2 } = require("node:util");
+    var { promisify: promisify3 } = require("node:util");
     var Pool = require_pool();
     var { buildMockDispatch } = require_mock_utils();
     var {
@@ -15600,7 +16820,7 @@ var require_mock_pool = __commonJS({
         this[kDispatches] = [];
       }
       async [kClose]() {
-        await promisify2(this[kOriginalClose])();
+        await promisify3(this[kOriginalClose])();
         this[kConnected] = 0;
         this[kMockAgent][Symbols2.kClients].delete(this[kOrigin]);
       }
@@ -15609,9 +16829,9 @@ var require_mock_pool = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/pending-interceptors-formatter.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js
 var require_pending_interceptors_formatter = __commonJS({
-  "../electron/node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { Console } = require("node:console");
@@ -15650,9 +16870,9 @@ var require_pending_interceptors_formatter = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/mock-agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js
 var require_mock_agent = __commonJS({
-  "../electron/node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
     "use strict";
     var { kClients } = require_symbols();
     var Agent2 = require_agent();
@@ -15834,9 +17054,9 @@ ${pendingInterceptorsFormatter.format(pending)}`.trim()
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/snapshot-utils.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js
 var require_snapshot_utils = __commonJS({
-  "../electron/node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var { runtimeFeatures } = require_runtime_features();
@@ -15920,9 +17140,9 @@ var require_snapshot_utils = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/snapshot-recorder.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js
 var require_snapshot_recorder = __commonJS({
-  "../electron/node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
     "use strict";
     var { writeFile, readFile, mkdir } = require("node:fs/promises");
     var { dirname: dirname5, resolve: resolve7 } = require("node:path");
@@ -16296,9 +17516,9 @@ var require_snapshot_recorder = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/mock/snapshot-agent.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js
 var require_snapshot_agent = __commonJS({
-  "../electron/node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
     "use strict";
     var Agent2 = require_agent();
     var MockAgent = require_mock_agent();
@@ -16583,9 +17803,9 @@ var require_snapshot_agent = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/global.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js
 var require_global2 = __commonJS({
-  "../electron/node_modules/undici/lib/global.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js"(exports2, module2) {
     "use strict";
     var globalDispatcher = Symbol.for("undici.globalDispatcher.1");
     var { InvalidArgumentError } = require_errors();
@@ -16630,9 +17850,9 @@ var require_global2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/decorator-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js
 var require_decorator_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var WrapHandler = require_wrap_handler();
@@ -16686,9 +17906,9 @@ var require_decorator_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/redirect-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js
 var require_redirect_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var { kBodyUsed } = require_symbols();
@@ -16846,9 +18066,9 @@ var require_redirect_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/redirect.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js
 var require_redirect = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
     "use strict";
     var RedirectHandler = require_redirect_handler();
     function createRedirectInterceptor({ maxRedirections: defaultMaxRedirections } = {}) {
@@ -16868,9 +18088,9 @@ var require_redirect = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/response-error.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js
 var require_response_error = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
     "use strict";
     var DecoratorHandler = require_decorator_handler();
     var { ResponseError } = require_errors();
@@ -16950,9 +18170,9 @@ var require_response_error = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/retry.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js
 var require_retry = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
     "use strict";
     var RetryHandler = require_retry_handler();
     module2.exports = (globalOpts) => {
@@ -16974,9 +18194,9 @@ var require_retry = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/dump.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js
 var require_dump = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, RequestAbortedError } = require_errors();
     var DecoratorHandler = require_decorator_handler();
@@ -17060,9 +18280,9 @@ var require_dump = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/dns.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js
 var require_dns = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
     "use strict";
     var { isIP: isIP2 } = require("node:net");
     var { lookup } = require("node:dns");
@@ -17422,9 +18642,9 @@ var require_dns = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/cache.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js
 var require_cache = __commonJS({
-  "../electron/node_modules/undici/lib/util/cache.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js"(exports2, module2) {
     "use strict";
     var {
       safeHTTPMethods,
@@ -17690,9 +18910,9 @@ var require_cache = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/util/date.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js
 var require_date = __commonJS({
-  "../electron/node_modules/undici/lib/util/date.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js"(exports2, module2) {
     "use strict";
     function parseHttpDate(date) {
       switch (date[3]) {
@@ -18186,9 +19406,9 @@ var require_date = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/cache-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js
 var require_cache_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -18531,9 +19751,9 @@ var require_cache_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/cache/memory-cache-store.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js
 var require_memory_cache_store = __commonJS({
-  "../electron/node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { EventEmitter: EventEmitter2 } = require("node:events");
@@ -18708,9 +19928,9 @@ var require_memory_cache_store = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/cache-revalidation-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js
 var require_cache_revalidation_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var CacheRevalidationHandler = class {
@@ -18795,9 +20015,9 @@ var require_cache_revalidation_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/cache.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js
 var require_cache2 = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -19129,9 +20349,9 @@ var require_cache2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/decompress.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js
 var require_decompress = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
     "use strict";
     var { createInflate, createGunzip, createBrotliDecompress, createZstdDecompress } = require("node:zlib");
     var { pipeline } = require("node:stream");
@@ -19343,9 +20563,9 @@ var require_decompress = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/handler/deduplication-handler.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js
 var require_deduplication_handler = __commonJS({
-  "../electron/node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
     "use strict";
     var DeduplicationHandler = class {
       /**
@@ -19539,9 +20759,9 @@ var require_deduplication_handler = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/interceptor/deduplicate.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js
 var require_deduplicate = __commonJS({
-  "../electron/node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require_util();
@@ -19618,9 +20838,9 @@ var require_deduplicate = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/cache/sqlite-cache-store.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js
 var require_sqlite_cache_store = __commonJS({
-  "../electron/node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { assertCacheKey, assertCacheValue } = require_cache();
@@ -19977,9 +21197,9 @@ var require_sqlite_cache_store = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/headers.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js
 var require_headers = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
     "use strict";
     var { kConstruct } = require_symbols();
     var { kEnumerableProperty } = require_util();
@@ -20438,9 +21658,9 @@ var require_headers = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/response.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js
 var require_response = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
     "use strict";
     var { Headers: Headers2, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = require_headers();
     var { extractBody, cloneBody, mixinBody, streamRegistry, bodyUnusable } = require_body();
@@ -20860,9 +22080,9 @@ var require_response = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/request.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js
 var require_request2 = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
     "use strict";
     var { extractBody, mixinBody, cloneBody, bodyUnusable } = require_body();
     var { Headers: Headers2, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = require_headers();
@@ -21616,9 +22836,9 @@ var require_request2 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
 var require_subresource_integrity = __commonJS({
-  "../electron/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
@@ -21755,9 +22975,9 @@ var require_subresource_integrity = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/fetch/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js
 var require_fetch = __commonJS({
-  "../electron/node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
     "use strict";
     var {
       makeNetworkError,
@@ -22848,9 +24068,9 @@ var require_fetch = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cache/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js
 var require_util3 = __commonJS({
-  "../electron/node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { URLSerializer } = require_data_url();
@@ -22878,9 +24098,9 @@ var require_util3 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cache/cache.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js
 var require_cache3 = __commonJS({
-  "../electron/node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kConstruct } = require_symbols();
@@ -23427,9 +24647,9 @@ var require_cache3 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cache/cachestorage.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js
 var require_cachestorage = __commonJS({
-  "../electron/node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
     "use strict";
     var { Cache } = require_cache3();
     var { webidl } = require_webidl();
@@ -23537,9 +24757,9 @@ var require_cachestorage = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cookies/constants.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js
 var require_constants4 = __commonJS({
-  "../electron/node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
     "use strict";
     var maxAttributeValueSize = 1024;
     var maxNameValuePairSize = 4096;
@@ -23550,9 +24770,9 @@ var require_constants4 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cookies/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js
 var require_util4 = __commonJS({
-  "../electron/node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
     "use strict";
     function isCTLExcludingHtab(value) {
       for (let i = 0; i < value.length; ++i) {
@@ -23720,9 +24940,9 @@ var require_util4 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cookies/parse.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js
 var require_parse = __commonJS({
-  "../electron/node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
     "use strict";
     var { collectASequenceOfCodePointsFast } = require_infra();
     var { maxNameValuePairSize, maxAttributeValueSize } = require_constants4();
@@ -23861,9 +25081,9 @@ var require_parse = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/cookies/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js
 var require_cookies = __commonJS({
-  "../electron/node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
     "use strict";
     var { parseSetCookie } = require_parse();
     var { stringify } = require_util4();
@@ -23996,9 +25216,9 @@ var require_cookies = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/events.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js
 var require_events = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { kEnumerableProperty } = require_util();
@@ -24264,9 +25484,9 @@ var require_events = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/constants.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js
 var require_constants5 = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
     "use strict";
     var uid2 = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     var staticPropertyDescriptors = {
@@ -24320,9 +25540,9 @@ var require_constants5 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js
 var require_util5 = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
     "use strict";
     var { states, opcodes } = require_constants5();
     var { isUtf8 } = require("node:buffer");
@@ -24493,9 +25713,9 @@ var require_util5 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/frame.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js
 var require_frame = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { runtimeFeatures } = require_runtime_features();
     var { maxUnsigned16Bit, opcodes } = require_constants5();
@@ -24598,9 +25818,9 @@ var require_frame = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/connection.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js
 var require_connection = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
     "use strict";
     var { uid: uid2, states, sentCloseFrameState, emptyBuffer, opcodes } = require_constants5();
     var { parseExtensions, isClosed, isClosing, isEstablished, isConnecting, validateCloseCodeAndReason } = require_util5();
@@ -24754,9 +25974,9 @@ var require_connection = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/permessage-deflate.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
     "use strict";
     var { createInflateRaw, Z_DEFAULT_WINDOWBITS } = require("node:zlib");
     var { isValidClientWindowBits } = require_util5();
@@ -24809,9 +26029,9 @@ var require_permessage_deflate = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/receiver.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js
 var require_receiver = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var assert = require("node:assert");
@@ -25121,9 +26341,9 @@ var require_receiver = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/sender.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js
 var require_sender = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
     "use strict";
     var { WebsocketFrameSend } = require_frame();
     var { opcodes, sendHints } = require_constants5();
@@ -25208,9 +26428,9 @@ var require_sender = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/websocket.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js
 var require_websocket = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
     "use strict";
     var { isArrayBuffer } = require("node:util/types");
     var { webidl } = require_webidl();
@@ -25683,9 +26903,9 @@ var require_websocket = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/stream/websocketerror.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js
 var require_websocketerror = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { validateCloseCodeAndReason } = require_util5();
@@ -25763,9 +26983,9 @@ var require_websocketerror = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/websocket/stream/websocketstream.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js
 var require_websocketstream = __commonJS({
-  "../electron/node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
     "use strict";
     var { createDeferredPromise } = require_promise();
     var { environmentSettingsObject } = require_util2();
@@ -26075,9 +27295,9 @@ var require_websocketstream = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/eventsource/util.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js
 var require_util6 = __commonJS({
-  "../electron/node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
     "use strict";
     function isValidLastEventId(value) {
       return value.indexOf("\0") === -1;
@@ -26096,9 +27316,9 @@ var require_util6 = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/lib/web/eventsource/eventsource-stream.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js
 var require_eventsource_stream = __commonJS({
-  "../electron/node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { isASCIINumber, isValidLastEventId } = require_util6();
@@ -26327,9 +27547,9 @@ ${value}`;
   }
 });
 
-// ../electron/node_modules/undici/lib/web/eventsource/eventsource.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js
 var require_eventsource = __commonJS({
-  "../electron/node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
     "use strict";
     var { pipeline } = require("node:stream");
     var { fetching } = require_fetch();
@@ -26644,9 +27864,9 @@ var require_eventsource = __commonJS({
   }
 });
 
-// ../electron/node_modules/undici/index.js
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/index.js
 var require_undici = __commonJS({
-  "../electron/node_modules/undici/index.js"(exports2, module2) {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/index.js"(exports2, module2) {
     "use strict";
     var Client = require_client();
     var Dispatcher = require_dispatcher();
@@ -27033,7 +28253,7 @@ async function detectSystemProxy() {
     console.error("[\u7CFB\u7EDF\u4EE3\u7406\u68C0\u6D4B] \u68C0\u6D4B\u5931\u8D25:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : tr("\u68C0\u6D4B\u5931\u8D25", "Couldn\u2019t detect the proxy")
+      message: error instanceof Error ? error.message : tr("\u65E0\u6CD5\u68C0\u6D4B\u4EE3\u7406", "Couldn\u2019t detect the proxy")
     };
   }
 }
@@ -27085,7 +28305,7 @@ async function detectMacOSProxy() {
     console.error("[macOS \u4EE3\u7406\u68C0\u6D4B] \u5931\u8D25:", error);
     return {
       success: false,
-      message: tr("macOS \u4EE3\u7406\u68C0\u6D4B\u5931\u8D25", "Couldn\u2019t detect the macOS proxy")
+      message: tr("\u65E0\u6CD5\u68C0\u6D4B macOS \u4EE3\u7406", "Couldn\u2019t detect the macOS proxy")
     };
   }
 }
@@ -27133,7 +28353,7 @@ async function detectWindowsProxy() {
     console.error("[Windows \u4EE3\u7406\u68C0\u6D4B] \u5931\u8D25:", error);
     return {
       success: false,
-      message: tr("Windows \u4EE3\u7406\u68C0\u6D4B\u5931\u8D25", "Couldn\u2019t detect the Windows proxy")
+      message: tr("\u65E0\u6CD5\u68C0\u6D4B Windows \u4EE3\u7406", "Couldn\u2019t detect the Windows proxy")
     };
   }
 }
@@ -27186,7 +28406,7 @@ async function saveProxySettings(config) {
     console.log("[\u4EE3\u7406\u914D\u7F6E] \u914D\u7F6E\u5DF2\u4FDD\u5B58:", config);
   } catch (error) {
     console.error("[\u4EE3\u7406\u914D\u7F6E] \u4FDD\u5B58\u914D\u7F6E\u5931\u8D25:", error);
-    throw new Error(tr("\u4EE3\u7406\u8BBE\u7F6E\u4FDD\u5B58\u5931\u8D25", "Couldn\u2019t save proxy settings"));
+    throw new Error(tr("\u65E0\u6CD5\u4FDD\u5B58\u4EE3\u7406\u8BBE\u7F6E", "Couldn\u2019t save proxy settings"));
   }
 }
 async function getEffectiveProxyUrl(quiet = false) {
@@ -27307,13 +28527,14 @@ function nativeSearchProtocol(target) {
   }
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) return void 0;
   if (url.origin === "https://api.x.ai" && /^\/v1(?:\/responses|\/chat\/completions)?\/?$/.test(url.pathname)) return "xai";
+  if (isNativeDeepSeekCompletions(target.provider, target.baseUrl) || isNativeDeepSeekMessages(target.provider, target.baseUrl)) return "deepseek";
   return target.provider === "google" ? "google" : ["anthropic", "deepseek"].includes(target.provider) ? "anthropic" : ["openai", "custom"].includes(target.provider) ? "openai" : void 0;
 }
 var UNSUPPORTED_RETRY_MS;
 var init_native_web_search = __esm({
   "../electron/src/main/lib/native-web-search.ts"() {
     "use strict";
-    init_src2();
+    init_src3();
     UNSUPPORTED_RETRY_MS = 30 * 24 * 36e5;
   }
 });
@@ -27350,7 +28571,7 @@ var init_agent_tool_token_estimator = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/string.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs
 function IsBetween(value, min, max) {
   return value >= min && value <= max;
 }
@@ -27456,11 +28677,11 @@ function IsMaxLengthFast(value, maxLength) {
   return true;
 }
 var init_string = __esm({
-  "../electron/node_modules/typebox/build/guard/string.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/guard.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs
 var guard_exports = {};
 __export(guard_exports, {
   Entries: () => Entries,
@@ -27652,19 +28873,19 @@ function IsDeepEqual(left, right) {
   return IsArray(left) ? DeepEqualArray(left, right) : IsObject(left) ? DeepEqualObject(left, right) : IsEqual(left, right);
 }
 var init_guard = __esm({
-  "../electron/node_modules/typebox/build/guard/guard.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs"() {
     init_string();
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/emit.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs
 var init_emit = __esm({
-  "../electron/node_modules/typebox/build/guard/emit.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs"() {
     init_guard();
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/globals.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs
 var globals_exports = {};
 __export(globals_exports, {
   IsBigInt64Array: () => IsBigInt64Array,
@@ -27745,20 +28966,20 @@ function IsMap(value) {
   return value instanceof globalThis.Map;
 }
 var init_globals = __esm({
-  "../electron/node_modules/typebox/build/guard/globals.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/native.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs
 var init_native = __esm({
-  "../electron/node_modules/typebox/build/guard/native.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs"() {
     init_guard();
   }
 });
 
-// ../electron/node_modules/typebox/build/guard/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs
 var init_guard2 = __esm({
-  "../electron/node_modules/typebox/build/guard/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs"() {
     init_emit();
     init_globals();
     init_native();
@@ -27767,7 +28988,7 @@ var init_guard2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/_guard.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs
 function IsGuardInterface(value) {
   return guard_exports.IsObject(value) && guard_exports.HasPropertyKey(value, "check") && guard_exports.HasPropertyKey(value, "errors") && guard_exports.IsFunction(value.check) && guard_exports.IsFunction(value.errors);
 }
@@ -27775,22 +28996,22 @@ function IsGuard(value) {
   return guard_exports.HasPropertyKey(value, "~guard") && IsGuardInterface(value["~guard"]);
 }
 var init_guard3 = __esm({
-  "../electron/node_modules/typebox/build/schema/types/_guard.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/_refine.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs
 function IsRefine(value) {
   return guard_exports.HasPropertyKey(value, "~refine") && guard_exports.IsArray(value["~refine"]) && guard_exports.Every(value["~refine"], 0, (value2) => guard_exports.IsObject(value2) && guard_exports.HasPropertyKey(value2, "check") && guard_exports.HasPropertyKey(value2, "error") && guard_exports.IsFunction(value2.check) && guard_exports.IsFunction(value2.error));
 }
 var init_refine = __esm({
-  "../electron/node_modules/typebox/build/schema/types/_refine.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/schema.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs
 function IsSchemaObject(value) {
   return guard_exports.IsObject(value) && !guard_exports.IsArray(value);
 }
@@ -27801,240 +29022,240 @@ function IsSchema(value) {
   return IsSchemaObject(value) || IsBooleanSchema(value);
 }
 var init_schema = __esm({
-  "../electron/node_modules/typebox/build/schema/types/schema.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/additionalItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs
 function IsAdditionalItems(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalItems") && IsSchema(schema.additionalItems);
 }
 var init_additionalItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/additionalItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/additionalProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs
 function IsAdditionalProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalProperties") && IsSchema(schema.additionalProperties);
 }
 var init_additionalProperties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/allOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs
 function IsAllOf(schema) {
   return guard_exports.HasPropertyKey(schema, "allOf") && guard_exports.IsArray(schema.allOf) && schema.allOf.every((value) => IsSchema(value));
 }
 var init_allOf = __esm({
-  "../electron/node_modules/typebox/build/schema/types/allOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/anchor.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs
 function IsAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$anchor") && guard_exports.IsString(schema.$anchor);
 }
 var init_anchor = __esm({
-  "../electron/node_modules/typebox/build/schema/types/anchor.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/anyOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs
 function IsAnyOf(schema) {
   return guard_exports.HasPropertyKey(schema, "anyOf") && guard_exports.IsArray(schema.anyOf) && schema.anyOf.every((value) => IsSchema(value));
 }
 var init_anyOf = __esm({
-  "../electron/node_modules/typebox/build/schema/types/anyOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/const.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs
 function IsConst(value) {
   return guard_exports.HasPropertyKey(value, "const");
 }
 var init_const = __esm({
-  "../electron/node_modules/typebox/build/schema/types/const.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/contains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs
 function IsContains(schema) {
   return guard_exports.HasPropertyKey(schema, "contains") && IsSchema(schema.contains);
 }
 var init_contains = __esm({
-  "../electron/node_modules/typebox/build/schema/types/contains.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/contentEncoding.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs
 var init_contentEncoding = __esm({
-  "../electron/node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/contentMediaType.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs
 var init_contentMediaType = __esm({
-  "../electron/node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/default.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs
 var init_default = __esm({
-  "../electron/node_modules/typebox/build/schema/types/default.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/defs.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs
 var init_defs = __esm({
-  "../electron/node_modules/typebox/build/schema/types/defs.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/dependencies.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs
 function IsDependencies(schema) {
   return guard_exports.HasPropertyKey(schema, "dependencies") && guard_exports.IsObject(schema.dependencies) && Object.values(schema.dependencies).every((value) => IsSchema(value) || guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependencies = __esm({
-  "../electron/node_modules/typebox/build/schema/types/dependencies.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/dependentRequired.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs
 function IsDependentRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentRequired") && guard_exports.IsObject(schema.dependentRequired) && Object.values(schema.dependentRequired).every((value) => guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependentRequired = __esm({
-  "../electron/node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/dependentSchemas.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs
 function IsDependentSchemas(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentSchemas") && guard_exports.IsObject(schema.dependentSchemas) && Object.values(schema.dependentSchemas).every((value) => IsSchema(value));
 }
 var init_dependentSchemas = __esm({
-  "../electron/node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/dynamicAnchor.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs
 function IsDynamicAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicAnchor") && guard_exports.IsString(schema.$dynamicAnchor);
 }
 var init_dynamicAnchor = __esm({
-  "../electron/node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/dynamicRef.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs
 function IsDynamicRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicRef") && guard_exports.IsString(schema.$dynamicRef);
 }
 var init_dynamicRef = __esm({
-  "../electron/node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/else.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs
 function IsElse(schema) {
   return guard_exports.HasPropertyKey(schema, "else") && IsSchema(schema.else);
 }
 var init_else = __esm({
-  "../electron/node_modules/typebox/build/schema/types/else.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/enum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs
 function IsEnum(schema) {
   return guard_exports.HasPropertyKey(schema, "enum") && guard_exports.IsArray(schema.enum);
 }
 var init_enum = __esm({
-  "../electron/node_modules/typebox/build/schema/types/enum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
 function IsExclusiveMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMaximum") && (guard_exports.IsNumber(schema.exclusiveMaximum) || guard_exports.IsBigInt(schema.exclusiveMaximum));
 }
 var init_exclusiveMaximum = __esm({
-  "../electron/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
 function IsExclusiveMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMinimum") && (guard_exports.IsNumber(schema.exclusiveMinimum) || guard_exports.IsBigInt(schema.exclusiveMinimum));
 }
 var init_exclusiveMinimum = __esm({
-  "../electron/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/format.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs
 function IsFormat(schema) {
   return guard_exports.HasPropertyKey(schema, "format") && guard_exports.IsString(schema.format);
 }
 var init_format = __esm({
-  "../electron/node_modules/typebox/build/schema/types/format.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/id.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs
 function IsId(schema) {
   return guard_exports.HasPropertyKey(schema, "$id") && guard_exports.IsString(schema.$id);
 }
 var init_id = __esm({
-  "../electron/node_modules/typebox/build/schema/types/id.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/if.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs
 function IsIf(schema) {
   return guard_exports.HasPropertyKey(schema, "if") && IsSchema(schema.if);
 }
 var init_if = __esm({
-  "../electron/node_modules/typebox/build/schema/types/if.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/items.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs
 function IsItems(schema) {
   return guard_exports.HasPropertyKey(schema, "items") && (IsSchema(schema.items) || guard_exports.IsArray(schema.items) && schema.items.every((value) => {
     return IsSchema(value);
@@ -28044,199 +29265,199 @@ function IsItemsSized(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
 var init_items = __esm({
-  "../electron/node_modules/typebox/build/schema/types/items.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/maximum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs
 function IsMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "maximum") && (guard_exports.IsNumber(schema.maximum) || guard_exports.IsBigInt(schema.maximum));
 }
 var init_maximum = __esm({
-  "../electron/node_modules/typebox/build/schema/types/maximum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/maxContains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs
 function IsMaxContains(schema) {
   return guard_exports.HasPropertyKey(schema, "maxContains") && guard_exports.IsNumber(schema.maxContains);
 }
 var init_maxContains = __esm({
-  "../electron/node_modules/typebox/build/schema/types/maxContains.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/maxItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs
 function IsMaxItems(schema) {
   return guard_exports.HasPropertyKey(schema, "maxItems") && guard_exports.IsNumber(schema.maxItems);
 }
 var init_maxItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/maxItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/maxLength.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs
 function IsMaxLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "maxLength") && guard_exports.IsNumber(schema.maxLength);
 }
 var init_maxLength = __esm({
-  "../electron/node_modules/typebox/build/schema/types/maxLength.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/maxProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs
 function IsMaxProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "maxProperties") && guard_exports.IsNumber(schema.maxProperties);
 }
 var init_maxProperties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/maxProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/minimum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs
 function IsMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "minimum") && (guard_exports.IsNumber(schema.minimum) || guard_exports.IsBigInt(schema.minimum));
 }
 var init_minimum = __esm({
-  "../electron/node_modules/typebox/build/schema/types/minimum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/minContains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs
 function IsMinContains(schema) {
   return guard_exports.HasPropertyKey(schema, "minContains") && guard_exports.IsNumber(schema.minContains);
 }
 var init_minContains = __esm({
-  "../electron/node_modules/typebox/build/schema/types/minContains.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/minItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs
 function IsMinItems(schema) {
   return guard_exports.HasPropertyKey(schema, "minItems") && guard_exports.IsNumber(schema.minItems);
 }
 var init_minItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/minItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/minLength.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs
 function IsMinLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "minLength") && guard_exports.IsNumber(schema.minLength);
 }
 var init_minLength = __esm({
-  "../electron/node_modules/typebox/build/schema/types/minLength.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/minProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs
 function IsMinProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "minProperties") && guard_exports.IsNumber(schema.minProperties);
 }
 var init_minProperties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/minProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/multipleOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs
 function IsMultipleOf2(schema) {
   return guard_exports.HasPropertyKey(schema, "multipleOf") && (guard_exports.IsNumber(schema.multipleOf) || guard_exports.IsBigInt(schema.multipleOf));
 }
 var init_multipleOf = __esm({
-  "../electron/node_modules/typebox/build/schema/types/multipleOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/not.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs
 function IsNot(schema) {
   return guard_exports.HasPropertyKey(schema, "not") && IsSchema(schema.not);
 }
 var init_not = __esm({
-  "../electron/node_modules/typebox/build/schema/types/not.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/oneOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs
 function IsOneOf(schema) {
   return guard_exports.HasPropertyKey(schema, "oneOf") && guard_exports.IsArray(schema.oneOf) && schema.oneOf.every((value) => IsSchema(value));
 }
 var init_oneOf = __esm({
-  "../electron/node_modules/typebox/build/schema/types/oneOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/pattern.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs
 function IsPattern(schema) {
   return guard_exports.HasPropertyKey(schema, "pattern") && (guard_exports.IsString(schema.pattern) || schema.pattern instanceof RegExp);
 }
 var init_pattern = __esm({
-  "../electron/node_modules/typebox/build/schema/types/pattern.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/patternProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs
 function IsPatternProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "patternProperties") && guard_exports.IsObject(schema.patternProperties) && Object.values(schema.patternProperties).every((value) => IsSchema(value));
 }
 var init_patternProperties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/patternProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/prefixItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs
 function IsPrefixItems(schema) {
   return guard_exports.HasPropertyKey(schema, "prefixItems") && guard_exports.IsArray(schema.prefixItems) && schema.prefixItems.every((schema2) => IsSchema(schema2));
 }
 var init_prefixItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/prefixItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/properties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs
 function IsProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "properties") && guard_exports.IsObject(schema.properties) && Object.values(schema.properties).every((value) => IsSchema(value));
 }
 var init_properties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/properties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/propertyNames.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs
 function IsPropertyNames(schema) {
   return guard_exports.HasPropertyKey(schema, "propertyNames") && (guard_exports.IsObject(schema.propertyNames) || IsSchema(schema.propertyNames));
 }
 var init_propertyNames = __esm({
-  "../electron/node_modules/typebox/build/schema/types/propertyNames.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/recursiveAnchor.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs
 function IsRecursiveAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveAnchor") && guard_exports.IsBoolean(schema.$recursiveAnchor);
 }
@@ -28244,97 +29465,97 @@ function IsRecursiveAnchorTrue(schema) {
   return IsRecursiveAnchor(schema) && guard_exports.IsEqual(schema.$recursiveAnchor, true);
 }
 var init_recursiveAnchor = __esm({
-  "../electron/node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/recursiveRef.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs
 function IsRecursiveRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveRef") && guard_exports.IsString(schema.$recursiveRef);
 }
 var init_recursiveRef = __esm({
-  "../electron/node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/ref.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs
 function IsRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$ref") && guard_exports.IsString(schema.$ref);
 }
 var init_ref = __esm({
-  "../electron/node_modules/typebox/build/schema/types/ref.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/required.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs
 function IsRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "required") && guard_exports.IsArray(schema.required) && schema.required.every((value) => guard_exports.IsString(value));
 }
 var init_required = __esm({
-  "../electron/node_modules/typebox/build/schema/types/required.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/then.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs
 function IsThen(schema) {
   return guard_exports.HasPropertyKey(schema, "then") && IsSchema(schema.then);
 }
 var init_then = __esm({
-  "../electron/node_modules/typebox/build/schema/types/then.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/type.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs
 function IsType(schema) {
   return guard_exports.HasPropertyKey(schema, "type") && (guard_exports.IsString(schema.type) || guard_exports.IsArray(schema.type) && schema.type.every((value) => guard_exports.IsString(value)));
 }
 var init_type = __esm({
-  "../electron/node_modules/typebox/build/schema/types/type.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/uniqueItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs
 function IsUniqueItems(schema) {
   return guard_exports.HasPropertyKey(schema, "uniqueItems") && guard_exports.IsBoolean(schema.uniqueItems);
 }
 var init_uniqueItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/unevaluatedItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs
 function IsUnevaluatedItems(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedItems") && IsSchema(schema.unevaluatedItems);
 }
 var init_unevaluatedItems = __esm({
-  "../electron/node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
 function IsUnevaluatedProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedProperties") && IsSchema(schema.unevaluatedProperties);
 }
 var init_unevaluatedProperties = __esm({
-  "../electron/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/types/index.mjs
-var init_types3 = __esm({
-  "../electron/node_modules/typebox/build/schema/types/index.mjs"() {
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs
+var init_types4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs"() {
     init_guard3();
     init_refine();
     init_additionalItems();
@@ -28392,11 +29613,11 @@ var init_types3 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_context.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs
 var CheckContext;
 var init_context = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_context.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs"() {
+    init_types4();
     init_guard2();
     CheckContext = class {
       constructor() {
@@ -28447,40 +29668,40 @@ var init_context = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_externals.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs
 var init_externals = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_externals.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_guard.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs
 function CheckGuard(_stack, _context, schema, value) {
   return schema["~guard"].check(value);
 }
 var init_guard4 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_guard.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/unreachable/unreachable.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs
 function Unreachable() {
   throw new Error("Unreachable");
 }
 var init_unreachable = __esm({
-  "../electron/node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/system/unreachable/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs
 var init_unreachable2 = __esm({
-  "../electron/node_modules/typebox/build/system/unreachable/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs"() {
     init_unreachable();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/hashing/hash.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs
 var hash_exports = {};
 __export(hash_exports, {
   Hash: () => Hash,
@@ -28488,13 +29709,13 @@ __export(hash_exports, {
 });
 function InstanceKeys(value) {
   const propertyKeys = /* @__PURE__ */ new Set();
-  let current2 = value;
-  while (current2 && current2 !== Object.prototype) {
-    for (const key of Reflect.ownKeys(current2)) {
+  let current3 = value;
+  while (current3 && current3 !== Object.prototype) {
+    for (const key of Reflect.ownKeys(current3)) {
       if (key !== "constructor" && typeof key !== "symbol")
         propertyKeys.add(key);
     }
-    current2 = Object.getPrototypeOf(current2);
+    current3 = Object.getPrototypeOf(current3);
   }
   return [...propertyKeys];
 }
@@ -28593,7 +29814,7 @@ function Hash(value) {
 }
 var ByteMarker, Accumulator, Prime, Size, Bytes, F64, F64In, F64Out, encoder;
 var init_hash = __esm({
-  "../electron/node_modules/typebox/build/system/hashing/hash.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs"() {
     init_unreachable2();
     init_guard2();
     (function(ByteMarker2) {
@@ -28625,31 +29846,31 @@ var init_hash = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/system/hashing/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs
 var init_hashing = __esm({
-  "../electron/node_modules/typebox/build/system/hashing/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs"() {
     init_hash();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_refine.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs
 function CheckRefine(_stack, _context, schema, value) {
   return guard_exports.Every(schema["~refine"], 0, (refinement, _) => refinement.check(value));
 }
 var init_refine2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_refine.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_unique.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs
 var init_unique = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_unique.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/additionalItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs
 function IsValid(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
@@ -28662,15 +29883,15 @@ function CheckAdditionalItems(stack, context, schema, value) {
   return isAdditionalItems;
 }
 var init_additionalItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
+    init_types4();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/additionalProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs
 function GetPropertyKeyAsPattern(key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return `^${escaped}$`;
@@ -28691,8 +29912,8 @@ function CheckAdditionalProperties(stack, context, schema, value) {
   return isAdditionalProperties;
 }
 var init_additionalProperties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
+    init_types4();
     init_externals();
     init_unique();
     init_context();
@@ -28701,15 +29922,15 @@ var init_additionalProperties2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_reducer.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs
 var init_reducer = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_reducer.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/allOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs
 function CheckAllOf(stack, context, schema, value) {
   const results = schema.allOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -28718,7 +29939,7 @@ function CheckAllOf(stack, context, schema, value) {
   return guard_exports.IsEqual(results.length, schema.allOf.length) && context.Merge(results);
 }
 var init_allOf2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/allOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -28726,7 +29947,7 @@ var init_allOf2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/anyOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs
 function CheckAnyOf(stack, context, schema, value) {
   const results = schema.anyOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -28735,7 +29956,7 @@ function CheckAnyOf(stack, context, schema, value) {
   return guard_exports.IsGreaterThan(results.length, 0) && context.Merge(results);
 }
 var init_anyOf2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/anyOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -28743,28 +29964,28 @@ var init_anyOf2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/boolean.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs
 function CheckBooleanSchema(_stack, _context, schema, _value) {
   return schema;
 }
 var init_boolean = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/boolean.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/const.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs
 function CheckConst(_stack, _context, schema, value) {
   return guard_exports.IsValueLike(schema.const) ? guard_exports.IsEqual(value, schema.const) : guard_exports.IsDeepEqual(value, schema.const);
 }
 var init_const2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/const.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/contains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs
 function IsValid2(schema) {
   return !(IsMinContains(schema) && guard_exports.IsEqual(schema.minContains, 0));
 }
@@ -28774,15 +29995,15 @@ function CheckContains(stack, context, schema, value) {
   return !guard_exports.IsEqual(value.length, 0) && value.some((item) => CheckSchema(stack, context, schema.contains, item));
 }
 var init_contains2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/contains.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs"() {
+    init_types4();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/dependencies.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs
 function CheckDependencies(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependencies), 0, ([key, schema2]) => {
@@ -28791,13 +30012,13 @@ function CheckDependencies(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependencies2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/dependencies.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/dependentRequired.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs
 function CheckDependentRequired(_stack, _context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentRequired), 0, ([key, keys]) => {
@@ -28806,12 +30027,12 @@ function CheckDependentRequired(_stack, _context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentRequired2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/dependentSchemas.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs
 function CheckDependentSchemas(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentSchemas), 0, ([key, schema2]) => {
@@ -28820,57 +30041,57 @@ function CheckDependentSchemas(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentSchemas2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/dynamicRef.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs
 function CheckDynamicRef(stack, context, schema, value) {
   const target = stack.DynamicRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_dynamicRef2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
     init_functions();
-    init_types3();
+    init_types4();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/enum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs
 function CheckEnum(_stack, _context, schema, value) {
   return schema.enum.some((option) => guard_exports.IsValueLike(option) ? guard_exports.IsEqual(value, option) : guard_exports.IsDeepEqual(value, option));
 }
 var init_enum2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/enum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
 function CheckExclusiveMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessThan(value, schema.exclusiveMaximum);
 }
 var init_exclusiveMaximum2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
 function CheckExclusiveMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterThan(value, schema.exclusiveMinimum);
 }
 var init_exclusiveMinimum2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/format/date.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs
 function IsLeapYear(year) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
@@ -28885,13 +30106,13 @@ function IsDate2(value) {
 }
 var DAYS, DATE;
 var init_date = __esm({
-  "../electron/node_modules/typebox/build/format/date.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs"() {
     DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/time.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs
 function IsTime(value, strictTimeZone = true) {
   const matches2 = TIME.exec(value);
   if (!matches2)
@@ -28915,46 +30136,46 @@ function IsTime(value, strictTimeZone = true) {
 }
 var TIME;
 var init_time = __esm({
-  "../electron/node_modules/typebox/build/format/time.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs"() {
     TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/date_time.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs
 function IsDateTime(value, strictTimeZone = true) {
   const dateTime = value.split(/T/i);
   return dateTime.length === 2 && IsDate2(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
 }
 var init_date_time = __esm({
-  "../electron/node_modules/typebox/build/format/date_time.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs"() {
     init_date();
     init_time();
   }
 });
 
-// ../electron/node_modules/typebox/build/format/duration.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs
 function IsDuration(value) {
   return Duration.test(value);
 }
 var Duration;
 var init_duration = __esm({
-  "../electron/node_modules/typebox/build/format/duration.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs"() {
     Duration = /^P((\d+Y(\d+M(\d+D)?)?|\d+M(\d+D)?|\d+D)(T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S))?|T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S)|\d+W)$/;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/email.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs
 function IsEmail(value) {
   return Email.test(value);
 }
 var Email;
 var init_email = __esm({
-  "../electron/node_modules/typebox/build/format/email.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs"() {
     Email = /^(?!.*\.\.)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/_puny.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs
 function Adapt(delta, numPoints, firstTime) {
   delta = firstTime ? Math.floor(delta / PUNYCODE_DAMP) : delta >> 1;
   delta += Math.floor(delta / numPoints);
@@ -28998,10 +30219,10 @@ function Decode(value) {
       else
         throw new Error("Invalid punycode: bad digit character");
       i += digit * w;
-      const t2 = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
-      if (digit < t2)
+      const t3 = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
+      if (digit < t3)
         break;
-      w *= PUNYCODE_BASE - t2;
+      w *= PUNYCODE_BASE - t3;
       k += PUNYCODE_BASE;
     }
     const outLen = output.length + 1;
@@ -29015,7 +30236,7 @@ function Decode(value) {
 }
 var PUNYCODE_BASE, PUNYCODE_TMIN, PUNYCODE_TMAX, PUNYCODE_SKEW, PUNYCODE_DAMP, PUNYCODE_INITIAL_BIAS, PUNYCODE_INITIAL_N;
 var init_puny = __esm({
-  "../electron/node_modules/typebox/build/format/_puny.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs"() {
     PUNYCODE_BASE = 36;
     PUNYCODE_TMIN = 1;
     PUNYCODE_TMAX = 26;
@@ -29026,7 +30247,7 @@ var init_puny = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/format/_idna.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs
 function IsNonspacingMark(cp) {
   return new RegExp("\\p{Mn}", "u").test(String.fromCodePoint(cp));
 }
@@ -29157,7 +30378,7 @@ function IsLabel(value) {
 }
 var RFC5892_DISALLOWED, VIRAMA_CPS;
 var init_idna = __esm({
-  "../electron/node_modules/typebox/build/format/_idna.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs"() {
     init_puny();
     RFC5892_DISALLOWED = /* @__PURE__ */ new Set([
       1600,
@@ -29218,7 +30439,7 @@ var init_idna = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/format/hostname.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs
 function IsHostname(value) {
   if (value.length === 0 || value.length > 253)
     return false;
@@ -29231,23 +30452,23 @@ function IsHostname(value) {
   return true;
 }
 var init_hostname = __esm({
-  "../electron/node_modules/typebox/build/format/hostname.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../electron/node_modules/typebox/build/format/idn_email.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs
 function IsIdnEmail(value) {
   return IdnEmail.test(value);
 }
 var IdnEmail;
 var init_idn_email = __esm({
-  "../electron/node_modules/typebox/build/format/idn_email.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs"() {
     IdnEmail = /^(?!.*\.\.)[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+)*@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/idn_hostname.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs
 function IsIdnHostname(value) {
   if (value.length === 0 || value.includes(" "))
     return false;
@@ -29261,12 +30482,12 @@ function IsIdnHostname(value) {
   return true;
 }
 var init_idn_hostname = __esm({
-  "../electron/node_modules/typebox/build/format/idn_hostname.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../electron/node_modules/typebox/build/format/ipv4.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs
 function IsIPv4Internal(value, start, end) {
   let dots = 0;
   let num = 0;
@@ -29296,11 +30517,11 @@ function IsIPv4(value) {
   return IsIPv4Internal(value, 0, value.length);
 }
 var init_ipv4 = __esm({
-  "../electron/node_modules/typebox/build/format/ipv4.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/format/ipv6.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs
 function InRange(ch) {
   return ch >= 48 && ch <= 57 || // 0-9
   ch >= 65 && ch <= 70 || // A-F
@@ -29358,12 +30579,12 @@ function IsIPv6(value) {
   return compressed ? groups <= 7 : groups === 8;
 }
 var init_ipv6 = __esm({
-  "../electron/node_modules/typebox/build/format/ipv6.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs"() {
     init_ipv4();
   }
 });
 
-// ../electron/node_modules/typebox/build/format/iri_reference.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs
 function TryUrl(value) {
   try {
     new URL(value, "http://example.com");
@@ -29402,11 +30623,11 @@ function IsIriReference(value) {
   }
 }
 var init_iri_reference = __esm({
-  "../electron/node_modules/typebox/build/format/iri_reference.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/format/iri.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs
 function IsIri(value) {
   try {
     new URL(value);
@@ -29416,33 +30637,33 @@ function IsIri(value) {
   }
 }
 var init_iri = __esm({
-  "../electron/node_modules/typebox/build/format/iri.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
 function IsJsonPointerUriFragment(value) {
   return JsonPointerUriFragment.test(value);
 }
 var JsonPointerUriFragment;
 var init_json_pointer_uri_fragment = __esm({
-  "../electron/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
     JsonPointerUriFragment = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/json_pointer.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs
 function IsJsonPointer(value) {
   return JsonPointer.test(value);
 }
 var JsonPointer;
 var init_json_pointer = __esm({
-  "../electron/node_modules/typebox/build/format/json_pointer.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs"() {
     JsonPointer = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/regex.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs
 function IsRegex(value) {
   if (value.length === 0) {
     return false;
@@ -29455,44 +30676,44 @@ function IsRegex(value) {
   }
 }
 var init_regex = __esm({
-  "../electron/node_modules/typebox/build/format/regex.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/format/relative_json_pointer.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs
 function IsRelativeJsonPointer(value) {
   return RelativeJsonPointer.test(value);
 }
 var RelativeJsonPointer;
 var init_relative_json_pointer = __esm({
-  "../electron/node_modules/typebox/build/format/relative_json_pointer.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs"() {
     RelativeJsonPointer = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/uri_reference.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs
 function IsUriReference(value) {
   return UriReference.test(value);
 }
 var UriReference;
 var init_uri_reference = __esm({
-  "../electron/node_modules/typebox/build/format/uri_reference.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs"() {
     UriReference = /^(?!.*[^\x00-\x7F])(?!.*\\)(?:(?:[a-z][a-z0-9+\-.]*:)?(?:\/\/[^\s[\]{}<>^`|]*)?|[^\s[\]{}<>^`|]*)(?:\?[^\s[\]{}<>^`|]*)?(?:#[^\s[\]{}<>^`|]*)?$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/uri_template.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs
 function IsUriTemplate(value) {
   return UriTemplate.test(value);
 }
 var UriTemplate;
 var init_uri_template = __esm({
-  "../electron/node_modules/typebox/build/format/uri_template.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs"() {
     UriTemplate = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/uri.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs
 function IsAlpha(ch) {
   return ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
 }
@@ -29607,33 +30828,33 @@ function IsUri(value) {
   return true;
 }
 var init_uri = __esm({
-  "../electron/node_modules/typebox/build/format/uri.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/format/url.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs
 function IsUrl(value) {
   return Url.test(value);
 }
 var Url;
 var init_url = __esm({
-  "../electron/node_modules/typebox/build/format/url.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs"() {
     Url = /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/uuid.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs
 function IsUuid(value) {
   return Uuid.test(value);
 }
 var Uuid;
 var init_uuid = __esm({
-  "../electron/node_modules/typebox/build/format/uuid.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs"() {
     Uuid = /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
   }
 });
 
-// ../electron/node_modules/typebox/build/format/_registry.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs
 function Clear() {
   formats.clear();
 }
@@ -29678,7 +30899,7 @@ function Reset() {
 }
 var formats;
 var init_registry = __esm({
-  "../electron/node_modules/typebox/build/format/_registry.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs"() {
     init_date_time();
     init_date();
     init_duration();
@@ -29705,7 +30926,7 @@ var init_registry = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/format/format.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs
 var format_exports = {};
 __export(format_exports, {
   Clear: () => Clear,
@@ -29738,7 +30959,7 @@ __export(format_exports, {
   Test: () => Test
 });
 var init_format2 = __esm({
-  "../electron/node_modules/typebox/build/format/format.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs"() {
     init_registry();
     init_date_time();
     init_date();
@@ -29764,42 +30985,42 @@ var init_format2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/format/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs
 var init_format3 = __esm({
-  "../electron/node_modules/typebox/build/format/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs"() {
     init_format2();
     init_format2();
     init_format2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/format.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs
 function CheckFormat(_stack, _context, schema, value) {
   return format_exports.Test(schema.format, value);
 }
 var init_format4 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/format.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs"() {
     init_format3();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/if.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs
 function CheckIf(stack, context, schema, value) {
   const thenSchema = IsThen(schema) ? schema.then : true;
   const elseSchema = IsElse(schema) ? schema.else : true;
   return CheckSchema(stack, context, schema.if, value) ? CheckSchema(stack, context, thenSchema, value) : CheckSchema(stack, context, elseSchema, value);
 }
 var init_if2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/if.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs"() {
+    init_types4();
     init_context();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/items.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs
 function CheckItemsSized(stack, context, schema, value) {
   return guard_exports.Every(schema.items, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
@@ -29815,14 +31036,14 @@ function CheckItems(stack, context, schema, value) {
   return IsItemsSized(schema) ? CheckItemsSized(stack, context, schema, value) : CheckItemsUnsized(stack, context, schema, value);
 }
 var init_items2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/items.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs"() {
+    init_types4();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/maxContains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs
 function IsValid3(schema) {
   return IsContains(schema);
 }
@@ -29833,55 +31054,55 @@ function CheckMaxContains(stack, context, schema, value) {
   return guard_exports.IsLessEqualThan(count, schema.maxContains);
 }
 var init_maxContains2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/maxContains.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs"() {
+    init_types4();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/maximum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs
 function CheckMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value, schema.maximum);
 }
 var init_maximum2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/maximum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/maxItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs
 function CheckMaxItems(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value.length, schema.maxItems);
 }
 var init_maxItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/maxItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/maxLength.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs
 function CheckMaxLength(_stack, _context, schema, value) {
   return guard_exports.IsMaxLength(value, schema.maxLength);
 }
 var init_maxLength2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/maxLength.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/maxProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs
 function CheckMaxProperties(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(guard_exports.Keys(value).length, schema.maxProperties);
 }
 var init_maxProperties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/minContains.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs
 function IsValid4(schema) {
   return IsContains(schema);
 }
@@ -29892,65 +31113,65 @@ function CheckMinContains(stack, context, schema, value) {
   return guard_exports.IsGreaterEqualThan(count, schema.minContains);
 }
 var init_minContains2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/minContains.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs"() {
+    init_types4();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/minimum.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs
 function CheckMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value, schema.minimum);
 }
 var init_minimum2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/minimum.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/minItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs
 function CheckMinItems(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value.length, schema.minItems);
 }
 var init_minItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/minItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/minLength.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs
 function CheckMinLength(_stack, _context, schema, value) {
   return guard_exports.IsMinLength(value, schema.minLength);
 }
 var init_minLength2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/minLength.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/minProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs
 function CheckMinProperties(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(guard_exports.Keys(value).length, schema.minProperties);
 }
 var init_minProperties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/minProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/multipleOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs
 function CheckMultipleOf(_stack, _context, schema, value) {
   return guard_exports.IsMultipleOf(value, schema.multipleOf);
 }
 var init_multipleOf2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/not.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs
 function CheckNot(stack, context, schema, value) {
   const nextContext = new CheckContext();
   const isSchema = !CheckSchema(stack, nextContext, schema.not, value);
@@ -29958,7 +31179,7 @@ function CheckNot(stack, context, schema, value) {
   return isNot;
 }
 var init_not2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/not.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -29966,7 +31187,7 @@ var init_not2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/oneOf.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs
 function CheckOneOf(stack, context, schema, value) {
   const passedContexts = schema.oneOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -29975,7 +31196,7 @@ function CheckOneOf(stack, context, schema, value) {
   return guard_exports.IsEqual(passedContexts.length, 1) && context.Merge(passedContexts);
 }
 var init_oneOf2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/oneOf.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -29983,19 +31204,19 @@ var init_oneOf2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/pattern.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs
 function CheckPattern(_stack, _context, schema, value) {
   const regexp = guard_exports.IsString(schema.pattern) ? new RegExp(schema.pattern, "u") : schema.pattern;
   return regexp.test(value);
 }
 var init_pattern2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/pattern.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/patternProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs
 function CheckPatternProperties(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Entries(schema.patternProperties), 0, ([pattern, schema2]) => {
     const regexp = new RegExp(pattern, "u");
@@ -30005,7 +31226,7 @@ function CheckPatternProperties(stack, context, schema, value) {
   });
 }
 var init_patternProperties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
     init_externals();
     init_unique();
     init_guard2();
@@ -30013,20 +31234,20 @@ var init_patternProperties2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/prefixItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs
 function CheckPrefixItems(stack, context, schema, value) {
   return guard_exports.IsEqual(value.length, 0) || guard_exports.Every(schema.prefixItems, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
   });
 }
 var init_prefixItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/settings/settings.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs
 var settings_exports = {};
 __export(settings_exports, {
   Get: () => Get2,
@@ -30054,7 +31275,7 @@ function Get2() {
 }
 var settings;
 var init_settings = __esm({
-  "../electron/node_modules/typebox/build/system/settings/settings.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs"() {
     init_guard2();
     settings = {
       immutableTypes: false,
@@ -30067,14 +31288,14 @@ var init_settings = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/system/settings/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs
 var init_settings2 = __esm({
-  "../electron/node_modules/typebox/build/system/settings/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs"() {
     init_settings();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_exact_optional.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs
 function IsExactOptional(required, key) {
   return required.includes(key) || settings_exports.Get().exactOptionalPropertyTypes;
 }
@@ -30082,13 +31303,13 @@ function InexactOptionalCheck(value, key) {
   return guard_exports.IsUndefined(value[key]);
 }
 var init_exact_optional = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/properties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs
 function CheckProperties(stack, context, schema, value) {
   const required = IsRequired(schema) ? schema.required : [];
   const isProperties = guard_exports.Every(guard_exports.Entries(schema.properties), 0, ([key, schema2]) => {
@@ -30098,20 +31319,20 @@ function CheckProperties(stack, context, schema, value) {
   return isProperties;
 }
 var init_properties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/properties.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs"() {
+    init_types4();
     init_guard2();
     init_schema2();
     init_exact_optional();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/propertyNames.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs
 function CheckPropertyNames(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Keys(value), 0, (key, _index) => CheckSchema(stack, context, schema.propertyNames, key));
 }
 var init_propertyNames2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -30119,20 +31340,20 @@ var init_propertyNames2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/recursiveRef.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs
 function CheckRecursiveRef(stack, context, schema, value) {
   const target = stack.RecursiveRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_recursiveRef2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
     init_functions();
-    init_types3();
+    init_types4();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/ref.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs
 function CheckRef(stack, context, schema, value) {
   const target = stack.Ref(schema) ?? false;
   const nextContext = new CheckContext();
@@ -30142,26 +31363,26 @@ function CheckRef(stack, context, schema, value) {
   return result;
 }
 var init_ref2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/ref.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs"() {
     init_functions();
-    init_types3();
+    init_types4();
     init_context();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/required.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs
 function CheckRequired(_stack, _context, schema, value) {
   return guard_exports.Every(schema.required, 0, (key) => guard_exports.HasPropertyKey(value, key));
 }
 var init_required2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/required.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/type.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs
 function CheckTypeName(_stack, _context, type, _schema, value) {
   return (
     // jsonschema
@@ -30178,12 +31399,12 @@ function CheckType(stack, context, schema, value) {
   return guard_exports.IsArray(schema.type) ? CheckTypeNames(stack, context, schema.type, schema, value) : CheckTypeName(stack, context, schema.type, schema, value);
 }
 var init_type2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/type.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
 function CheckUnevaluatedItems(stack, context, schema, value) {
   const indices = context.GetIndices();
   return guard_exports.Every(value, 0, (item, index) => {
@@ -30191,7 +31412,7 @@ function CheckUnevaluatedItems(stack, context, schema, value) {
   });
 }
 var init_unevaluatedItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -30199,7 +31420,7 @@ var init_unevaluatedItems2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
 function CheckUnevaluatedProperties(stack, context, schema, value) {
   const keys = context.GetKeys();
   return guard_exports.Every(guard_exports.Entries(value), 0, ([key, prop]) => {
@@ -30207,7 +31428,7 @@ function CheckUnevaluatedProperties(stack, context, schema, value) {
   });
 }
 var init_unevaluatedProperties2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -30215,7 +31436,7 @@ var init_unevaluatedProperties2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/uniqueItems.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs
 function IsValid5(schema) {
   return !guard_exports.IsEqual(schema.uniqueItems, false);
 }
@@ -30227,13 +31448,13 @@ function CheckUniqueItems(_stack, _context, schema, value) {
   return guard_exports.IsEqual(set, isLength);
 }
 var init_uniqueItems2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
     init_hashing();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/schema.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs
 function CheckSchemaPushStack(stack, context, schema, value) {
   return context.Push() && CheckSchema(stack, context, schema, value) && context.Pop();
 }
@@ -30244,8 +31465,8 @@ function CheckSchema(stack, context, schema, value) {
   return result;
 }
 var init_schema2 = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/schema.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs"() {
+    init_types4();
     init_refine2();
     init_guard4();
     init_guard2();
@@ -30294,23 +31515,23 @@ var init_schema2 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_functions.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs
 var init_functions = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_functions.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs"() {
+    init_types4();
     init_hashing();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/pointer/pointer_get.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs
 var init_pointer_get = __esm({
-  "../electron/node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/pointer/pointer.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs
 var pointer_exports = {};
 __export(pointer_exports, {
   Delete: () => Delete,
@@ -30360,11 +31581,11 @@ function Indices(pointer) {
   return indices.length > 0 && indices[0] === "" ? indices.slice(1) : indices;
 }
 function Has2(value, pointer) {
-  let current2 = value;
+  let current3 = value;
   return Indices(pointer).every((index) => {
-    if (!HasIndex(index, current2))
+    if (!HasIndex(index, current3))
       return false;
-    current2 = current2[index];
+    current3 = current3[index];
     return true;
   });
 }
@@ -30397,20 +31618,20 @@ function Delete(value, pointer) {
   return value;
 }
 var init_pointer = __esm({
-  "../electron/node_modules/typebox/build/schema/pointer/pointer.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs"() {
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/pointer/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs
 var init_pointer2 = __esm({
-  "../electron/node_modules/typebox/build/schema/pointer/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs"() {
     init_pointer_get();
     init_pointer();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/resolve/ref.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs
 function MatchId(schema, base, ref) {
   if (schema.$id === ref.hash)
     return schema;
@@ -30503,37 +31724,37 @@ function DynamicRef(root, base, dynamicRef, dynamicAnchors) {
   return anchorTarget ?? fragmentTarget;
 }
 var init_ref3 = __esm({
-  "../electron/node_modules/typebox/build/schema/resolve/ref.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs"() {
     init_guard2();
     init_pointer2();
-    init_types3();
+    init_types4();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/resolve/resolve.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs
 var resolve_exports = {};
 __export(resolve_exports, {
   DynamicRef: () => DynamicRef,
   Ref: () => Ref
 });
 var init_resolve = __esm({
-  "../electron/node_modules/typebox/build/schema/resolve/resolve.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs"() {
     init_ref3();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/resolve/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs
 var init_resolve2 = __esm({
-  "../electron/node_modules/typebox/build/schema/resolve/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs"() {
     init_resolve();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/_stack.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs
 var __classPrivateFieldGet, _Stack_instances, _Stack_PushResourceAnchors, _Stack_PopResourceAnchors, _Stack_FromContext, _Stack_FromRef, Stack;
 var init_stack = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/_stack.mjs"() {
-    init_types3();
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs"() {
+    init_types4();
     init_guard2();
     init_resolve2();
     __classPrivateFieldGet = function(receiver, state, kind, f) {
@@ -30611,23 +31832,23 @@ var init_stack = __esm({
     _Stack_instances = /* @__PURE__ */ new WeakSet(), _Stack_PushResourceAnchors = function _Stack_PushResourceAnchors2(schema, isRoot = true) {
       if (!IsSchemaObject(schema))
         return;
-      const current2 = schema;
-      if (!isRoot && IsId(current2))
+      const current3 = schema;
+      if (!isRoot && IsId(current3))
         return;
-      if (!isRoot && IsDynamicAnchor(current2))
-        this.dynamicAnchors.push(current2);
-      for (const key of guard_exports.Keys(current2))
-        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PushResourceAnchors2).call(this, current2[key], false);
+      if (!isRoot && IsDynamicAnchor(current3))
+        this.dynamicAnchors.push(current3);
+      for (const key of guard_exports.Keys(current3))
+        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PushResourceAnchors2).call(this, current3[key], false);
     }, _Stack_PopResourceAnchors = function _Stack_PopResourceAnchors2(schema, isRoot = true) {
       if (!IsSchemaObject(schema))
         return;
-      const current2 = schema;
-      if (!isRoot && IsId(current2))
+      const current3 = schema;
+      if (!isRoot && IsId(current3))
         return;
-      if (!isRoot && IsDynamicAnchor(current2))
+      if (!isRoot && IsDynamicAnchor(current3))
         this.dynamicAnchors.pop();
-      for (const key of guard_exports.Keys(current2))
-        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PopResourceAnchors2).call(this, current2[key], false);
+      for (const key of guard_exports.Keys(current3))
+        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PopResourceAnchors2).call(this, current3[key], false);
     }, _Stack_FromContext = function _Stack_FromContext2(ref) {
       return guard_exports.HasPropertyKey(this.context, ref.$ref) ? this.context[ref.$ref] : void 0;
     }, _Stack_FromRef = function _Stack_FromRef2(ref) {
@@ -30637,9 +31858,9 @@ var init_stack = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/engine/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs
 var init_engine = __esm({
-  "../electron/node_modules/typebox/build/schema/engine/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs"() {
     init_context();
     init_externals();
     init_guard4();
@@ -30692,13 +31913,13 @@ var init_engine = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/static/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs
 var init_static = __esm({
-  "../electron/node_modules/typebox/build/schema/static/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/system/arguments/arguments.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs
 var arguments_exports = {};
 __export(arguments_exports, {
   Match: () => Match2
@@ -30709,44 +31930,44 @@ function Match2(args, match) {
   })();
 }
 var init_arguments = __esm({
-  "../electron/node_modules/typebox/build/system/arguments/arguments.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/system/arguments/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs
 var init_arguments2 = __esm({
-  "../electron/node_modules/typebox/build/system/arguments/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs"() {
     init_arguments();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/environment/evaluate.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs
 var init_evaluate = __esm({
-  "../electron/node_modules/typebox/build/system/environment/evaluate.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/environment/environment.mjs
-var init_environment2 = __esm({
-  "../electron/node_modules/typebox/build/system/environment/environment.mjs"() {
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs
+var init_environment3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs"() {
     init_evaluate();
   }
 });
 
-// ../electron/node_modules/typebox/build/system/environment/index.mjs
-var init_environment3 = __esm({
-  "../electron/node_modules/typebox/build/system/environment/index.mjs"() {
-    init_environment2();
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs
+var init_environment4 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs"() {
+    init_environment3();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/build.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs
 var init_build = __esm({
-  "../electron/node_modules/typebox/build/schema/build.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs"() {
     init_arguments2();
-    init_environment3();
+    init_environment4();
     init_hashing();
     init_guard2();
     init_format3();
@@ -30754,31 +31975,31 @@ var init_build = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/system/locale/en_US.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs
 var init_en_US = __esm({
-  "../electron/node_modules/typebox/build/system/locale/en_US.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs"() {
   }
 });
 
-// ../electron/node_modules/typebox/build/system/locale/_config.mjs
-var init_config2 = __esm({
-  "../electron/node_modules/typebox/build/system/locale/_config.mjs"() {
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs
+var init_config3 = __esm({
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs"() {
     init_en_US();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/errors.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs
 var init_errors = __esm({
-  "../electron/node_modules/typebox/build/schema/errors.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs"() {
     init_arguments2();
     init_settings2();
-    init_config2();
+    init_config3();
     init_guard2();
     init_engine();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/check.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs
 function Check(...args) {
   const [context, schema, value] = arguments_exports.Match(args, {
     3: (context2, schema2, value2) => [context2, schema2, value2],
@@ -30789,24 +32010,24 @@ function Check(...args) {
   return CheckSchema(stack, checkContext, schema, value);
 }
 var init_check = __esm({
-  "../electron/node_modules/typebox/build/schema/check.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs"() {
     init_arguments2();
     init_engine();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/parse.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs
 var init_parse = __esm({
-  "../electron/node_modules/typebox/build/schema/parse.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs"() {
     init_arguments2();
     init_check();
     init_errors();
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/compile.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs
 var init_compile = __esm({
-  "../electron/node_modules/typebox/build/schema/compile.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs"() {
     init_arguments2();
     init_build();
     init_errors();
@@ -30814,14 +32035,14 @@ var init_compile = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/schema.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs
 var init_schema3 = __esm({
-  "../electron/node_modules/typebox/build/schema/schema.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs"() {
     init_engine();
     init_pointer2();
     init_resolve2();
     init_static();
-    init_types3();
+    init_types4();
     init_build();
     init_compile();
     init_check();
@@ -30830,9 +32051,9 @@ var init_schema3 = __esm({
   }
 });
 
-// ../electron/node_modules/typebox/build/schema/index.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs
 var init_schema4 = __esm({
-  "../electron/node_modules/typebox/build/schema/index.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs"() {
     init_schema3();
     init_schema3();
   }
@@ -30895,7 +32116,6 @@ function normalizePiApi(provider, baseUrl) {
     case "anthropic":
     case "deepseek":
     case "kimi-api":
-    case "kimi-coding":
       return "anthropic-messages";
     case "google":
       return "google-generative-ai";
@@ -30968,7 +32188,7 @@ async function resolveModelDefaults(input) {
     // ponytail: 未知小窗口保留原保守预算；已知额度由请求剩余空间进一步限制。
     !input.maxOutputTokens && !Number.isFinite(hardOutput) ? Math.floor(contextWindow / 4) : contextWindow - 256
   );
-  const catalogPriced = !!catalogModel && Object.values(catalogModel.cost).every((value) => Number.isFinite(value) && value >= 0);
+  const catalogPriced = !!catalogModel && !catalogModel.cost.tiers && [catalogModel.cost.input, catalogModel.cost.output, catalogModel.cost.cacheRead, catalogModel.cost.cacheWrite].every((value) => Number.isFinite(value) && value >= 0);
   const official = input.pricing || catalogPriced ? void 0 : findOfficialModelPrice(input.model ?? "");
   const inputTypes = discovery?.input ?? capability?.input ?? (catalogModel ? [...catalogModel.input] : ["text"]);
   const declaredLevels = discovery?.reasoning === false ? ["off"] : normalizePiApi(input.provider, input.baseUrl) === "openai-completions" ? discovery?.reasoningLevels : void 0;
@@ -31032,6 +32252,7 @@ function applyPiModelThinking(payload, input) {
 function normalizePiBaseUrl(baseUrl, provider) {
   if (!baseUrl) return void 0;
   if (isNativeOpenAIEndpoint(provider, baseUrl)) return "https://api.openai.com/v1";
+  if (provider === "kimi-coding") return normalizeKimiCodingBaseUrl(baseUrl);
   if (normalizePiApi(provider, baseUrl) === "anthropic-messages") {
     return normalizeAnthropicBaseUrlForSdk(baseUrl);
   }
@@ -31040,19 +32261,10 @@ function normalizePiBaseUrl(baseUrl, provider) {
   }
   return baseUrl.trim().replace(/\/+$/, "");
 }
-function requiresCortexUserAgent(provider) {
-  return provider === "kimi-coding";
-}
-function usesBearerOnlyAnthropicAuth(provider) {
-  return provider === "kimi-api" || provider === "kimi-coding";
-}
 function buildPiRequestHeaders(provider, apiKey) {
-  if (normalizePiApi(provider) !== "anthropic-messages") return void 0;
-  if (!usesBearerOnlyAnthropicAuth(provider)) return void 0;
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    ...requiresCortexUserAgent(provider) ? { "User-Agent": "Cortex/0.9.32" } : {}
-  };
+  if (provider === "kimi-coding") return { "User-Agent": "Cortex/0.9.32" };
+  if (provider === "kimi-api") return { Authorization: `Bearer ${apiKey}` };
+  return void 0;
 }
 async function buildModel(sdk, input) {
   const providerName = `cortex-${input.provider}-${input.sessionId}`;
@@ -31101,7 +32313,7 @@ var init_pi_model_registry = __esm({
   "../electron/src/main/lib/adapters/pi-model-registry.ts"() {
     "use strict";
     init_src();
-    init_src2();
+    init_src3();
     init_official_model_prices();
     ZERO_MODEL_COST = {
       input: 0,
@@ -31256,15 +32468,15 @@ function savePiCompletionsHistory(assistant, raw, model, provider, channelId) {
 function restorePiCompletionsHistory(payload, context, model, provider, channelId) {
   const body = payload;
   const resultsByAssistant = /* @__PURE__ */ new Map();
-  let current2;
+  let current3;
   for (const message of context.messages) {
     if (message.role === "assistant") {
-      current2 = message;
+      current3 = message;
       resultsByAssistant.set(message, /* @__PURE__ */ new Set());
-    } else if (message.role === "user") current2 = void 0;
-    else if (current2 && message.role === "toolResult") resultsByAssistant.get(current2).add(message.toolCallId);
+    } else if (message.role === "user") current3 = void 0;
+    else if (current3 && message.role === "toolResult") resultsByAssistant.get(current3).add(message.toolCallId);
   }
-  const assistants = context.messages.filter((message) => message.role === "assistant" && !["error", "aborted"].includes(message.stopReason) && message.content.some((block) => block.type === "toolCall" || block.type === "text" && block.text.trim() || block.type === "thinking" && block.thinking.trim() && (message.model !== model.id || message.provider !== model.provider || message.api !== model.api)));
+  const assistants = context.messages.filter((message) => message.role === "assistant" && !["error", "aborted"].includes(message.stopReason) && message.content.some((block) => block.type === "toolCall" || block.type === "text" && block.text.trim()));
   const saved = assistants.map((assistant) => {
     const history = assistant.cortexCompletions;
     return history?.version === 1 && history.provider === provider && history.channelId === channelId && history.endpoint === protocolEndpoint(model.baseUrl) && assistant.api === model.api && assistant.model === model.id && assistant.provider === model.provider && ["stop", "toolUse"].includes(assistant.stopReason) && assistant.content.every((block) => block.type !== "toolCall" || resultsByAssistant.get(assistant)?.has(block.id)) && history.message?.role === "assistant" && history.digest === digest(assistant.content, history.message) ? history.message : void 0;
@@ -31293,7 +32505,7 @@ var init_pi_completions_history = __esm({
     "use strict";
     import_node_crypto4 = require("node:crypto");
     import_node_util3 = require("node:util");
-    init_src2();
+    init_src3();
   }
 });
 
@@ -31580,12 +32792,12 @@ var init_pi_stream_validation = __esm({
     "use strict";
     init_src();
     import_node_util4 = require("node:util");
-    init_src2();
+    init_src3();
     init_pi_completions_history();
   }
 });
 
-// ../electron/node_modules/openai/internal/tslib.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
   if (kind === "m")
     throw new TypeError("Private method is not writable");
@@ -31603,11 +32815,11 @@ function __classPrivateFieldGet2(receiver, state, kind, f) {
   return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 var init_tslib = __esm({
-  "../electron/node_modules/openai/internal/tslib.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs"() {
   }
 });
 
-// ../electron/node_modules/openai/internal/errors.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs
 function isAbortError(err) {
   return typeof err === "object" && err !== null && // Spec-compliant fetch implementations
   ("name" in err && err.name === "AbortError" || // Expo fetch
@@ -31615,7 +32827,7 @@ function isAbortError(err) {
 }
 var castToError;
 var init_errors2 = __esm({
-  "../electron/node_modules/openai/internal/errors.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs"() {
     castToError = (err) => {
       if (err instanceof Error)
         return err;
@@ -31643,10 +32855,10 @@ var init_errors2 = __esm({
   }
 });
 
-// ../electron/node_modules/openai/core/error.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs
 var OpenAIError, APIError, APIConnectionError, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, ConflictError, UnprocessableEntityError, RateLimitError, InternalServerError;
 var init_error = __esm({
-  "../electron/node_modules/openai/core/error.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs"() {
     init_errors2();
     OpenAIError = class extends Error {
     };
@@ -31733,7 +32945,7 @@ var init_error = __esm({
   }
 });
 
-// ../electron/node_modules/openai/internal/shims.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs
 function makeReadableStream(...args) {
   const ReadableStream2 = globalThis.ReadableStream;
   if (typeof ReadableStream2 === "undefined") {
@@ -31769,11 +32981,11 @@ function ReadableStreamToAsyncIterable(stream) {
   };
 }
 var init_shims = __esm({
-  "../electron/node_modules/openai/internal/shims.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs"() {
   }
 });
 
-// ../electron/node_modules/openai/internal/utils/bytes.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs
 function concatBytes(buffers) {
   let length = 0;
   for (const buffer of buffers) {
@@ -31797,11 +33009,11 @@ function decodeUTF8(bytes) {
 }
 var encodeUTF8_, decodeUTF8_;
 var init_bytes = __esm({
-  "../electron/node_modules/openai/internal/utils/bytes.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs"() {
   }
 });
 
-// ../electron/node_modules/openai/internal/decoders/line.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs
 function findNewlineIndex(buffer, startIndex) {
   const newline = 10;
   const carriage = 13;
@@ -31833,7 +33045,7 @@ function findDoubleNewlineIndex(buffer) {
 }
 var _LineDecoder_buffer, _LineDecoder_carriageReturnIndex, LineDecoder;
 var init_line = __esm({
-  "../electron/node_modules/openai/internal/decoders/line.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs"() {
     init_tslib();
     init_bytes();
     LineDecoder = class {
@@ -31883,14 +33095,14 @@ var init_line = __esm({
   }
 });
 
-// ../electron/node_modules/openai/internal/utils/values.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs
 var init_values = __esm({
-  "../electron/node_modules/openai/internal/utils/values.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs"() {
     init_error();
   }
 });
 
-// ../electron/node_modules/openai/internal/utils/log.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs
 function noop() {
 }
 function makeLogFn(fnLevel, logger, logLevel) {
@@ -31921,7 +33133,7 @@ function loggerFor(client) {
 }
 var levelNumbers, noopLogger, cachedLoggers;
 var init_log = __esm({
-  "../electron/node_modules/openai/internal/utils/log.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs"() {
     init_values();
     levelNumbers = {
       off: 0,
@@ -31940,7 +33152,7 @@ var init_log = __esm({
   }
 });
 
-// ../electron/node_modules/openai/core/streaming.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs
 var streaming_exports = {};
 __export(streaming_exports, {
   Stream: () => Stream,
@@ -32000,7 +33212,7 @@ function partition(str, delimiter) {
 }
 var _Stream_client, Stream, SSEDecoder;
 var init_streaming = __esm({
-  "../electron/node_modules/openai/core/streaming.mjs"() {
+  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs"() {
     init_tslib();
     init_error();
     init_shims();
@@ -32482,9 +33694,9 @@ var init_model_transport = __esm({
     "use strict";
     init_agent_tool_token_estimator();
     init_structured_output();
-    init_src2();
+    init_src3();
     init_src();
-    init_src2();
+    init_src3();
     init_pi_model_registry();
     init_pi_context_budget();
     init_pi_stream_validation();
@@ -32571,7 +33783,7 @@ function writeConfig(config) {
     writeJsonFileAtomic(configPath, config);
   } catch (error) {
     console.error("[\u6E20\u9053\u7BA1\u7406] \u5199\u5165\u914D\u7F6E\u6587\u4EF6\u5931\u8D25:", error);
-    throw new Error(tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E\u4FDD\u5B58\u5931\u8D25", "Couldn\u2019t save provider settings"));
+    throw new Error(tr("\u65E0\u6CD5\u4FDD\u5B58\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Couldn\u2019t save provider settings"));
   }
 }
 function encryptApiKey(plainKey) {
@@ -32593,7 +33805,7 @@ function decryptKey(encryptedKey) {
     return requireDesktop().safeStorage.decryptString(buffer);
   } catch (error) {
     console.error("[\u6E20\u9053\u7BA1\u7406] \u89E3\u5BC6 API Key \u5931\u8D25:", error);
-    throw new Error(tr("API Key \u89E3\u5BC6\u5931\u8D25\uFF0C\u8BF7\u91CD\u65B0\u586B\u5199", "Couldn\u2019t decrypt the API key. Enter it again."));
+    throw new Error(tr("\u65E0\u6CD5\u89E3\u5BC6 API Key\uFF0C\u8BF7\u91CD\u65B0\u586B\u5199", "Couldn\u2019t decrypt the API key. Enter it again."));
   }
 }
 function assertLocalFlag(local) {
@@ -32722,10 +33934,10 @@ function recordNativeSearchVerification(snapshot, modelId, supported) {
     const protocol = nativeSearchProtocol(snapshot);
     if (!protocol) return false;
     const config = readConfig();
-    const current2 = config.channels.find((item) => item.id === snapshot.id);
-    const model = current2?.models.find((item) => item.id === modelId);
-    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return false;
-    model.nativeSearch = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    const current3 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current3?.models.find((item) => item.id === modelId);
+    if (!current3 || !model || current3.provider !== snapshot.provider || current3.baseUrl !== snapshot.baseUrl || current3.apiKey !== snapshot.apiKey) return false;
+    model.nativeSearch = { provider: current3.provider, baseUrl: current3.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
     writeConfig(config);
     return true;
   });
@@ -32733,10 +33945,10 @@ function recordNativeSearchVerification(snapshot, modelId, supported) {
 function recordImageInputCheck(snapshot, modelId, supported) {
   return withChannelsLock(() => {
     const config = readConfig();
-    const current2 = config.channels.find((item) => item.id === snapshot.id);
-    const model = current2?.models.find((item) => item.id === modelId);
-    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return void 0;
-    model.imageInputCheck = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    const current3 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current3?.models.find((item) => item.id === modelId);
+    if (!current3 || !model || current3.provider !== snapshot.provider || current3.baseUrl !== snapshot.baseUrl || current3.apiKey !== snapshot.apiKey) return void 0;
+    model.imageInputCheck = { provider: current3.provider, baseUrl: current3.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
     writeConfig(config);
     return model.imageInputCheck;
   });
@@ -32778,10 +33990,10 @@ async function fetchModels(input, signal = AbortSignal.timeout(1e4), quiet = fal
       case "anthropic":
       case "deepseek":
       case "kimi-api":
-      case "kimi-coding":
         return await fetchAnthropicCompatibleModels(input.baseUrl, input.apiKey, proxyUrl, input.provider, signal);
       case "openai":
       case "moonshot":
+      case "kimi-coding":
       case "zhipu":
       case "minimax":
       case "doubao":
@@ -32797,7 +34009,7 @@ async function fetchModels(input, signal = AbortSignal.timeout(1e4), quiet = fal
     const raw = error instanceof Error ? error.message : tr("\u672A\u77E5\u9519\u8BEF", "Unknown error");
     const message = input.apiKey ? raw.split(input.apiKey).join("[REDACTED]") : raw;
     if (!quiet) console.error("[\u6E20\u9053\u7BA1\u7406] \u62C9\u53D6\u6A21\u578B\u5217\u8868\u5931\u8D25:", message);
-    return { success: false, message: tr(`\u83B7\u53D6\u6A21\u578B\u5931\u8D25\uFF1A${message}`, `Couldn\u2019t fetch models: ${message}`), models: [] };
+    return { success: false, message: tr(`\u65E0\u6CD5\u83B7\u53D6\u6A21\u578B\uFF1A${message}`, `Couldn\u2019t fetch models: ${message}`), models: [] };
   }
 }
 async function fetchAnthropicCompatibleModels(baseUrl, apiKey, proxyUrl, provider = "anthropic", signal) {
@@ -32806,15 +34018,10 @@ async function fetchAnthropicCompatibleModels(baseUrl, apiKey, proxyUrl, provide
   if (provider === "kimi-api" && endpoint3.hostname === "api.moonshot.cn") url = `${endpoint3.origin}/v1`;
   const fetchFn = getFetchFn(proxyUrl);
   const headers = {
-    "anthropic-version": "2023-06-01"
+    "anthropic-version": "2023-06-01",
+    "x-api-key": apiKey,
+    Authorization: `Bearer ${apiKey}`
   };
-  if (provider === "kimi-coding") {
-    headers.Authorization = `Bearer ${apiKey}`;
-    headers["User-Agent"] = "KimiCLI/1.3";
-  } else {
-    headers["x-api-key"] = apiKey;
-    headers.Authorization = `Bearer ${apiKey}`;
-  }
   const items = [];
   const page = new URL(`${url}/models`);
   const cursors = /* @__PURE__ */ new Set();
@@ -32856,14 +34063,15 @@ async function fetchAnthropicCompatibleModels(baseUrl, apiKey, proxyUrl, provide
   };
 }
 async function fetchOpenAICompatibleModels(baseUrl, apiKey, proxyUrl, provider = "custom", signal) {
-  const url = normalizeBaseUrl(baseUrl);
+  const url = provider === "kimi-coding" ? normalizeKimiCodingBaseUrl(baseUrl) : normalizeBaseUrl(baseUrl);
   const fetchFn = getFetchFn(proxyUrl);
   const response = await fetchFn(`${url}/models`, {
     method: "GET",
     signal,
     redirect: "error",
     headers: {
-      Authorization: `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
+      ...provider === "kimi-coding" ? { "User-Agent": "KimiCLI/1.3" } : {}
     }
   });
   if (response.status === 401) {
@@ -32937,9 +34145,9 @@ async function fetchGoogleModels(baseUrl, apiKey, proxyUrl, signal) {
   };
 }
 async function refreshChannelDiscovery(channel2, apiKey, modelId) {
-  const current2 = channel2.models.find((model) => model.id === modelId);
-  const discovered = matchingModelDiscovery(current2?.discovery, channel2.provider, channel2.baseUrl, modelId);
-  const age = Date.now() - Date.parse(current2?.discovery?.checkedAt ?? "");
+  const current3 = channel2.models.find((model) => model.id === modelId);
+  const discovered = matchingModelDiscovery(current3?.discovery, channel2.provider, channel2.baseUrl, modelId);
+  const age = Date.now() - Date.parse(current3?.discovery?.checkedAt ?? "");
   if (discovered && age >= 0 && age < 864e5) return;
   const endpoint3 = JSON.stringify([channel2.provider, channel2.baseUrl]);
   let cached = discoveryRefreshes.get(channel2.id);
@@ -32975,7 +34183,7 @@ var init_channel_manager = __esm({
   "../electron/src/main/lib/channel-manager.ts"() {
     "use strict";
     init_src();
-    init_src2();
+    init_src3();
     import_node_fs13 = require("node:fs");
     init_desktop_host();
     import_node_crypto5 = require("node:crypto");
@@ -32985,7 +34193,7 @@ var init_channel_manager = __esm({
     init_proxy_fetch();
     init_proxy_settings_service();
     init_chat_tool_config();
-    init_src2();
+    init_src3();
     init_native_web_search();
     CONFIG_VERSION = 1;
     LOCAL_KEY_PLACEHOLDER = "local";
@@ -33145,7 +34353,7 @@ function getManagedSkills(workspace, dependencyRoots = [workspace], english = ge
         if (!version2 || Number(version2) < 2) error = tr(`\u8BF7\u5148\u5347\u7EA7 ${name} \u6280\u80FD\u81F3 2.0.0 \u6216\u66F4\u65B0\u7248\u672C\u3002`, `Update the ${name} skill to 2.0.0 or later first.`);
       }
     } catch {
-      error = tr(`${name} \u6280\u80FD\u65E0\u6CD5\u8BFB\u53D6\uFF0C\u8BF7\u68C0\u67E5\u5B89\u88C5\u3002`, `Couldn\u2019t read the ${name} skill. Check the installation.`);
+      error = tr(`\u65E0\u6CD5\u8BFB\u53D6 ${name} \u6280\u80FD\uFF0C\u8BF7\u68C0\u67E5\u5B89\u88C5\u3002`, `Couldn\u2019t read the ${name} skill. Check the installation.`);
     }
     dependencyErrors.set(id, error);
     return error;
@@ -33161,11 +34369,11 @@ function getManagedSkills(workspace, dependencyRoots = [workspace], english = ge
     const en = english ? englishManifest(item) : void 0;
     return item.manifest.skills.map((skill) => {
       const error = loadError || skill.requires?.map(dependencyError).filter(Boolean).join(" ") || void 0;
-      const t2 = en?.skills.find((s) => s.id === skill.id);
+      const t3 = en?.skills.find((s) => s.id === skill.id);
       return {
         slug: `${item.id}--${skill.id}`,
-        name: t2?.nameEn || skill.name,
-        description: t2?.descriptionEn || skill.description,
+        name: t3?.nameEn || skill.name,
+        description: t3?.descriptionEn || skill.description,
         version: item.manifest.version,
         installationId: item.id,
         installationEnabled: item.enabled,
@@ -33173,10 +34381,10 @@ function getManagedSkills(workspace, dependencyRoots = [workspace], english = ge
         packageId: item.manifest.kind === "package" ? item.id : void 0,
         packageName: item.manifest.kind === "package" ? en?.nameEn || item.manifest.name : void 0,
         requires: skill.requires,
-        input: t2?.inputEn || skill.input,
-        output: t2?.outputEn || skill.output,
-        example: t2?.exampleEn || skill.example,
-        limitation: t2?.limitationEn || skill.limitation,
+        input: t3?.inputEn || skill.input,
+        output: t3?.outputEn || skill.output,
+        example: t3?.exampleEn || skill.example,
+        limitation: t3?.limitationEn || skill.limitation,
         directory: (0, import_node_path17.dirname)(inside(root, skill.path)),
         loadError: error,
         enabled: !error && item.enabled && !item.disabled.includes(skill.id)
@@ -33299,8 +34507,8 @@ function manageSkillPackage(workspace, id, action) {
   if (action === "rollback") {
     if (!item.previous) throw new Error(tr("\u6CA1\u6709\u53EF\u6062\u590D\u7684\u4E0A\u4E00\u7248\u672C\u3002", "No previous version to restore."));
     if (hashSkillDirectory(snapshotPath(workspace, item)) !== item.hash || hashSkillDirectory(snapshotPath(workspace, item.previous)) !== item.previous.hash) throw new Error(tr("\u672C\u5730\u7248\u672C\u5DF2\u4FEE\u6539\uFF0C\u672A\u6062\u590D\u4E0A\u4E00\u7248\u672C\u3002", "The local version was modified, so it wasn\u2019t restored."));
-    const current2 = { directory: item.directory, hash: item.hash, manifest: item.manifest, disabled: item.disabled };
-    Object.assign(item, item.previous, { previous: current2 });
+    const current3 = { directory: item.directory, hash: item.hash, manifest: item.manifest, disabled: item.disabled };
+    Object.assign(item, item.previous, { previous: current3 });
   } else if (action === "enable" || action === "disable") item.enabled = action === "enable";
   else if (action === "remove") registry.installations = registry.installations.filter((i) => i.id !== id);
   else throw new Error(tr("\u4E0D\u652F\u6301\u7684\u6280\u80FD\u5305\u64CD\u4F5C\u3002", "Unsupported skill pack action."));
@@ -33387,6 +34595,860 @@ var init_document_skill_migration = __esm({
   }
 });
 
+// ../electron/src/main/lib/skill-env.ts
+var import_node_child_process6, import_node_util6, execFileAsync, installing;
+var init_skill_env = __esm({
+  "../electron/src/main/lib/skill-env.ts"() {
+    "use strict";
+    import_node_child_process6 = require("node:child_process");
+    import_node_util6 = require("node:util");
+    init_src();
+    init_config_paths();
+    execFileAsync = (0, import_node_util6.promisify)(import_node_child_process6.execFile);
+    installing = Promise.resolve();
+  }
+});
+
+// ../electron/src/main/lib/agent-runtime-env.ts
+var init_agent_runtime_env = __esm({
+  "../electron/src/main/lib/agent-runtime-env.ts"() {
+    "use strict";
+    init_src();
+    init_skill_env();
+  }
+});
+
+// ../electron/src/main/lib/shell-executor.ts
+var DEFAULT_MAX_OUTPUT_BYTES;
+var init_shell_executor = __esm({
+  "../electron/src/main/lib/shell-executor.ts"() {
+    "use strict";
+    DEFAULT_MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
+  }
+});
+
+// ../electron/src/main/lib/skill-dependencies.ts
+function parseDependencySpec(raw) {
+  const match = SPEC.exec(raw.trim());
+  if (!match) return void 0;
+  return { raw: match[2] ? `${match[1]}>=${match[2]}` : match[1], name: match[1], minVersion: match[2] };
+}
+function parseSkillRequires(yaml, skillName) {
+  const items = [];
+  let inMetadata = false, inRequires = false;
+  let childIndent = -1;
+  for (const line of yaml.split("\n")) {
+    if (!/^\s/.test(line)) {
+      inMetadata = /^metadata:\s*$/.test(line);
+      inRequires = false;
+      childIndent = -1;
+      continue;
+    }
+    if (!inMetadata) continue;
+    const indent = line.length - line.trimStart().length;
+    if (childIndent === -1) childIndent = indent;
+    const text2 = line.trim();
+    if (indent === childIndent) {
+      const requires = /^requires:\s*(.*)$/.exec(text2);
+      inRequires = !!requires;
+      if (!requires) continue;
+      const value = requires[1].trim();
+      const flow = /^\[(.*)\]$/.exec(value);
+      if (flow) items.push(...flow[1].split(","));
+      else if (value) items.push(value);
+      inRequires = !flow && !value;
+      continue;
+    }
+    const item = inRequires && indent > childIndent ? /^-\s*(.*)$/.exec(text2)?.[1] : void 0;
+    if (item === void 0) {
+      inRequires = false;
+      continue;
+    }
+    items.push(item);
+  }
+  const invalid = [];
+  const specs = items.map((item) => item.trim().replace(/^["']|["']$/g, "")).filter(Boolean).flatMap((item) => {
+    const spec = parseDependencySpec(item);
+    if (!spec) invalid.push(item);
+    return spec ? [spec.raw] : [];
+  });
+  if (invalid.length) console.warn(`[\u6280\u80FD\u4F9D\u8D56] ${skillName} \u7684 metadata.requires \u542B\u65E0\u6CD5\u89E3\u6790\u7684\u9879\uFF0C\u5DF2\u5FFD\u7565\uFF1A${invalid.join("\u3001")}`);
+  return [...new Set(specs)];
+}
+var SPEC, CACHE_TTL_MS;
+var init_skill_dependencies = __esm({
+  "../electron/src/main/lib/skill-dependencies.ts"() {
+    "use strict";
+    init_src3();
+    init_agent_runtime_env();
+    init_shell_executor();
+    SPEC = /^([a-zA-Z0-9_][a-zA-Z0-9_.+-]*)\s*(?:>=\s*(\d+(?:\.\d+)*))?$/;
+    CACHE_TTL_MS = 5 * 6e4;
+  }
+});
+
+// ../electron/src/main/lib/mcp-catalog.ts
+function googleRecipes() {
+  const google = (id, host, scopes, name, description, api) => ({
+    id,
+    get name() {
+      return name();
+    },
+    get description() {
+      return description();
+    },
+    sourceUrl: "https://developers.google.com/workspace/guides/configure-mcp-servers",
+    transport: "http",
+    auth: "none",
+    urlTemplate: `https://${host}/mcp/v1`,
+    fields: [],
+    oauth: {
+      required: true,
+      userClient: true,
+      config: { scopes: scopes.map((scope) => `https://www.googleapis.com/auth/${scope}`), authParams: { access_type: "offline", prompt: "consent" } },
+      get note() {
+        return tr(
+          `\u9700\u8981\u4F60\u81EA\u5DF1\u7684 Google Cloud OAuth \u5BA2\u6237\u7AEF\uFF1A\u5148\u52A0\u5165 Google Workspace Developer Preview Program\uFF0C\u5728 Cloud \u9879\u76EE\u91CC\u542F\u7528 ${api} \u4E0E\u5BF9\u5E94\u7684 MCP API\uFF0C\u914D\u7F6E OAuth \u540C\u610F\u5C4F\u5E55\uFF08\u4E2A\u4EBA\u8D26\u53F7\u9009 External \u5E76\u628A\u81EA\u5DF1\u52A0\u4E3A\u6D4B\u8BD5\u7528\u6237\uFF09\uFF0C\u518D\u521B\u5EFA\u300C\u684C\u9762\u5E94\u7528\u300D\u7C7B\u578B\u7684\u5BA2\u6237\u7AEF\uFF0C\u628A ID \u548C\u5BC6\u94A5\u586B\u5728\u8FD9\u91CC\u3002Gmail \u8BFB\u53D6\u7B49\u53D7\u9650\u6743\u9650\u672A\u7ECF Google \u5BA1\u6838\u53EA\u80FD\u7ED9\u6D4B\u8BD5\u7528\u6237\u7528\uFF1B\u6D4B\u8BD5\u72B6\u6001\u4E0B\u767B\u5F55 7 \u5929\u540E\u5931\u6548\uFF0C\u9700\u8981\u91CD\u65B0\u767B\u5F55\u3002`,
+          `Needs your own Google Cloud OAuth client: join the Google Workspace Developer Preview Program, enable ${api} and its MCP API in your Cloud project, set up the OAuth consent screen (for a personal account choose External and add yourself as a test user), then create a \u201CDesktop app\u201D client and enter its ID and secret here. Restricted scopes such as reading Gmail only work for test users until Google reviews the app, and in testing mode the sign-in expires after 7 days.`
+        );
+      }
+    }
+  });
+  return [
+    google(
+      "gmail",
+      "gmailmcp.googleapis.com",
+      ["gmail.readonly", "gmail.compose"],
+      () => "Gmail",
+      () => tr("\u8BFB\u90AE\u4EF6\u3001\u6309\u7D27\u6025\u7A0B\u5EA6\u6574\u7406\u6536\u4EF6\u7BB1\u3001\u8D77\u8349\u56DE\u590D\u3002", "Read mail, triage your inbox by urgency, and draft replies."),
+      "Gmail API"
+    ),
+    google(
+      "google-calendar",
+      "calendarmcp.googleapis.com",
+      ["calendar.calendarlist.readonly", "calendar.events.freebusy", "calendar.events.readonly"],
+      () => tr("Google \u65E5\u5386", "Google Calendar"),
+      () => tr("\u67E5\u770B\u65E5\u7A0B\u4E0E\u7A7A\u95F2\u65F6\u95F4\uFF0C\u5E2E\u4F60\u627E\u5408\u9002\u7684\u4F1A\u8BAE\u65F6\u6BB5\uFF08\u53EA\u8BFB\uFF09\u3002", "Check events and free time to find meeting slots (read-only)."),
+      "Google Calendar API"
+    ),
+    google(
+      "google-drive",
+      "drivemcp.googleapis.com",
+      ["drive.readonly", "drive.file"],
+      () => "Google Drive",
+      () => tr("\u641C\u7D22\u548C\u8BFB\u53D6 Drive \u91CC\u7684\u6587\u4EF6\uFF0C\u5982\u5408\u540C\u3001\u62A5\u544A\u4E0E\u8868\u683C\u3002", "Search and read files in Drive, such as contracts, reports, and sheets."),
+      "Google Drive API"
+    )
+  ];
+}
+var MCP_RECIPES;
+var init_mcp_catalog = __esm({
+  "../electron/src/main/lib/mcp-catalog.ts"() {
+    "use strict";
+    init_src();
+    MCP_RECIPES = [
+      {
+        id: "context7",
+        name: "Context7",
+        get description() {
+          return tr("\u67E5\u8BE2\u6700\u65B0\u7684\u5F00\u53D1\u6587\u6863\u548C\u4EE3\u7801\u793A\u4F8B\u3002", "Look up current developer docs and code examples.");
+        },
+        sourceUrl: "https://github.com/upstash/context7",
+        transport: "http",
+        urlTemplate: "https://mcp.context7.com/mcp",
+        auth: "bearer",
+        fields: [{ key: "apiKey", get label() {
+          return tr("API Key\uFF08\u53EF\u9009\uFF0C\u63D0\u9AD8\u8C03\u7528\u9650\u989D\uFF09", "API key (optional, raises rate limits)");
+        }, required: false, secret: true }]
+      },
+      {
+        id: "playwright",
+        name: "Playwright",
+        get description() {
+          return tr("\u8BA9 Cortex \u6D4F\u89C8\u7F51\u9875\u3001\u64CD\u4F5C\u6D4F\u89C8\u5668\u5E76\u8FDB\u884C\u7F51\u9875\u6D4B\u8BD5\u3002\u9996\u6B21\u4F7F\u7528\u53EF\u80FD\u9700\u8981\u4E0B\u8F7D\u6D4F\u89C8\u5668\u3002", "Browse and test web pages. The first run may download a browser.");
+        },
+        sourceUrl: "https://github.com/microsoft/playwright-mcp",
+        transport: "stdio",
+        auth: "none",
+        packageName: "@playwright/mcp",
+        version: "0.0.82",
+        args: ["--headless"],
+        fields: []
+      },
+      {
+        id: "github",
+        name: "GitHub",
+        get description() {
+          return tr("\u8BFB\u53D6\u548C\u7BA1\u7406\u4ED3\u5E93\u3001Issue \u4E0E Pull Request\uFF0C\u8BBF\u95EE\u8303\u56F4\u53D6\u51B3\u4E8E Token \u7684\u6743\u9650\u3002", "Manage repos, issues, and pull requests. Access follows your token\u2019s permissions.");
+        },
+        sourceUrl: "https://github.com/github/github-mcp-server",
+        transport: "http",
+        urlTemplate: "https://api.githubcopilot.com/mcp/",
+        auth: "bearer",
+        fields: [{ key: "apiKey", label: "GitHub Personal Access Token", required: true, secret: true }]
+      },
+      {
+        // AgentKey 只开放 MCP（https://docs.agentkey.app/api-reference/introduction），没有可直接调用的搜索 REST 接口
+        id: "agentkey",
+        name: "AgentKey",
+        get description() {
+          return tr("\u4E00\u4E2A Key \u8C03\u7528 Brave\u3001Tavily\u3001Exa \u7B49\u641C\u7D22\u4E0E\u6570\u636E\u670D\u52A1\u3002", "Use one key for Brave, Tavily, Exa, and other search and data services.");
+        },
+        sourceUrl: "https://github.com/chainbase-labs/agentkey",
+        transport: "http",
+        urlTemplate: "https://api.agentkey.app/v1/mcp",
+        auth: "bearer",
+        fields: [{ key: "apiKey", label: "AgentKey API Key", required: true, secret: true }]
+      },
+      {
+        id: "sequential-thinking",
+        name: "Sequential Thinking",
+        get description() {
+          return tr("\u5C06\u590D\u6742\u95EE\u9898\u62C6\u89E3\u4E3A\u53EF\u8C03\u6574\u7684\u8FDE\u7EED\u63A8\u7406\u6B65\u9AA4\u3002", "Break complex problems into adjustable, sequential reasoning steps.");
+        },
+        sourceUrl: "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
+        transport: "stdio",
+        auth: "none",
+        packageName: "@modelcontextprotocol/server-sequential-thinking",
+        version: "0.6.2",
+        fields: []
+      },
+      // ===== 第 1 步：有密钥就能接的官方服务（来源与核对见 docs/research/2026-10-13-mcp-catalog-survey.md，2026-10-13 复核） =====
+      {
+        // https://lbs.amap.com/api/mcp-server/gettingstarted：Streamable HTTP，Web 服务 Key 放在 key 参数
+        id: "amap",
+        get name() {
+          return tr("\u9AD8\u5FB7\u5730\u56FE", "Amap");
+        },
+        get description() {
+          return tr("\u67E5\u5730\u70B9\u3001\u8DEF\u7EBF\u3001\u8DDD\u79BB\u3001\u5929\u6C14\u4E0E\u5730\u5740\u7ECF\u7EAC\u5EA6\uFF0C\u56DE\u7B54\u51FA\u884C\u4E0E\u9009\u5740\u95EE\u9898\u3002", "Look up places, routes, distances, weather, and coordinates for travel and location questions.");
+        },
+        sourceUrl: "https://lbs.amap.com/api/mcp-server/gettingstarted",
+        transport: "http",
+        auth: "url",
+        urlTemplate: "https://mcp.amap.com/mcp?key={apiKey}",
+        get fields() {
+          return [{ key: "apiKey", label: tr("Web \u670D\u52A1 Key", "Web Service key"), required: true, secret: true, helpUrl: "https://console.amap.com/dev/key/app" }];
+        }
+      },
+      {
+        // https://help.aliyun.com/zh/model-studio/mcp 与 web-search-mcp：/api/v1/mcps/<服务码>/mcp，Authorization: Bearer <百炼 API Key>
+        id: "bailian",
+        get name() {
+          return tr("\u963F\u91CC\u4E91\u767E\u70BC", "Alibaba Cloud Model Studio");
+        },
+        get description() {
+          return tr("\u4E00\u4E2A\u767E\u70BC API Key \u8C03\u7528\u767E\u70BC MCP \u5E02\u573A\u91CC\u5DF2\u5F00\u901A\u7684\u670D\u52A1\uFF0C\u5982\u8054\u7F51\u641C\u7D22\u3002", "Use one Model Studio API key for the MCP services you\u2019ve enabled, such as web search.");
+        },
+        sourceUrl: "https://help.aliyun.com/zh/model-studio/mcp",
+        transport: "http",
+        auth: "bearer",
+        urlTemplate: "https://dashscope.aliyuncs.com/api/v1/mcps/{serviceCode}/mcp",
+        get note() {
+          return tr("\u5148\u5728\u767E\u70BC\u63A7\u5236\u53F0\u5F00\u901A\u5BF9\u5E94 MCP \u670D\u52A1\u3002Token Plan \u7684 sk-sp- \u5F00\u5934 Key \u4E0D\u80FD\u7528\u3002", "Enable the MCP service in the Model Studio console first. Token Plan keys (sk-sp-\u2026) don\u2019t work.");
+        },
+        get fields() {
+          return [
+            { key: "apiKey", label: tr("\u767E\u70BC API Key", "Model Studio API key"), required: true, secret: true, helpUrl: "https://help.aliyun.com/zh/model-studio/get-api-key" },
+            { key: "serviceCode", label: tr("\u670D\u52A1\u7801", "Service code"), required: true, secret: false, placeholder: tr("\u8054\u7F51\u641C\u7D22\u586B EnhancedSearch", "EnhancedSearch for web search"), helpUrl: "https://help.aliyun.com/zh/model-studio/web-search-mcp" }
+          ];
+        }
+      },
+      {
+        // https://github.com/yuque/yuque-mcp-server（npm yuque-mcp 1.0.0）：只支持 stdio，令牌环境变量是 YUQUE_PERSONAL_TOKEN（调研写的 YUQUE_TOKEN 已过时）
+        id: "yuque",
+        get name() {
+          return tr("\u8BED\u96C0", "Yuque");
+        },
+        get description() {
+          return tr("\u8BFB\u5199\u8BED\u96C0\u77E5\u8BC6\u5E93\uFF1A\u67E5\u6587\u6863\u3001\u6574\u7406\u7EAA\u8981\u5E76\u5199\u8FDB\u56E2\u961F\u77E5\u8BC6\u5E93\u3002", "Read and write Yuque knowledge bases: find docs and file notes into team spaces.");
+        },
+        sourceUrl: "https://github.com/yuque/yuque-mcp-server",
+        transport: "stdio",
+        auth: "env",
+        packageName: "yuque-mcp",
+        version: "1.0.0",
+        envFields: { apiKey: "YUQUE_PERSONAL_TOKEN" },
+        get fields() {
+          return [{ key: "apiKey", label: tr("\u8BED\u96C0\u4E2A\u4EBA\u8BBF\u95EE\u4EE4\u724C", "Yuque personal access token"), required: true, secret: true, helpUrl: "https://www.yuque.com/settings/tokens" }];
+        }
+      },
+      {
+        // https://linear.app/docs/mcp：支持 Authorization: Bearer <API key>
+        id: "linear",
+        name: "Linear",
+        get description() {
+          return tr("\u67E5\u770B\u548C\u66F4\u65B0 Linear \u7684 Issue\u3001\u8FED\u4EE3\u4E0E\u9879\u76EE\u8FDB\u5EA6\u3002", "View and update Linear issues, cycles, and project progress.");
+        },
+        sourceUrl: "https://linear.app/docs/mcp",
+        transport: "http",
+        auth: "bearer",
+        urlTemplate: "https://mcp.linear.app/mcp",
+        // 登录方式：授权服务器支持 CIMD 与动态注册、S256、iss（2026-10-13 读 /.well-known/oauth-authorization-server 核对）
+        oauth: {},
+        get fields() {
+          return [{ key: "apiKey", label: "Linear API Key", required: true, secret: true, helpUrl: "https://linear.app/docs/mcp" }];
+        }
+      },
+      {
+        // https://supabase.com/docs/guides/getting-started/mcp 与 supabase-community/supabase-mcp：PAT 放 Bearer，默认带 read_only=true
+        id: "supabase",
+        name: "Supabase",
+        get description() {
+          return tr("\u67E5\u770B Supabase \u6570\u636E\u5E93\u7ED3\u6784\u3001\u67E5\u8BE2\u6570\u636E\u4E0E\u9879\u76EE\u914D\u7F6E\uFF1B\u9ED8\u8BA4\u53EA\u8BFB\u3002", "Inspect Supabase schemas, query data, and review project settings. Read-only by default.");
+        },
+        sourceUrl: "https://supabase.com/docs/guides/getting-started/mcp",
+        transport: "http",
+        auth: "bearer",
+        urlTemplate: "https://mcp.supabase.com/mcp?project_ref={projectRef}&read_only=true",
+        get note() {
+          return tr("\u9ED8\u8BA4\u53EA\u8BFB\uFF0C\u9632\u6B62\u8BEF\u6539\u751F\u4EA7\u6570\u636E\u3002", "Read-only by default to protect production data.");
+        },
+        get fields() {
+          return [
+            { key: "apiKey", label: tr("\u4E2A\u4EBA\u8BBF\u95EE\u4EE4\u724C\uFF08PAT\uFF09", "Personal access token"), required: true, secret: true, helpUrl: "https://supabase.com/dashboard/account/tokens" },
+            { key: "projectRef", label: tr("\u9879\u76EE Ref\uFF08\u53EF\u9009\uFF0C\u9650\u5B9A\u5230\u4E00\u4E2A\u9879\u76EE\uFF09", "Project ref (optional, limits to one project)"), required: false, secret: false }
+          ];
+        }
+      },
+      {
+        // https://github.com/getsentry/sentry-mcp：Authorization: Sentry-Bearer <token>（Bearer 留给 OAuth）
+        id: "sentry",
+        name: "Sentry",
+        get description() {
+          return tr("\u67E5\u770B\u7EBF\u4E0A\u62A5\u9519\u3001\u5F71\u54CD\u8303\u56F4\u4E0E\u5806\u6808\uFF0C\u5BF9\u7167\u4EE3\u7801\u6392\u67E5\u95EE\u9898\u3002", "Review production errors, their impact, and stack traces against your code.");
+        },
+        sourceUrl: "https://github.com/getsentry/sentry-mcp",
+        transport: "http",
+        auth: "header",
+        urlTemplate: "https://mcp.sentry.dev/mcp",
+        credentialPrefix: "Sentry-Bearer ",
+        get fields() {
+          return [{ key: "apiKey", label: tr("Sentry \u7528\u6237\u4EE4\u724C", "Sentry user auth token"), required: true, secret: true, helpUrl: "https://sentry.io/settings/account/api/auth-tokens/" }];
+        }
+      },
+      {
+        // https://docs.stripe.com/mcp：Agent API Key 放 Bearer；2026-10-31 起不再接受完整密钥与无 Agent 标记的受限密钥
+        id: "stripe",
+        name: "Stripe",
+        get description() {
+          return tr("\u67E5\u8BE2\u6536\u6B3E\u3001\u8BA2\u9605\u3001\u9000\u6B3E\u4E0E\u5BA2\u6237\u6263\u6B3E\u8BB0\u5F55\u3002", "Look up payments, subscriptions, refunds, and customer charges.");
+        },
+        sourceUrl: "https://docs.stripe.com/mcp",
+        transport: "http",
+        auth: "bearer",
+        urlTemplate: "https://mcp.stripe.com",
+        // 登录方式：授权服务器 access.stripe.com/mcp 只支持动态注册（无 CIMD）、S256
+        oauth: {},
+        get note() {
+          return tr("\u5EFA\u8BAE\u7528\u53EA\u8BFB\u6743\u9650\u7684\u53D7\u9650 Agent Key\uFF1B2026-10-31 \u8D77 Stripe \u53EA\u63A5\u53D7\u5E26 Agent \u6807\u8BB0\u7684 Key\u3002", "Use a read-only restricted Agent key. From Oct 31, 2026, Stripe only accepts keys with the Agent tag.");
+        },
+        get fields() {
+          return [{ key: "apiKey", label: "Stripe Agent API Key", required: true, secret: true, helpUrl: "https://docs.stripe.com/keys#agent-keys" }];
+        }
+      },
+      {
+        // https://lbsyun.baidu.com/faq/api?title=mcpserver/quickstart：Streamable HTTP https://mcp.map.baidu.com/mcp?ak=<AK>
+        id: "baidu-map",
+        get name() {
+          return tr("\u767E\u5EA6\u5730\u56FE", "Baidu Maps");
+        },
+        get description() {
+          return tr("\u7528\u767E\u5EA6\u5730\u56FE\u67E5\u5730\u70B9\u3001\u8DEF\u7EBF\u4E0E\u5730\u5740\u89E3\u6790\uFF0C\u9002\u5408\u5DF2\u6709\u767E\u5EA6\u5730\u56FE\u914D\u989D\u7684\u56E2\u961F\u3002", "Look up places, routes, and geocoding with Baidu Maps, for teams with existing quota.");
+        },
+        sourceUrl: "https://lbsyun.baidu.com/faq/api?title=mcpserver/quickstart",
+        transport: "http",
+        auth: "url",
+        urlTemplate: "https://mcp.map.baidu.com/mcp?ak={apiKey}",
+        get note() {
+          return tr("\u9700\u5728\u767E\u5EA6\u5730\u56FE\u63A7\u5236\u53F0\u4E3A\u8FD9\u4E2A AK \u5F00\u901A MCP \u670D\u52A1\u3002", "Enable the MCP service for this AK in the Baidu Maps console.");
+        },
+        get fields() {
+          return [{ key: "apiKey", label: tr("\u670D\u52A1\u7AEF AK", "Server AK"), required: true, secret: true, helpUrl: "https://lbsyun.baidu.com/apiconsole/key" }];
+        }
+      },
+      {
+        // https://lbs.qq.com/service/MCPServer/MCPServerGuide/userGuide：https://mcp.map.qq.com/mcp?key=<KEY>&format=0
+        id: "tencent-map",
+        get name() {
+          return tr("\u817E\u8BAF\u5730\u56FE", "Tencent Maps");
+        },
+        get description() {
+          return tr("\u7528\u817E\u8BAF\u4F4D\u7F6E\u670D\u52A1\u67E5\u5730\u70B9\u3001\u8DEF\u7EBF\u4E0E\u5730\u5740\u89E3\u6790\uFF0C\u9002\u5408\u5DF2\u6709\u817E\u8BAF\u5730\u56FE\u914D\u989D\u7684\u56E2\u961F\u3002", "Look up places, routes, and geocoding with Tencent Location Service, for teams with existing quota.");
+        },
+        sourceUrl: "https://lbs.qq.com/service/MCPServer/MCPServerGuide/userGuide",
+        transport: "http",
+        auth: "url",
+        urlTemplate: "https://mcp.map.qq.com/mcp?key={apiKey}&format=0",
+        get note() {
+          return tr("Key \u9700\u5F00\u542F WebServiceAPI \u5E76\u5206\u914D\u8C03\u7528\u989D\u5EA6\u3002", "The key needs WebServiceAPI enabled with quota assigned.");
+        },
+        get fields() {
+          return [{ key: "apiKey", label: "Key", required: true, secret: true, helpUrl: "https://lbs.qq.com/dev/console/application/mine" }];
+        }
+      },
+      {
+        // https://github.com/brave/brave-search-mcp-server（npm 2.1.4）：默认 stdio，环境变量 BRAVE_API_KEY
+        id: "brave-search",
+        name: "Brave Search",
+        get description() {
+          return tr("\u72EC\u7ACB\u53EF\u63A7\u7684\u7F51\u9875\u3001\u65B0\u95FB\u4E0E\u56FE\u7247\u641C\u7D22\u6E90\uFF0C\u9002\u5408\u8C03\u7814\u4E0E\u6838\u9A8C\u3002", "An independent search source for web, news, and images\u2014good for research and fact-checking.");
+        },
+        sourceUrl: "https://github.com/brave/brave-search-mcp-server",
+        transport: "stdio",
+        auth: "env",
+        packageName: "@brave/brave-search-mcp-server",
+        version: "2.1.4",
+        envFields: { apiKey: "BRAVE_API_KEY" },
+        get fields() {
+          return [{ key: "apiKey", label: "Brave Search API Key", required: true, secret: true, helpUrl: "https://api-dashboard.search.brave.com/app/keys" }];
+        }
+      },
+      {
+        // https://github.com/larksuite/lark-openapi-mcp（npm 0.5.1，与飞书邮箱集成同版本）：发布包读取 APP_ID / APP_SECRET / LARK_TOKEN_MODE 环境变量，以应用身份调用
+        id: "feishu",
+        get name() {
+          return tr("\u98DE\u4E66", "Feishu");
+        },
+        get description() {
+          return tr("\u4EE5\u4F01\u4E1A\u81EA\u5EFA\u5E94\u7528\u8EAB\u4EFD\u8BFB\u5199\u98DE\u4E66\u6587\u6863\u3001\u591A\u7EF4\u8868\u683C\u3001\u6D88\u606F\u4E0E\u65E5\u5386\u3002", "Read and write Feishu docs, Bitable, messages, and calendars as your custom app.");
+        },
+        sourceUrl: "https://github.com/larksuite/lark-openapi-mcp",
+        transport: "stdio",
+        auth: "env",
+        packageName: "@larksuiteoapi/lark-mcp",
+        version: "0.5.1",
+        args: ["mcp"],
+        env: { LARK_TOKEN_MODE: "tenant_access_token" },
+        envFields: { appId: "APP_ID", appSecret: "APP_SECRET" },
+        botApp: { kind: "feishu", idField: "appId", secretField: "appSecret" },
+        get note() {
+          return tr("\u7559\u7A7A\u5219\u4F7F\u7528\u5DF2\u914D\u7F6E\u7684\u98DE\u4E66\u673A\u5668\u4EBA\u5E94\u7528\uFF08\u6BCF\u6B21\u542F\u52A8\u65F6\u8BFB\u53D6\uFF0C\u673A\u5668\u4EBA\u6362\u4E86\u5BC6\u94A5\u81EA\u52A8\u8DDF\u4E0A\uFF09\uFF1B\u5E94\u7528\u9700\u5728\u5F00\u653E\u5E73\u53F0\u5F00\u901A\u5BF9\u5E94\u6743\u9650\u3002", "Leave blank to use your configured Feishu bot app (read at each start, so a rotated secret is picked up). The app needs the matching permissions on the open platform.");
+        },
+        get fields() {
+          return [
+            { key: "appId", label: "App ID", required: false, secret: false, placeholder: tr("\u7559\u7A7A\u7528\u5DF2\u914D\u7F6E\u7684\u98DE\u4E66\u673A\u5668\u4EBA", "Blank uses your Feishu bot"), helpUrl: "https://open.feishu.cn/app" },
+            { key: "appSecret", label: "App Secret", required: false, secret: true, placeholder: tr("\u7559\u7A7A\u7528\u5DF2\u914D\u7F6E\u7684\u98DE\u4E66\u673A\u5668\u4EBA", "Blank uses your Feishu bot") }
+          ];
+        }
+      },
+      {
+        // https://github.com/open-dingtalk/dingtalk-mcp（npm 1.1.21）：环境变量 DINGTALK_Client_ID / DINGTALK_Client_Secret；
+        // ACTIVE_PROFILES 默认只开通讯录与机器人发消息，这里开通讯录、待办、日程；工作通知要 DINGTALK_AGENT_ID、机器人消息要 ROBOT_CODE，暂不开
+        id: "dingtalk",
+        get name() {
+          return tr("\u9489\u9489", "DingTalk");
+        },
+        get description() {
+          return tr("\u4EE5\u9489\u9489\u5E94\u7528\u8EAB\u4EFD\u67E5\u901A\u8BAF\u5F55\u3001\u7BA1\u7406\u5F85\u529E\u4E0E\u65E5\u7A0B\u3002", "Look up DingTalk contacts and manage to-dos and calendars as your app.");
+        },
+        sourceUrl: "https://github.com/open-dingtalk/dingtalk-mcp",
+        transport: "stdio",
+        auth: "env",
+        packageName: "dingtalk-mcp",
+        version: "1.1.21",
+        env: { ACTIVE_PROFILES: "dingtalk-contacts,dingtalk-tasks,dingtalk-calendar" },
+        envFields: { clientId: "DINGTALK_Client_ID", clientSecret: "DINGTALK_Client_Secret" },
+        botApp: { kind: "dingtalk", idField: "clientId", secretField: "clientSecret" },
+        get note() {
+          return tr("\u7559\u7A7A\u5219\u4F7F\u7528\u5DF2\u914D\u7F6E\u7684\u9489\u9489\u673A\u5668\u4EBA\u5E94\u7528\uFF08\u6BCF\u6B21\u542F\u52A8\u65F6\u8BFB\u53D6\uFF09\uFF1B\u5E94\u7528\u9700\u5728\u5F00\u653E\u5E73\u53F0\u6DFB\u52A0\u5BF9\u5E94\u6743\u9650\u3002", "Leave blank to use your configured DingTalk bot app (read at each start). The app needs the matching permissions on the open platform.");
+        },
+        get fields() {
+          return [
+            { key: "clientId", label: "Client ID", required: false, secret: false, placeholder: tr("\u7559\u7A7A\u7528\u5DF2\u914D\u7F6E\u7684\u9489\u9489\u673A\u5668\u4EBA", "Blank uses your DingTalk bot"), helpUrl: "https://open-dev.dingtalk.com/" },
+            { key: "clientSecret", label: "Client Secret", required: false, secret: true, placeholder: tr("\u7559\u7A7A\u7528\u5DF2\u914D\u7F6E\u7684\u9489\u9489\u673A\u5668\u4EBA", "Blank uses your DingTalk bot") }
+          ];
+        }
+      },
+      {
+        // https://support.atlassian.com/atlassian-rovo-mcp-server/docs/configuring-authentication-via-api-token/：Authorization: Basic base64(email:api_token)，需组织管理员开启
+        id: "atlassian",
+        name: "Atlassian",
+        get description() {
+          return tr("\u8BFB\u5199 Jira \u5DE5\u5355\u4E0E Confluence \u9875\u9762\u3002", "Read and write Jira issues and Confluence pages.");
+        },
+        sourceUrl: "https://support.atlassian.com/atlassian-rovo-mcp-server/docs/configuring-authentication-via-api-token/",
+        transport: "http",
+        auth: "basic",
+        urlTemplate: "https://mcp.atlassian.com/v2/mcp",
+        basicFields: ["email", "apiToken"],
+        get note() {
+          return tr("\u7528 API token \u8FDE\u63A5\u9700\u8981\u7EC4\u7EC7\u7BA1\u7406\u5458\u5148\u5F00\u542F API token \u8BBF\u95EE\uFF1B\u767B\u5F55\u65B9\u5F0F\u4E0D\u9700\u8981\u3002", "Connecting with an API token needs your org admin to enable API token access first; signing in doesn\u2019t.");
+        },
+        // 登录方式：v2 的授权服务器 auth.atlassian.com 支持 CIMD 与动态注册、S256；
+        // 服务器 scopes_supported 有约 38 个（含 delete / manage、Bitbucket、Loom 等），按卡片描述只申请 Jira / Confluence 读写与搜索，offline_access 才有 refresh token
+        oauth: { config: { scopes: [
+          "read:me",
+          "read:account",
+          "offline_access",
+          "read:jira:agent-interface",
+          "write:jira:agent-interface",
+          "search:jira:agent-interface",
+          "read:confluence:agent-interface",
+          "write:confluence:agent-interface",
+          "search:confluence:agent-interface",
+          "search:rovo:agent-interface"
+        ] } },
+        get fields() {
+          return [
+            { key: "email", label: tr("Atlassian \u8D26\u53F7\u90AE\u7BB1", "Atlassian account email"), required: true, secret: false },
+            { key: "apiToken", label: "API Token", required: true, secret: true, helpUrl: "https://id.atlassian.com/manage-profile/security/api-tokens" }
+          ];
+        }
+      },
+      {
+        // https://developers.figma.com/docs/figma-mcp-server/local-server-installation/：桌面版在 Dev Mode 开启后监听 http://127.0.0.1:3845/mcp，无鉴权
+        id: "figma-desktop",
+        get name() {
+          return tr("Figma\uFF08\u684C\u9762\u7248\uFF09", "Figma (desktop)");
+        },
+        get description() {
+          return tr("\u8BFB\u53D6 Figma \u91CC\u9009\u4E2D\u8BBE\u8BA1\u7684\u56FE\u5C42\u3001\u95F4\u8DDD\u4E0E\u989C\u8272\u53D8\u91CF\uFF0C\u6309\u8BBE\u8BA1\u7A3F\u5B9E\u73B0\u754C\u9762\u3002", "Read layers, spacing, and color variables from your Figma selection to build the UI.");
+        },
+        sourceUrl: "https://developers.figma.com/docs/figma-mcp-server/local-server-installation/",
+        transport: "http",
+        auth: "none",
+        urlTemplate: "http://127.0.0.1:3845/mcp",
+        get note() {
+          return tr("\u9700\u8981\u672C\u673A\u5F00\u7740 Figma \u684C\u9762\u7248\uFF0C\u5E76\u5728 Dev Mode \u7684\u68C0\u67E5\u9762\u677F\u91CC\u5F00\u542F MCP \u670D\u52A1\u3002", "Needs the Figma desktop app running with the MCP server enabled in Dev Mode\u2019s inspect panel.");
+        },
+        fields: []
+      },
+      // ===== 第 2 步：浏览器登录（OAuth）的服务 =====
+      {
+        // https://developers.notion.com/guides/mcp/get-started-with-mcp：托管版只支持 OAuth；授权服务器支持 CIMD、动态注册、S256、iss（2026-10-13 核对 well-known）
+        id: "notion",
+        name: "Notion",
+        get description() {
+          return tr("\u8BFB\u5199 Notion \u9875\u9762\u4E0E\u6570\u636E\u5E93\uFF1A\u6574\u7406\u4F1A\u8BAE\u7EAA\u8981\u3001\u67E5\u627E\u56E2\u961F\u8BA8\u8BBA\u3002", "Read and write Notion pages and databases: file meeting notes and find team discussions.");
+        },
+        sourceUrl: "https://developers.notion.com/guides/mcp/get-started-with-mcp",
+        transport: "http",
+        auth: "none",
+        urlTemplate: "https://mcp.notion.com/mcp",
+        fields: [],
+        oauth: { required: true }
+      },
+      ...googleRecipes()
+    ];
+  }
+});
+
+// ../electron/src/main/lib/mcp-secrets.ts
+function mcpSecretBinding3(entry) {
+  return mcpSecretBinding(entry, (id) => MCP_RECIPES.find((recipe) => recipe.id === id)?.packageName);
+}
+function secretHint(slot) {
+  let value = slot.value.trim();
+  const scheme = /^(\S+)\s+(\S+)$/.exec(value);
+  if (slot.target === "header" && scheme) {
+    value = scheme[2];
+    if (scheme[1].toLowerCase() === "basic") {
+      try {
+        value = Buffer.from(value, "base64").toString("utf-8").split(":").slice(1).join(":");
+      } catch {
+      }
+    }
+  }
+  if (slot.target === "url" && !slot.name) return "";
+  return value.length >= 8 ? value.slice(-4) : "";
+}
+function createMcpSecretStore(path, cipher) {
+  const empty = () => ({ version: 1, records: {} });
+  const parse = (file) => {
+    try {
+      const data = JSON.parse((0, import_node_fs21.readFileSync)(file, "utf-8"));
+      return data && data.version === 1 && data.records && typeof data.records === "object" && !Array.isArray(data.records) ? data : void 0;
+    } catch {
+      return void 0;
+    }
+  };
+  const save = (data) => {
+    const file = path();
+    const tmp = `${file}.${process.pid}.${(0, import_node_crypto11.randomUUID)()}.tmp`;
+    if ((0, import_node_fs21.existsSync)(file) && parse(file)) {
+      (0, import_node_fs21.copyFileSync)(file, `${file}.bak`);
+      try {
+        (0, import_node_fs21.chmodSync)(`${file}.bak`, 384);
+      } catch {
+      }
+    }
+    try {
+      (0, import_node_fs21.writeFileSync)(tmp, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 384 });
+      (0, import_node_fs21.renameSync)(tmp, file);
+    } finally {
+      (0, import_node_fs21.rmSync)(tmp, { force: true });
+    }
+    try {
+      (0, import_node_fs21.chmodSync)(file, 384);
+    } catch {
+    }
+  };
+  const load2 = (strict) => {
+    const file = path();
+    const main2 = (0, import_node_fs21.existsSync)(file) ? parse(file) : void 0;
+    if (main2) return main2;
+    if (!(0, import_node_fs21.existsSync)(file) && !(0, import_node_fs21.existsSync)(`${file}.bak`)) return empty();
+    const backup = (0, import_node_fs21.existsSync)(`${file}.bak`) ? parse(`${file}.bak`) : void 0;
+    if (backup) {
+      const recovered = { ...backup, recoveredFromBackupAt: backup.recoveredFromBackupAt ?? Date.now() };
+      try {
+        save(recovered);
+      } catch {
+      }
+      return recovered;
+    }
+    if (strict) throw new Error(tr("\u8FDE\u63A5\u5668\u5BC6\u94A5\u6587\u4EF6\u635F\u574F\uFF0C\u5DF2\u505C\u6B62\u5199\u5165\uFF1B\u8BF7\u68C0\u67E5\u914D\u7F6E\u76EE\u5F55 global/mcp-secrets.json", "The connector secrets file is damaged, so nothing was written. Check global/mcp-secrets.json in the config folder."));
+    return empty();
+  };
+  const usable = () => {
+    const value = cipher();
+    if (!value?.isEncryptionAvailable()) throw new Error(tr("\u7CFB\u7EDF\u52A0\u5BC6\u4E0D\u53EF\u7528\uFF0C\u65E0\u6CD5\u8BFB\u5199\u8FDE\u63A5\u5668\u5BC6\u94A5", "System encryption is unavailable, so connector secrets can\u2019t be read or saved"));
+    return value;
+  };
+  const available = () => {
+    try {
+      return cipher()?.isEncryptionAvailable() === true;
+    } catch {
+      return false;
+    }
+  };
+  const missing = () => new McpCredentialsUnavailableError("secret");
+  const remove = (ids) => {
+    const targets = ids.filter(Boolean);
+    if (!targets.length) return;
+    const data = load2(true);
+    if (!targets.some((id) => Object.hasOwn(data.records, id))) return;
+    for (const id of targets) delete data.records[id];
+    save(data);
+  };
+  return {
+    available,
+    writable: () => {
+      if (!available()) return false;
+      try {
+        load2(true);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    weak: () => {
+      try {
+        return process.platform === "linux" && cipher()?.getSelectedStorageBackend?.() === "basic_text";
+      } catch {
+        return false;
+      }
+    },
+    health: () => {
+      const file = path();
+      const main2 = (0, import_node_fs21.existsSync)(file) ? parse(file) : void 0;
+      if (main2) return main2.recoveredFromBackupAt ? "recovered" : "ok";
+      if (!(0, import_node_fs21.existsSync)(file) && !(0, import_node_fs21.existsSync)(`${file}.bak`)) return "ok";
+      return (0, import_node_fs21.existsSync)(`${file}.bak`) && parse(`${file}.bak`) ? "recovered" : "damaged";
+    },
+    read(id) {
+      const record2 = load2(false).records[id];
+      if (record2?.kind !== "static" || !available()) throw missing();
+      const crypto2 = usable();
+      try {
+        return record2.slots.map(({ target, name, value }) => ({ target, name, value: crypto2.decryptString(Buffer.from(value, "base64")) }));
+      } catch {
+        throw missing();
+      }
+    },
+    // 有记录但没写绑定（早期开发版）返回空串，按不匹配处理
+    boundTo: (id) => {
+      const record2 = load2(false).records[id];
+      return record2 ? record2.boundTo ?? "" : void 0;
+    },
+    hints: (id) => {
+      const record2 = load2(false).records[id];
+      return record2?.kind === "static" ? record2.slots.map(({ target, name, hint }) => ({ target, name, hint })) : [];
+    },
+    write(id, slots, boundTo = "") {
+      const crypto2 = usable();
+      const { recoveredFromBackupAt: _recovered, ...data } = load2(true);
+      data.records[id] = {
+        kind: "static",
+        boundTo,
+        updatedAt: Date.now(),
+        slots: slots.map((slot) => ({ target: slot.target, name: slot.name, value: crypto2.encryptString(slot.value).toString("base64"), hint: secretHint(slot) }))
+      };
+      save(data);
+    },
+    remove,
+    count: () => Object.values(load2(false).records).reduce((sum, record2) => sum + (record2.kind === "oauth" ? 1 : record2.slots.length), 0),
+    readOAuth(name) {
+      const record2 = load2(false).records[mcpOAuthRecordId(name)];
+      if (record2?.kind !== "oauth" || !available()) return void 0;
+      try {
+        return JSON.parse(usable().decryptString(Buffer.from(record2.value, "base64")));
+      } catch {
+        return void 0;
+      }
+    },
+    writeOAuth(name, value) {
+      const id = mcpOAuthRecordId(name);
+      if (!value) return remove([id]);
+      const crypto2 = usable();
+      const { recoveredFromBackupAt: _recovered, ...data } = load2(true);
+      data.records[id] = {
+        kind: "oauth",
+        boundTo: value.boundTo,
+        ...value.issuer && { issuer: value.issuer },
+        updatedAt: Date.now(),
+        value: crypto2.encryptString(JSON.stringify(value)).toString("base64")
+      };
+      save(data);
+    }
+  };
+}
+function looksSecret(target, name) {
+  if (target === "header" && /^authorization$/i.test(name)) return true;
+  if (target === "url" && /^ak$/i.test(name)) return true;
+  const segments = name.replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase().split(/[_.-]+/).filter(Boolean);
+  if (segments.some((segment) => segment === "type" || segment === "mode")) return false;
+  return segments.some((segment) => SECRET_SEGMENTS.has(segment));
+}
+function extractMcpSecrets(entry, explicit = []) {
+  const slots = [];
+  const pick = (target, name, value) => {
+    if (!value.trim() || !(looksSecret(target, name) || explicit.some((item) => sameTarget(item, { target, name })))) return false;
+    slots.push({ target, name, value });
+    return true;
+  };
+  const next = { ...entry };
+  if (entry.args?.some((arg) => arg.includes("lark-mcp"))) {
+    const index = entry.args.findIndex((arg) => arg === "-s" || arg === "--app-secret");
+    const value = index >= 0 ? entry.args[index + 1] : void 0;
+    if (value && !value.startsWith("-")) {
+      slots.push({ target: "env", name: "APP_SECRET", value });
+      next.args = entry.args.filter((_arg, position) => position !== index && position !== index + 1);
+    }
+  }
+  for (const [field, target] of [["headers", "header"], ["env", "env"]]) {
+    const record2 = entry[field];
+    if (!record2) continue;
+    const kept = Object.fromEntries(Object.entries(record2).filter(([name, value]) => !pick(target, name, value)));
+    if (Object.keys(kept).length) next[field] = kept;
+    else delete next[field];
+  }
+  if (entry.url && URL.canParse(entry.url) && PATH_TOKEN_HOSTS.has(new URL(entry.url).hostname) && new URL(entry.url).pathname !== "/") {
+    slots.push({ target: "url", name: "", value: entry.url });
+    next.url = `${new URL(entry.url).origin}/`;
+  } else if (entry.url && URL.canParse(entry.url)) {
+    const url = new URL(entry.url);
+    const names = [...new Set(url.searchParams.keys())].filter((name) => pick("url", name, url.searchParams.get(name) ?? ""));
+    if (names.length) {
+      for (const name of names) url.searchParams.delete(name);
+      next.url = url.toString();
+    }
+  }
+  return { entry: next, slots };
+}
+function sealMcpConfig(slug, previous, next, store, explicit = {}) {
+  const available = store.available();
+  const servers = {};
+  for (const [name, raw] of Object.entries(next.servers ?? {})) {
+    const { savedSecrets: _shown, oauthStatus: _status, ...raw2 } = raw;
+    let entry = raw2;
+    if (entry.integrationRef && BOT_APP_PROVIDERS.has(entry.integrationRef.provider)) {
+      const { integrationRef: bot, ...own } = entry;
+      const recipe = MCP_RECIPES.find((item) => item.botApp && `${item.botApp.kind}-bot` === bot.provider);
+      const secretEnv = recipe?.botApp && recipe.envFields?.[recipe.botApp.secretField];
+      if (!secretEnv || !own.env?.[secretEnv]?.trim()) {
+        servers[name] = entry;
+        continue;
+      }
+      entry = own;
+    }
+    const ref = entry.integrationRef;
+    if (!available || ref && ref.provider !== "mcp-secret") {
+      servers[name] = entry;
+      continue;
+    }
+    const id = secretId(slug, name);
+    const owned = ref?.profileId === id;
+    const { integrationRef: _ref, ...plain } = entry;
+    const known = owned ? store.hints(id).map(({ target, name: field }) => ({ target, name: field })) : [];
+    const { entry: disk, slots } = extractMcpSecrets(plain, [...explicit[name] ?? [], ...known]);
+    if (!slots.length) {
+      servers[name] = owned ? entry : plain;
+      continue;
+    }
+    const binding = mcpSecretBinding3(disk);
+    let kept = [];
+    if (owned && store.boundTo(id) === binding) {
+      try {
+        kept = store.read(id).filter((old) => !slots.some((slot) => sameTarget(slot, old)));
+      } catch {
+      }
+    }
+    store.write(id, [...kept, ...slots], binding);
+    servers[name] = { ...disk, integrationRef: { provider: "mcp-secret", profileId: id } };
+  }
+  if (slug === GLOBAL_CAPABILITY_SLUG && previous && available) {
+    const used = secretRefs(servers);
+    store.remove([
+      ...[...secretRefs(previous.servers ?? {})].filter((id) => !used.has(id)),
+      ...Object.keys(previous.servers ?? {}).filter((name) => !Object.hasOwn(servers, name)).map(mcpOAuthRecordId)
+    ]);
+  }
+  return { ...next, servers };
+}
+var import_node_crypto11, import_node_fs21, import_node_path19, mcpOAuthRecordId, McpCredentialsUnavailableError, sameTarget, mcpSecretStore, SECRET_SEGMENTS, BOT_APP_PROVIDERS, PATH_TOKEN_HOSTS, secretId, secretRefs;
+var init_mcp_secrets = __esm({
+  "../electron/src/main/lib/mcp-secrets.ts"() {
+    "use strict";
+    import_node_crypto11 = require("node:crypto");
+    import_node_fs21 = require("node:fs");
+    import_node_path19 = require("node:path");
+    init_src();
+    init_config_paths();
+    init_mcp_catalog();
+    init_desktop_host();
+    init_safe_file();
+    mcpOAuthRecordId = (name) => `${name}#oauth`;
+    McpCredentialsUnavailableError = class extends Error {
+      constructor(reason = "bot") {
+        super(describeMcpFailure({ kind: "credentials_unavailable", reason }));
+        this.reason = reason;
+        this.name = "McpCredentialsUnavailableError";
+      }
+    };
+    sameTarget = (a, b) => a.target === b.target && (a.target === "env" ? a.name === b.name : a.name.toLowerCase() === b.name.toLowerCase());
+    mcpSecretStore = createMcpSecretStore(
+      () => (0, import_node_path19.join)(getGlobalCapabilitiesDir(), "mcp-secrets.json"),
+      () => {
+        try {
+          return requireDesktop().safeStorage;
+        } catch {
+          return void 0;
+        }
+      }
+    );
+    SECRET_SEGMENTS = /* @__PURE__ */ new Set([
+      "key",
+      "apikey",
+      "token",
+      "secret",
+      "password",
+      "passwd",
+      "auth",
+      "apitoken",
+      "clientsecret",
+      "accesstoken",
+      "authtoken",
+      "privatekey"
+    ]);
+    BOT_APP_PROVIDERS = /* @__PURE__ */ new Set(["feishu-bot", "dingtalk-bot"]);
+    PATH_TOKEN_HOSTS = /* @__PURE__ */ new Set(["mcp.api-inference.modelscope.net", "mcp-api.tencent-cloud.com"]);
+    secretId = (slug, name) => slug === GLOBAL_CAPABILITY_SLUG ? name : `${slug}/${name}`;
+    secretRefs = (servers) => new Set(Object.values(servers).flatMap((entry) => entry.integrationRef?.provider === "mcp-secret" ? [entry.integrationRef.profileId] : []));
+  }
+});
+
 // ../electron/src/main/lib/agent-workspace-manager.ts
 var agent_workspace_manager_exports = {};
 __export(agent_workspace_manager_exports, {
@@ -33408,6 +35470,7 @@ __export(agent_workspace_manager_exports, {
   listAgentWorkspacesByUpdatedAt: () => listAgentWorkspacesByUpdatedAt,
   migrateWorkspacesToGlobalLayer: () => migrateWorkspacesToGlobalLayer,
   mirrorAgentWorkspaceKnowledgeBinding: () => mirrorAgentWorkspaceKnowledgeBinding,
+  parseSkillFrontmatter: () => parseSkillFrontmatter,
   readWorkspaceSkillContent: () => readWorkspaceSkillContent,
   reorderAgentWorkspaces: () => reorderAgentWorkspaces,
   resolveMcpServerEntries: () => resolveMcpServerEntries,
@@ -33443,7 +35506,7 @@ function writeIndex(index) {
     writeJsonFileAtomic(indexPath, index);
   } catch (error) {
     console.error("[Agent \u5DE5\u4F5C\u533A] \u5199\u5165\u7D22\u5F15\u6587\u4EF6\u5931\u8D25:", error);
-    throw new Error(tr("\u4FDD\u5B58\u9879\u76EE\u5217\u8868\u5931\u8D25", "Couldn\u2019t save the project list"));
+    throw new Error(tr("\u65E0\u6CD5\u4FDD\u5B58\u9879\u76EE\u5217\u8868", "Couldn\u2019t save the project list"));
   }
 }
 function slugify(name, existingSlugs) {
@@ -33497,7 +35560,7 @@ function createAgentWorkspace(name) {
   const slug = slugify(name, existingSlugs);
   const now = Date.now();
   const workspace = {
-    id: (0, import_node_crypto11.randomUUID)(),
+    id: (0, import_node_crypto12.randomUUID)(),
     name,
     slug,
     createdAt: now,
@@ -33558,7 +35621,7 @@ function ensureDefaultWorkspace() {
   if (!defaultWs) {
     const now = Date.now();
     defaultWs = {
-      id: (0, import_node_crypto11.randomUUID)(),
+      id: (0, import_node_crypto12.randomUUID)(),
       name: defaultName(),
       slug: "default",
       createdAt: now,
@@ -33575,10 +35638,10 @@ function upgradeDefaultSkillsInWorkspaces() {
   const defaultDir = getDefaultSkillsDir();
   const defaultSkills = /* @__PURE__ */ new Map();
   try {
-    const entries = (0, import_node_fs21.readdirSync)(defaultDir, { withFileTypes: true });
+    const entries = (0, import_node_fs22.readdirSync)(defaultDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-      const sourcePath = (0, import_node_path19.join)(defaultDir, entry.name);
+      const sourcePath = (0, import_node_path20.join)(defaultDir, entry.name);
       const version2 = parseSkillVersion(sourcePath);
       defaultSkills.set(entry.name, { version: version2, sourcePath });
     }
@@ -33593,15 +35656,15 @@ function upgradeDefaultSkillsInWorkspaces() {
       getInactiveSkillsDir(workspace.slug)
     ];
     for (const [slug, info] of defaultSkills) {
-      if (workspace.slug !== GLOBAL_CAPABILITY_SLUG || dirs.some((dir) => (0, import_node_fs21.existsSync)((0, import_node_path19.join)(dir, slug)))) continue;
-      (0, import_node_fs21.cpSync)(info.sourcePath, (0, import_node_path19.join)(dirs[0], slug), { recursive: true, force: false });
+      if (workspace.slug !== GLOBAL_CAPABILITY_SLUG || dirs.some((dir) => (0, import_node_fs22.existsSync)((0, import_node_path20.join)(dir, slug)))) continue;
+      (0, import_node_fs22.cpSync)(info.sourcePath, (0, import_node_path20.join)(dirs[0], slug), { recursive: true, force: false });
       console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u8865\u9F50\u9ED8\u8BA4 Skill: ${workspace.slug}/${slug}`);
     }
     for (const dir of dirs) {
-      if (!(0, import_node_fs21.existsSync)(dir)) continue;
+      if (!(0, import_node_fs22.existsSync)(dir)) continue;
       for (const [slug, info] of defaultSkills) {
-        const targetPath = (0, import_node_path19.join)(dir, slug);
-        if (!(0, import_node_fs21.existsSync)(targetPath)) continue;
+        const targetPath = (0, import_node_path20.join)(dir, slug);
+        if (!(0, import_node_fs22.existsSync)(targetPath)) continue;
         const result = syncBundledSkillOnStartup(info.sourcePath, targetPath);
         if (result === "customized") console.warn(`[Agent \u5DE5\u4F5C\u533A] Skill \u542B\u7528\u6237\u4FEE\u6539\uFF0C\u4FDD\u7559\u539F\u5185\u5BB9: ${workspace.slug}/${slug}`);
         else if (result === "upgraded") console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u5347\u7EA7 Skill: ${workspace.slug}/${slug} \u2192 ${info.version}`);
@@ -33611,11 +35674,11 @@ function upgradeDefaultSkillsInWorkspaces() {
 }
 function getWorkspaceMcpConfig(workspaceSlug) {
   const mcpPath = getWorkspaceMcpPath(workspaceSlug);
-  if (!(0, import_node_fs21.existsSync)(mcpPath)) {
+  if (!(0, import_node_fs22.existsSync)(mcpPath)) {
     return { servers: {} };
   }
   try {
-    const raw = (0, import_node_fs21.readFileSync)(mcpPath, "utf-8");
+    const raw = (0, import_node_fs22.readFileSync)(mcpPath, "utf-8");
     const parsed = JSON.parse(raw);
     return { servers: parsed.servers ?? {} };
   } catch (error) {
@@ -33623,14 +35686,15 @@ function getWorkspaceMcpConfig(workspaceSlug) {
     return { servers: {} };
   }
 }
-function saveWorkspaceMcpConfig(workspaceSlug, config) {
+function saveWorkspaceMcpConfig(workspaceSlug, config, secrets) {
   const mcpPath = getWorkspaceMcpPath(workspaceSlug);
   try {
-    writeJsonFileAtomic(mcpPath, config);
+    const previous = (0, import_node_fs22.existsSync)(mcpPath) ? getWorkspaceMcpConfig(workspaceSlug) : void 0;
+    writeJsonFileAtomic(mcpPath, sealMcpConfig(workspaceSlug, previous, config, mcpSecretStore, secrets));
     console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u4FDD\u5B58 MCP \u914D\u7F6E: ${workspaceSlug}`);
   } catch (error) {
     console.error("[Agent \u5DE5\u4F5C\u533A] \u4FDD\u5B58 MCP \u914D\u7F6E\u5931\u8D25:", error);
-    throw new Error(tr("\u4FDD\u5B58\u8FDE\u63A5\u5668\u8BBE\u7F6E\u5931\u8D25", "Couldn\u2019t save connector settings"));
+    throw new Error(tr("\u65E0\u6CD5\u4FDD\u5B58\u8FDE\u63A5\u5668\u8BBE\u7F6E", "Couldn\u2019t save connector settings"));
   }
 }
 function getWorkspaceSkills(_workspaceSlug) {
@@ -33642,7 +35706,7 @@ function parseSkillFrontmatter(content, slug, enabled) {
   if (!fmMatch) return meta;
   const yaml = fmMatch[1];
   if (!yaml) return meta;
-  const validKeys = /* @__PURE__ */ new Set(["name", "display-name", "description", "icon", "version", "examples", "metadata"]);
+  const validKeys = /* @__PURE__ */ new Set(["name", "display-name", "description", "icon", "version", "examples", "metadata", "compatibility"]);
   const entries = {};
   const examples = [];
   const examplesEn = [];
@@ -33706,6 +35770,9 @@ function parseSkillFrontmatter(content, slug, enabled) {
   if (entries.description) meta.description = entries.description.trim();
   if (entries.icon) meta.icon = entries.icon.trim();
   if (entries.version) meta.version = entries.version.trim();
+  if (entries.compatibility) meta.compatibility = entries.compatibility.trim();
+  const dependencies = parseSkillRequires(yaml, slug);
+  if (dependencies.length > 0) meta.dependencies = dependencies;
   if (examples.length > 0) meta.examples = examples;
   if (getLanguage() === "en") {
     if (entries["description-en"]) meta.description = entries["description-en"].trim();
@@ -33722,39 +35789,39 @@ function deleteWorkspaceSkill(workspaceSlug, skillSlug) {
   if (getManagedSkills(getAgentWorkspacePath(workspaceSlug)).some((s) => s.slug === skillSlug)) throw new Error(tr("\u6280\u80FD\u5305\u5185\u7684\u6280\u80FD\u8BF7\u5355\u72EC\u505C\u7528\uFF1B\u79FB\u9664\u6574\u4E2A\u6280\u80FD\u5305\u8BF7\u4F7F\u7528\u6280\u80FD\u5305\u83DC\u5355\u3002", "Disable skills in a skill pack one at a time. To remove the whole pack, use the skill pack menu."));
   assertSkillSlug(skillSlug);
   const skillsDir = getWorkspaceSkillsDir(workspaceSlug);
-  const skillPath = resolveSkillDir(workspaceSlug, skillSlug) ?? (0, import_node_path19.join)(skillsDir, skillSlug);
-  if (!(0, import_node_fs21.existsSync)(skillPath)) {
+  const skillPath = resolveSkillDir(workspaceSlug, skillSlug) ?? (0, import_node_path20.join)(skillsDir, skillSlug);
+  if (!(0, import_node_fs22.existsSync)(skillPath)) {
     throw new Error(tr(`\u6280\u80FD\u4E0D\u5B58\u5728\uFF1A${skillSlug}`, `Skill not found: ${skillSlug}`));
   }
-  (0, import_node_fs21.rmSync)(skillPath, { recursive: true, force: true });
+  (0, import_node_fs22.rmSync)(skillPath, { recursive: true, force: true });
   console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u5220\u9664 Skill: ${workspaceSlug}/${skillSlug}`);
 }
 function scanSkillsInDir(dir, enabled) {
   const skills = [];
   try {
-    for (const name of (0, import_node_fs21.readdirSync)(dir)) {
+    for (const name of (0, import_node_fs22.readdirSync)(dir)) {
       if (!name.startsWith(".") || !name.endsWith(".previous")) continue;
       const slug = name.slice(1, -".previous".length);
       assertSkillSlug(slug);
-      if (!(0, import_node_fs21.existsSync)((0, import_node_path19.join)(dir, slug))) {
+      if (!(0, import_node_fs22.existsSync)((0, import_node_path20.join)(dir, slug))) {
         try {
-          (0, import_node_fs21.renameSync)((0, import_node_path19.join)(dir, name), (0, import_node_path19.join)(dir, slug));
+          (0, import_node_fs22.renameSync)((0, import_node_path20.join)(dir, name), (0, import_node_path20.join)(dir, slug));
         } catch (error) {
           if (!["ENOENT", "EEXIST", "ENOTEMPTY"].includes(error.code ?? "")) throw error;
         }
       }
     }
-    const entries = (0, import_node_fs21.readdirSync)(dir, { withFileTypes: true });
+    const entries = (0, import_node_fs22.readdirSync)(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue;
-      const isDir = entry.isDirectory() || entry.isSymbolicLink() && (0, import_node_fs21.statSync)((0, import_node_path19.join)(dir, entry.name)).isDirectory();
+      const isDir = entry.isDirectory() || entry.isSymbolicLink() && (0, import_node_fs22.statSync)((0, import_node_path20.join)(dir, entry.name)).isDirectory();
       if (!isDir) continue;
-      const skillMdPath = (0, import_node_path19.join)(dir, entry.name, "SKILL.md");
-      if (!(0, import_node_fs21.existsSync)(skillMdPath)) continue;
+      const skillMdPath = (0, import_node_path20.join)(dir, entry.name, "SKILL.md");
+      if (!(0, import_node_fs22.existsSync)(skillMdPath)) continue;
       try {
-        const content = (0, import_node_fs21.readFileSync)(skillMdPath, "utf-8");
+        const content = (0, import_node_fs22.readFileSync)(skillMdPath, "utf-8");
         const meta = parseSkillFrontmatter(content, entry.name, enabled);
-        const importSource = readSkillImportSource((0, import_node_path19.join)(dir, entry.name));
+        const importSource = readSkillImportSource((0, import_node_path20.join)(dir, entry.name));
         if (importSource) {
           meta.importSource = importSource;
           const sourceSkillDir = resolveSkillDir(importSource.sourceWorkspaceSlug, entry.name);
@@ -33799,7 +35866,7 @@ function seedWorkspaceBusinessSkills(workspaceSlug) {
   if (!process.versions.electron) return;
   try {
     const { app } = require_electron();
-    const source = app.isPackaged ? (0, import_node_path19.join)(process.resourcesPath, "business-skills") : (0, import_node_path19.join)(__dirname, "../business-skills");
+    const source = app.isPackaged ? (0, import_node_path20.join)(process.resourcesPath, "business-skills") : (0, import_node_path20.join)(__dirname, "../business-skills");
     seedBuiltinSkillPackages(getAgentWorkspacePath(workspaceSlug), source);
   } catch (error) {
     console.warn("[\u6280\u80FD] \u4E1A\u52A1\u6280\u80FD\u521D\u59CB\u5316\u672A\u5B8C\u6210\uFF0C\u4FDD\u7559\u5DF2\u6709\u5B89\u88C5\uFF1A", error);
@@ -33814,15 +35881,15 @@ function toggleWorkspaceSkill(workspaceSlug, skillSlug, enabled) {
   const inactiveDir = getInactiveSkillsDir(workspaceSlug);
   const srcDir = enabled ? inactiveDir : activeDir;
   const destDir = enabled ? activeDir : inactiveDir;
-  const srcPath = (0, import_node_path19.join)(srcDir, skillSlug);
-  const destPath = (0, import_node_path19.join)(destDir, skillSlug);
-  if (!(0, import_node_fs21.existsSync)(srcPath)) {
+  const srcPath = (0, import_node_path20.join)(srcDir, skillSlug);
+  const destPath = (0, import_node_path20.join)(destDir, skillSlug);
+  if (!(0, import_node_fs22.existsSync)(srcPath)) {
     throw new Error(tr(`\u6280\u80FD\u4E0D\u5B58\u5728\uFF1A${skillSlug}`, `Skill not found: ${skillSlug}`));
   }
-  if ((0, import_node_fs21.existsSync)(destPath)) {
+  if ((0, import_node_fs22.existsSync)(destPath)) {
     throw new Error(tr(`\u76EE\u6807\u6587\u4EF6\u5939\u5DF2\u6709\u540C\u540D\u6280\u80FD\uFF1A${skillSlug}`, `A skill with this name already exists in the target folder: ${skillSlug}`));
   }
-  (0, import_node_fs21.renameSync)(srcPath, destPath);
+  (0, import_node_fs22.renameSync)(srcPath, destPath);
   console.log(`[Agent \u5DE5\u4F5C\u533A] Skill ${enabled ? "\u542F\u7528" : "\u7981\u7528"}: ${workspaceSlug}/${skillSlug}`);
 }
 function getOtherWorkspaceSkills(currentSlug) {
@@ -33848,17 +35915,17 @@ function importSkillFromWorkspace(targetSlug, sourceSlug, skillSlug) {
   if (!sourcePath) {
     throw new Error(tr(`\u6E90\u9879\u76EE\u4E2D\u4E0D\u5B58\u5728\u6280\u80FD\uFF1A${skillSlug}`, `Skill not found in the source project: ${skillSlug}`));
   }
-  const sourceSkillMdPath = (0, import_node_path19.join)(sourcePath, "SKILL.md");
-  if (!(0, import_node_fs21.existsSync)(sourceSkillMdPath)) {
+  const sourceSkillMdPath = (0, import_node_path20.join)(sourcePath, "SKILL.md");
+  if (!(0, import_node_fs22.existsSync)(sourceSkillMdPath)) {
     throw new Error(tr(`\u6E90\u6280\u80FD\u7F3A\u5C11 SKILL.md\uFF1A${skillSlug}`, `The source skill has no SKILL.md: ${skillSlug}`));
   }
-  const targetPath = (0, import_node_path19.join)(getWorkspaceSkillsDir(targetSlug), skillSlug);
-  const targetInactivePath = (0, import_node_path19.join)(getInactiveSkillsDir(targetSlug), skillSlug);
-  if ((0, import_node_fs21.existsSync)(targetPath) || (0, import_node_fs21.existsSync)(targetInactivePath)) {
+  const targetPath = (0, import_node_path20.join)(getWorkspaceSkillsDir(targetSlug), skillSlug);
+  const targetInactivePath = (0, import_node_path20.join)(getInactiveSkillsDir(targetSlug), skillSlug);
+  if ((0, import_node_fs22.existsSync)(targetPath) || (0, import_node_fs22.existsSync)(targetInactivePath)) {
     throw new Error(tr(`\u5F53\u524D\u9879\u76EE\u5DF2\u5B58\u5728\u540C\u540D\u6280\u80FD\uFF1A${skillSlug}`, `A skill with this name already exists in this project: ${skillSlug}`));
   }
   const baselineHash = hashSkillDirectory(sourcePath);
-  (0, import_node_fs21.cpSync)(sourcePath, targetPath, { recursive: true });
+  (0, import_node_fs22.cpSync)(sourcePath, targetPath, { recursive: true });
   const sourceWorkspace = listAgentWorkspaces().find((w) => w.slug === sourceSlug);
   const importSource = {
     sourceWorkspaceSlug: sourceSlug,
@@ -33869,7 +35936,7 @@ function importSkillFromWorkspace(targetSlug, sourceSlug, skillSlug) {
   };
   writeSkillImportSource(targetPath, importSource);
   console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u4ECE ${sourceSlug} \u5BFC\u5165 Skill: ${targetSlug}/${skillSlug}`);
-  const content = (0, import_node_fs21.readFileSync)((0, import_node_path19.join)(targetPath, "SKILL.md"), "utf-8");
+  const content = (0, import_node_fs22.readFileSync)((0, import_node_path20.join)(targetPath, "SKILL.md"), "utf-8");
   const meta = parseSkillFrontmatter(content, skillSlug, true);
   meta.importSource = importSource;
   return meta;
@@ -33879,7 +35946,7 @@ function updateSkillFromSource(targetSlug, skillSlug) {
   assertSkillSlug(skillSlug);
   const activeDir = getWorkspaceSkillsDir(targetSlug);
   const inactiveDir = getInactiveSkillsDir(targetSlug);
-  const targetPath = (0, import_node_fs21.existsSync)((0, import_node_path19.join)(activeDir, skillSlug)) ? (0, import_node_path19.join)(activeDir, skillSlug) : (0, import_node_fs21.existsSync)((0, import_node_path19.join)(inactiveDir, skillSlug)) ? (0, import_node_path19.join)(inactiveDir, skillSlug) : null;
+  const targetPath = (0, import_node_fs22.existsSync)((0, import_node_path20.join)(activeDir, skillSlug)) ? (0, import_node_path20.join)(activeDir, skillSlug) : (0, import_node_fs22.existsSync)((0, import_node_path20.join)(inactiveDir, skillSlug)) ? (0, import_node_path20.join)(inactiveDir, skillSlug) : null;
   if (!targetPath) {
     throw new Error(tr(`\u5F53\u524D\u9879\u76EE\u4E2D\u4E0D\u5B58\u5728\u6280\u80FD\uFF1A${skillSlug}`, `Skill not found in this project: ${skillSlug}`));
   }
@@ -33893,18 +35960,18 @@ function updateSkillFromSource(targetSlug, skillSlug) {
   if (!sourcePath) {
     throw new Error(tr(`\u6E90\u9879\u76EE\u4E2D\u5DF2\u4E0D\u5B58\u5728\u6280\u80FD\uFF1A${skillSlug}\uFF08\u6765\u6E90\uFF1A${existingSource.sourceWorkspaceName}\uFF09`, `Skill no longer exists in the source project: ${skillSlug} (source: ${existingSource.sourceWorkspaceName})`));
   }
-  if (!(0, import_node_fs21.existsSync)((0, import_node_path19.join)(sourcePath, "SKILL.md"))) {
+  if (!(0, import_node_fs22.existsSync)((0, import_node_path20.join)(sourcePath, "SKILL.md"))) {
     throw new Error(tr(`\u6E90\u6280\u80FD\u7F3A\u5C11 SKILL.md\uFF1A${skillSlug}`, `The source skill has no SKILL.md: ${skillSlug}`));
   }
   const baselineHash = hashSkillDirectory(sourcePath);
-  const parentDir = (0, import_node_path19.join)(targetPath, "..");
-  const tmpPath = (0, import_node_path19.join)(parentDir, `.${skillSlug}.${(0, import_node_crypto11.randomUUID)()}.updating`);
-  const backupPath = (0, import_node_path19.join)(parentDir, `.${skillSlug}.previous`);
+  const parentDir = (0, import_node_path20.join)(targetPath, "..");
+  const tmpPath = (0, import_node_path20.join)(parentDir, `.${skillSlug}.${(0, import_node_crypto12.randomUUID)()}.updating`);
+  const backupPath = (0, import_node_path20.join)(parentDir, `.${skillSlug}.previous`);
   try {
-    (0, import_node_fs21.cpSync)(sourcePath, tmpPath, { recursive: true });
+    (0, import_node_fs22.cpSync)(sourcePath, tmpPath, { recursive: true });
     if (hashSkillDirectory(tmpPath) !== baselineHash) throw new Error(tr("\u590D\u5236\u671F\u95F4\u6765\u6E90\u53D1\u751F\u53D8\u5316\uFF0C\u8BF7\u91CD\u8BD5\u3002", "The source changed while copying. Try again."));
   } catch (err) {
-    if ((0, import_node_fs21.existsSync)(tmpPath)) (0, import_node_fs21.rmSync)(tmpPath, { recursive: true, force: true });
+    if ((0, import_node_fs22.existsSync)(tmpPath)) (0, import_node_fs22.rmSync)(tmpPath, { recursive: true, force: true });
     throw err;
   }
   const sourceWorkspace = listAgentWorkspaces().find((w) => w.slug === existingSource.sourceWorkspaceSlug);
@@ -33916,23 +35983,23 @@ function updateSkillFromSource(targetSlug, skillSlug) {
     baselineHash
   };
   writeSkillImportSource(tmpPath, updatedSource);
-  if ((0, import_node_fs21.existsSync)(backupPath)) {
+  if ((0, import_node_fs22.existsSync)(backupPath)) {
     const backupSource = readSkillImportSource(backupPath);
     if (!backupSource?.baselineHash || hashSkillDirectory(backupPath) !== backupSource.baselineHash) {
-      (0, import_node_fs21.rmSync)(tmpPath, { recursive: true, force: true });
+      (0, import_node_fs22.rmSync)(tmpPath, { recursive: true, force: true });
       throw new Error(tr("\u4E0A\u4E00\u7248\u5907\u4EFD\u5DF2\u6709\u4FEE\u6539\uFF0C\u672A\u8986\u76D6\u3002\u8BF7\u5148\u628A\u5907\u4EFD\u79FB\u5230\u522B\u5904\uFF0C\u518D\u91CD\u8BD5\u3002", "The previous backup has edits and wasn\u2019t overwritten. Move it elsewhere, then try again."));
     }
-    (0, import_node_fs21.rmSync)(backupPath, { recursive: true, force: true });
+    (0, import_node_fs22.rmSync)(backupPath, { recursive: true, force: true });
   }
-  (0, import_node_fs21.renameSync)(targetPath, backupPath);
+  (0, import_node_fs22.renameSync)(targetPath, backupPath);
   try {
-    (0, import_node_fs21.renameSync)(tmpPath, targetPath);
+    (0, import_node_fs22.renameSync)(tmpPath, targetPath);
   } catch (error) {
-    (0, import_node_fs21.renameSync)(backupPath, targetPath);
+    (0, import_node_fs22.renameSync)(backupPath, targetPath);
     throw error;
   }
-  const enabled = targetPath === (0, import_node_path19.join)(activeDir, skillSlug);
-  const content = (0, import_node_fs21.readFileSync)((0, import_node_path19.join)(targetPath, "SKILL.md"), "utf-8");
+  const enabled = targetPath === (0, import_node_path20.join)(activeDir, skillSlug);
+  const content = (0, import_node_fs22.readFileSync)((0, import_node_path20.join)(targetPath, "SKILL.md"), "utf-8");
   const meta = parseSkillFrontmatter(content, skillSlug, enabled);
   meta.importSource = updatedSource;
   meta.hasUpdate = false;
@@ -33940,16 +36007,16 @@ function updateSkillFromSource(targetSlug, skillSlug) {
   return meta;
 }
 function readSkillImportSource(skillDir) {
-  const p = (0, import_node_path19.join)(skillDir, SOURCE_META_FILE);
-  if (!(0, import_node_fs21.existsSync)(p)) return void 0;
+  const p = (0, import_node_path20.join)(skillDir, SOURCE_META_FILE);
+  if (!(0, import_node_fs22.existsSync)(p)) return void 0;
   try {
-    return JSON.parse((0, import_node_fs21.readFileSync)(p, "utf-8"));
+    return JSON.parse((0, import_node_fs22.readFileSync)(p, "utf-8"));
   } catch {
     return void 0;
   }
 }
 function writeSkillImportSource(skillDir, source) {
-  (0, import_node_fs21.writeFileSync)((0, import_node_path19.join)(skillDir, SOURCE_META_FILE), JSON.stringify(source, null, 2), "utf-8");
+  (0, import_node_fs22.writeFileSync)((0, import_node_path20.join)(skillDir, SOURCE_META_FILE), JSON.stringify(source, null, 2), "utf-8");
 }
 function assertSkillSlug(slug) {
   if (typeof slug !== "string" || !slug || slug === "." || slug === ".." || /[\\/\0]/.test(slug)) throw new Error(tr("\u6280\u80FD\u6807\u8BC6\u65E0\u6548\u3002", "Invalid skill ID."));
@@ -33958,24 +36025,24 @@ function resolveSkillDir(workspaceSlug, skillSlug) {
   assertSkillSlug(skillSlug);
   const managed = getManagedSkills(getAgentWorkspacePath(workspaceSlug)).find((s) => s.slug === skillSlug);
   if (managed) return managed.directory;
-  const active = (0, import_node_path19.join)(getWorkspaceSkillsDir(workspaceSlug), skillSlug);
-  if ((0, import_node_fs21.existsSync)(active)) return active;
-  const inactive = (0, import_node_path19.join)(getInactiveSkillsDir(workspaceSlug), skillSlug);
-  if ((0, import_node_fs21.existsSync)(inactive)) return inactive;
+  const active = (0, import_node_path20.join)(getWorkspaceSkillsDir(workspaceSlug), skillSlug);
+  if ((0, import_node_fs22.existsSync)(active)) return active;
+  const inactive = (0, import_node_path20.join)(getInactiveSkillsDir(workspaceSlug), skillSlug);
+  if ((0, import_node_fs22.existsSync)(inactive)) return inactive;
   return null;
 }
 function readWorkspaceSkillContent(workspaceSlug, skillSlug) {
   const dir = resolveSkillDir(workspaceSlug, skillSlug);
   if (!dir) throw new Error(tr(`\u6280\u80FD\u4E0D\u5B58\u5728\uFF1A${workspaceSlug}/${skillSlug}`, `Skill not found: ${workspaceSlug}/${skillSlug}`));
-  const mdPath = (0, import_node_path19.join)(dir, "SKILL.md");
-  if (!(0, import_node_fs21.existsSync)(mdPath)) throw new Error(tr(`SKILL.md \u4E0D\u5B58\u5728\uFF1A${mdPath}`, `SKILL.md not found: ${mdPath}`));
-  return (0, import_node_fs21.readFileSync)(mdPath, "utf-8");
+  const mdPath = (0, import_node_path20.join)(dir, "SKILL.md");
+  if (!(0, import_node_fs22.existsSync)(mdPath)) throw new Error(tr(`SKILL.md \u4E0D\u5B58\u5728\uFF1A${mdPath}`, `SKILL.md not found: ${mdPath}`));
+  return (0, import_node_fs22.readFileSync)(mdPath, "utf-8");
 }
 function writeWorkspaceSkillContent(workspaceSlug, skillSlug, content) {
   assertSkillsIdle(getAgentWorkspacePath(workspaceSlug));
   const dir = resolveSkillDir(workspaceSlug, skillSlug);
   if (!dir) throw new Error(tr(`\u6280\u80FD\u4E0D\u5B58\u5728\uFF1A${workspaceSlug}/${skillSlug}`, `Skill not found: ${workspaceSlug}/${skillSlug}`));
-  (0, import_node_fs21.writeFileSync)((0, import_node_path19.join)(dir, "SKILL.md"), content, "utf-8");
+  (0, import_node_fs22.writeFileSync)((0, import_node_path20.join)(dir, "SKILL.md"), content, "utf-8");
   console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u66F4\u65B0 SKILL.md: ${workspaceSlug}/${skillSlug}`);
 }
 function isNewerVersion(a, b) {
@@ -34005,7 +36072,7 @@ function resolveRuntimeSkills(_workspaceSlug, requested) {
     skillPaths: [skillsDir, ...managed.roots],
     managedRoots: managed.roots,
     managedSkills: managed.skills.filter((skill) => enabled.has(skill.id)),
-    excludedSkillFiles: skills.filter((skill) => !skill.enabled && !skill.installationId && (0, import_node_fs21.existsSync)((0, import_node_path19.join)(skillsDir, skill.slug, "SKILL.md"))).map((skill) => (0, import_node_path19.join)(skillsDir, skill.slug, "SKILL.md")),
+    excludedSkillFiles: skills.filter((skill) => !skill.enabled && !skill.installationId && (0, import_node_fs22.existsSync)((0, import_node_path20.join)(skillsDir, skill.slug, "SKILL.md"))).map((skill) => (0, import_node_path20.join)(skillsDir, skill.slug, "SKILL.md")),
     leaseRoots: [globalRoot]
   };
 }
@@ -34022,30 +36089,30 @@ function migrateWorkspacesToGlobalLayer() {
       const root = getAgentWorkspacePath(workspace.slug);
       assertSkillsIdle(root);
       assertSkillsIdle(globalRoot);
-      const backupDir = (0, import_node_path19.join)(root, "skill-backups", "global-migration");
+      const backupDir = (0, import_node_path20.join)(root, "skill-backups", "global-migration");
       const backup = (path, name) => {
-        (0, import_node_fs21.mkdirSync)(backupDir, { recursive: true });
-        (0, import_node_fs21.renameSync)(path, (0, import_node_path19.join)(backupDir, `${name}-${(0, import_node_crypto11.randomUUID)()}`));
+        (0, import_node_fs22.mkdirSync)(backupDir, { recursive: true });
+        (0, import_node_fs22.renameSync)(path, (0, import_node_path20.join)(backupDir, `${name}-${(0, import_node_crypto12.randomUUID)()}`));
       };
-      const inGlobal = (name) => [getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG), getInactiveSkillsDir(GLOBAL_CAPABILITY_SLUG)].some((dir) => (0, import_node_fs21.existsSync)((0, import_node_path19.join)(dir, name)));
+      const inGlobal = (name) => [getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG), getInactiveSkillsDir(GLOBAL_CAPABILITY_SLUG)].some((dir) => (0, import_node_fs22.existsSync)((0, import_node_path20.join)(dir, name)));
       let moved = 0, backedUp = 0;
       for (const [from, to] of [[getWorkspaceSkillsDir(workspace.slug), getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG)], [getInactiveSkillsDir(workspace.slug), getInactiveSkillsDir(GLOBAL_CAPABILITY_SLUG)]]) {
         let names = [];
         try {
-          names = (0, import_node_fs21.readdirSync)(from, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name);
+          names = (0, import_node_fs22.readdirSync)(from, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name);
         } catch {
           continue;
         }
         for (const name of names) {
-          const path = (0, import_node_path19.join)(from, name);
-          const template = (0, import_node_path19.join)(defaultDir, name);
-          if ((0, import_node_fs21.existsSync)(template) && isPristineBundledCopy(template, path) || inGlobal(name)) {
+          const path = (0, import_node_path20.join)(from, name);
+          const template = (0, import_node_path20.join)(defaultDir, name);
+          if ((0, import_node_fs22.existsSync)(template) && isPristineBundledCopy(template, path) || inGlobal(name)) {
             backup(path, name);
             backedUp++;
             continue;
           }
-          (0, import_node_fs21.mkdirSync)(to, { recursive: true });
-          (0, import_node_fs21.renameSync)(path, (0, import_node_path19.join)(to, name));
+          (0, import_node_fs22.mkdirSync)(to, { recursive: true });
+          (0, import_node_fs22.renameSync)(path, (0, import_node_path20.join)(to, name));
           moved++;
         }
       }
@@ -34058,8 +36125,8 @@ function migrateWorkspacesToGlobalLayer() {
         const globalMcp = getWorkspaceMcpConfig(GLOBAL_CAPABILITY_SLUG);
         const servers = { ...globalMcp.servers };
         for (const [name, entry] of projectServers) servers[name] ??= entry;
-        (0, import_node_fs21.mkdirSync)(backupDir, { recursive: true });
-        (0, import_node_fs21.writeFileSync)((0, import_node_path19.join)(backupDir, `mcp-${(0, import_node_crypto11.randomUUID)()}.json`), JSON.stringify(projectMcp, null, 2), "utf-8");
+        (0, import_node_fs22.mkdirSync)(backupDir, { recursive: true });
+        (0, import_node_fs22.writeFileSync)((0, import_node_path20.join)(backupDir, `mcp-${(0, import_node_crypto12.randomUUID)()}.json`), JSON.stringify(projectMcp, null, 2), "utf-8");
         saveWorkspaceMcpConfig(GLOBAL_CAPABILITY_SLUG, { ...globalMcp, servers });
         saveWorkspaceMcpConfig(workspace.slug, { ...projectMcp, servers: {} });
       }
@@ -34071,15 +36138,15 @@ function migrateWorkspacesToGlobalLayer() {
   }
 }
 function getWorkspaceConfigPath(workspaceSlug) {
-  return (0, import_node_path19.join)(getAgentWorkspacePath(workspaceSlug), "config.json");
+  return (0, import_node_path20.join)(getAgentWorkspacePath(workspaceSlug), "config.json");
 }
 function readWorkspaceConfig(workspaceSlug) {
   const configPath = getWorkspaceConfigPath(workspaceSlug);
-  if (!(0, import_node_fs21.existsSync)(configPath)) {
+  if (!(0, import_node_fs22.existsSync)(configPath)) {
     return {};
   }
   try {
-    const raw = (0, import_node_fs21.readFileSync)(configPath, "utf-8");
+    const raw = (0, import_node_fs22.readFileSync)(configPath, "utf-8");
     const data = JSON.parse(raw);
     const strings = (value) => Array.isArray(value) ? value.filter((item) => typeof item === "string") : void 0;
     return {
@@ -34092,7 +36159,7 @@ function readWorkspaceConfig(workspaceSlug) {
 }
 function writeWorkspaceConfig(workspaceSlug, config) {
   const configPath = getWorkspaceConfigPath(workspaceSlug);
-  (0, import_node_fs21.writeFileSync)(configPath, JSON.stringify(config, null, 2), "utf-8");
+  (0, import_node_fs22.writeFileSync)(configPath, JSON.stringify(config, null, 2), "utf-8");
 }
 function getWorkspaceAttachedDirectories(workspaceSlug) {
   const config = readWorkspaceConfig(workspaceSlug);
@@ -34117,20 +36184,22 @@ function detachWorkspaceDirectory(workspaceSlug, directoryPath) {
   console.log(`[Agent \u5DE5\u4F5C\u533A] \u5DF2\u79FB\u9664\u5DE5\u4F5C\u533A\u76EE\u5F55: ${directoryPath} \u2190 ${workspaceSlug}`);
   return updated;
 }
-var import_node_fs21, import_node_crypto11, import_node_path19, INDEX_VERSION, DEFAULT_NAMES, LEGACY_DEFAULT_NAME, defaultName, SOURCE_META_FILE;
+var import_node_fs22, import_node_crypto12, import_node_path20, INDEX_VERSION, DEFAULT_NAMES, LEGACY_DEFAULT_NAME, defaultName, SOURCE_META_FILE;
 var init_agent_workspace_manager = __esm({
   "../electron/src/main/lib/agent-workspace-manager.ts"() {
     "use strict";
     init_src();
-    import_node_fs21 = require("node:fs");
+    import_node_fs22 = require("node:fs");
     init_bundled_skills();
     init_safe_file();
-    import_node_crypto11 = require("node:crypto");
-    import_node_path19 = require("node:path");
+    import_node_crypto12 = require("node:crypto");
+    import_node_path20 = require("node:path");
     init_skill_package_manager();
     init_document_skill_migration();
+    init_skill_dependencies();
     init_config_paths();
     init_src();
+    init_mcp_secrets();
     INDEX_VERSION = 2;
     DEFAULT_NAMES = ["\u9ED8\u8BA4\u9879\u76EE", "Default project"];
     LEGACY_DEFAULT_NAME = "\u9ED8\u8BA4\u5DE5\u4F5C\u533A";
@@ -34161,7 +36230,7 @@ init_src();
 var import_pi_tui = require("@earendil-works/pi-tui");
 init_src();
 
-// ../../node_modules/jotai/esm/vanilla/internals.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla/internals.mjs
 var import_meta = {};
 function hasInitialValue(atom2) {
   return "init" in atom2;
@@ -34804,7 +36873,7 @@ function buildStore(...buildArgs) {
   return store;
 }
 
-// ../../node_modules/jotai/esm/vanilla.mjs
+// ../../../../../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla.mjs
 var import_meta2 = {};
 var keyCount = 0;
 function atom(read, write) {
@@ -34978,6 +37047,7 @@ var asciiSymbols = {
   "\u26A0": "!",
   "\u2139": "i",
   "\u2026": ".",
+  // copy-lint-ok: dot
   "\u2191": "^",
   "\u2193": "v",
   "\u2190": "<",
@@ -35184,6 +37254,16 @@ function openerCommand(url, platform) {
 }
 
 // src/presentation.ts
+var modeLabel = (mode) => ({
+  auto: tr("\u6309\u9700\u786E\u8BA4", "Ask for approval"),
+  plan: tr("\u8BA1\u5212", "Plan"),
+  bypassPermissions: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve")
+})[mode];
+var modeNotice = (mode) => ({
+  auto: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u6309\u9700\u786E\u8BA4\u300D\u3002", "Permissions set to Ask for approval."),
+  plan: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u8BA1\u5212\u300D\uFF1A\u53EA\u8BFB\uFF0C\u4E0D\u6539\u6587\u4EF6\u3002", "Permissions set to Plan: read-only, no file changes."),
+  bypassPermissions: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u81EA\u52A8\u6267\u884C\u300D\uFF1A\u5DE5\u5177\u4E0D\u518D\u9010\u6761\u786E\u8BA4\uFF0C\u6C99\u7BB1\u5916\u8FD0\u884C\u4ECD\u4F1A\u8BE2\u95EE\u3002", "Permissions set to Auto-approve: tools run without asking; running outside the sandbox still asks.")
+})[mode];
 var thinkingLabel = (level) => ({
   off: tr("\u5173\u95ED", "Off"),
   minimal: tr("\u6700\u5C11", "Minimal"),
@@ -35235,7 +37315,7 @@ function toolEntry(event, previous) {
   const startedAt = event.toolStartedAt ?? previous?.startedAt;
   const endedAt = event.toolEndedAt ?? previous?.endedAt;
   const elapsedMs = endedAt !== void 0 && startedAt !== void 0 ? Math.max(0, endedAt - startedAt) : event.toolElapsedMs ?? previous?.elapsedMs;
-  const permission = event.toolPermission ?? (event.type === "tool.denied" ? event.text : void 0) ?? previous?.permission;
+  const permission = event.toolPermission ?? (event.type === "tool.denied" && event.text ? userFacingToolResult(event.text) : void 0) ?? previous?.permission;
   const concurrent = event.toolConcurrent ?? previous?.concurrent;
   const exitCode = event.toolExitCode ?? previous?.exitCode;
   const metadata = [
@@ -35333,7 +37413,7 @@ function markTurnEnds(entries, liveRunId) {
       unknown: tr("\u7ED3\u679C\u672A\u77E5", "Unknown result")
     }[turnStatus];
     const took = turnMs === void 0 ? "" : formatDuration(turnMs);
-    const text2 = took ? outcome + " \xB7 " + took : outcome;
+    const text2 = took ? outcome + "  " + took : outcome;
     return [entry, { id: "end:" + runId, kind: "divider", runId, text: text2, turnStatus }];
   });
 }
@@ -35480,7 +37560,7 @@ function resultEntries(result) {
   if (result.sessionId && result.persistence !== "saved") entries.push({
     id: result.runId + ":persistence",
     kind: "error",
-    text: result.persistence === "pending" ? tr("\u6D88\u606F\u5C1A\u672A\u4FDD\u5B58\uFF0C\u8BF7\u4FDD\u7559\u4F1A\u8BDD\u5E76\u68C0\u67E5\u6062\u590D\u4FE1\u606F\u3002", "Messages aren\u2019t saved yet. Keep the session and check the recovery info.") : tr("\u4FDD\u5B58\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u6062\u590D\u4FE1\u606F\u3002", "Couldn\u2019t save. Check the recovery info.")
+    text: result.persistence === "pending" ? tr("\u6D88\u606F\u5C1A\u672A\u4FDD\u5B58\uFF0C\u8BF7\u4FDD\u7559\u4F1A\u8BDD\u5E76\u68C0\u67E5\u6062\u590D\u4FE1\u606F\u3002", "Messages aren\u2019t saved yet. Keep the session and check the recovery info.") : tr("\u65E0\u6CD5\u4FDD\u5B58\uFF0C\u8BF7\u68C0\u67E5\u6062\u590D\u4FE1\u606F\u3002", "Couldn\u2019t save. Check the recovery info.")
   });
   for (const [index, change] of (result.fileChanges ?? []).entries()) entries.push({
     id: result.runId + ":change:" + index,
@@ -35527,7 +37607,7 @@ var taskLines = (tasks) => tasks.map((task) => (TASK_GLYPHS[task.status] ?? "\u2
 function taskSummary(tasks) {
   if (!tasks.length) return "";
   const active = tasks.find((task) => task.status === "in_progress");
-  return tr("\u4EFB\u52A1", "Tasks") + ` ${tasks.filter((task) => task.status === "completed").length}/${tasks.length}` + (active ? " \xB7 " + clean(active.activeForm || active.subject) : "");
+  return tr("\u4EFB\u52A1", "Tasks") + ` ${tasks.filter((task) => task.status === "completed").length}/${tasks.length}` + (active ? "  " + clean(active.activeForm || active.subject) : "");
 }
 function mainTranscript(entries) {
   return entries.filter((entry) => !entry.agentId || entry.agentName || entry.kind === "tool" && !!toolFailure(entry));
@@ -35604,7 +37684,7 @@ function patchCounts(patch = "") {
 }
 function transcriptMarkdown(entries, meta) {
   const text2 = (value) => clean(rewriteMentionLinks(value, meta.cwd, false));
-  const info = clean([meta.model, meta.cwd, new Date(meta.exportedAt).toISOString()].filter(Boolean).join(" \xB7 "));
+  const info = clean([meta.model, meta.cwd, new Date(meta.exportedAt).toISOString()].filter(Boolean).join("  "));
   const body = mainTranscript(entries).flatMap((entry) => entry.kind === "user" ? ["## You", text2(entry.text)] : entry.kind === "assistant" ? ["## Cortex", text2(entry.text)] : entry.kind === "tool" ? ["- " + text2(entry.text).replace(/\s*\n\s*/g, " ")] : entry.kind === "error" ? ["> " + text2(entry.text).replace(/\n/g, "\n> ")] : []);
   return ["# " + (clean(meta.title ?? "") || "Cortex"), "> " + info, ...body].join("\n\n") + "\n";
 }
@@ -35634,7 +37714,7 @@ function commandCatalog(context) {
       {
         name: "permissions",
         label: tr("\u6743\u9650", "Permissions"),
-        description: tr("\u5207\u6362\u6743\u9650", "Change permissions") + (context.session ? tr("\uFF08\u5F53\u524D\uFF1A", " (current: ") + { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[context.session.mode] + tr("\uFF09", ")") : ""),
+        description: tr("\u5207\u6362\u6743\u9650", "Change permissions") + (context.session ? tr("\uFF08\u5F53\u524D\uFF1A", " (current: ") + modeLabel(context.session.mode) + tr("\uFF09", ")") : ""),
         group: settings2,
         shortcut: "Shift+Tab",
         argumentHint: "<auto|plan|bypassPermissions>",
@@ -35974,11 +38054,6 @@ async function editInExternalEditor(content, command = editorCommand(process.env
 }
 
 // src/tui.ts
-var modeLabel = (mode) => ({
-  auto: tr("\u6309\u9700\u786E\u8BA4", "Ask for approval"),
-  plan: tr("\u8BA1\u5212", "Plan"),
-  bypassPermissions: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve")
-})[mode];
 var SHORTCUT_GRACE_MS = 400;
 var selectTheme = {
   selectedPrefix: theme.accent,
@@ -36298,7 +38373,7 @@ var TerminalUI = class {
         try {
           const available = await hasClipboardImage();
           if (!this.disposed && available && !this.clipboardAvailable && this.clipboardProbed) {
-            this.notify(tr("\u526A\u8D34\u677F\u56FE\u7247 \xB7 Ctrl+V \u6DFB\u52A0", "Clipboard image \xB7 Ctrl+V to attach"), "info", 4e3);
+            this.notify(tr("\u526A\u8D34\u677F\u56FE\u7247  Ctrl+V \u6DFB\u52A0", "Clipboard image  Ctrl+V to attach"), "info", 4e3);
           }
           this.clipboardAvailable = available;
           this.clipboardProbed = true;
@@ -36443,7 +38518,7 @@ var TerminalUI = class {
     this.setStatusTitle(this.context?.title && displaySessionTitle(this.context.title) || this.context?.cwd && (0, import_node_path7.basename)(this.context.cwd) || void 0, waiting ? "waiting" : this.active ? "running" : "idle");
   }
   setStatusTitle(title, state) {
-    const next = (state === "running" ? "\u25D0 " : state === "waiting" ? "\u25CF " : "") + (title ? clean(title) + " \xB7 " : "") + "Cortex";
+    const next = (state === "running" ? "\u25D0 " : state === "waiting" ? "\u25CF " : "") + (title ? clean(title) : "Cortex");
     if (next === this.shownTitle) return;
     this.shownTitle = next;
     this.terminal.setTitle(next);
@@ -36468,8 +38543,8 @@ var TerminalUI = class {
       const label = agentLabel(agent);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const summary = [...counts].map(([label, count]) => count + " " + label).join(" \xB7 ");
-    const hint = " \xB7 /agents";
+    const summary = [...counts].map(([label, count]) => count + " " + label).join("  ");
+    const hint = "  /agents";
     return theme.accent((0, import_pi_tui3.truncateToWidth)(summary, Math.max(0, Math.floor(width / 2) - hint.length))) + theme.muted(hint);
   }
   async stopAgents() {
@@ -36558,11 +38633,11 @@ var TerminalUI = class {
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
     this.noticeTimer = void 0;
   }
-  /** macOS 用 pbcopy，其他平台走 OSC 52 */
+  /** macOS 用 pbcopy（能确认写进了剪贴板）；其他平台走 OSC 52，只能确认已发给终端，终端是否写进剪贴板无从得知 */
   async copyText(text2) {
-    if (process.platform === "darwin") return pbcopy(text2);
+    if (process.platform === "darwin") return await pbcopy(text2) && "clipboard";
     this.terminal.write("\x1B]52;c;" + Buffer.from(text2).toString("base64") + "\x07");
-    return true;
+    return "terminal";
   }
   ascii(lines) {
     return this.unicode === false ? lines.map(toAscii) : lines;
@@ -36599,26 +38674,41 @@ var TerminalUI = class {
       return paint((value >= 50 ? "\u2588".repeat(filled) + "\u2591".repeat(8 - filled) + " " : "") + (/容量估计|estimated/.test(this.contextText) ? "\u2248" : "") + value + "%");
     })();
     const thinking = this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value : "";
-    const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join(" \xB7 ");
-    const top = [this.contextText && !this.pending ? meter : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted(" \xB7 "));
-    const mode = this.context ? { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[this.context.mode] : "";
+    const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join("  ");
+    const top = [this.contextText && !this.pending ? meter : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted("  "));
+    const mode = this.context ? this.context.mode === "bypassPermissions" ? theme.warning("\u25B2 " + modeLabel("bypassPermissions")) : theme.muted(modeLabel(this.context.mode)) : "";
     const [status = "", ...queue] = clean(this.state).trim().split(/\s{2,}/);
-    const state = [status, ...queue].join(" \xB7 ");
+    const state = [status, ...queue].join("  ");
     const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
-    const detail = this.pending ? "" : this.editor.prediction && !this.editor.getText() ? theme.muted(tr("Tab \u63A5\u53D7\u9884\u6D4B", "Tab accept")) + theme.muted(" \xB7 Beta") : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Tab \u8865\u5168 \xB7 Esc \u5173\u95ED", "\u2191\u2193 select \xB7 Enter confirm \xB7 Tab complete \xB7 Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
-      { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
-    ) : this.active ? theme.accent(clean(this.indicator()).trim()) + " " + theme.muted([
-      // 等待子代理时宿主已给出说明（等待 N 个代理），不再重复「运行中 + 内部工具名」
-      tool?.tool === "WaitAgentUpdates" && this.metrics ? "" : status + (tool?.tool ? " " + clean(tool.tool) : ""),
-      ...clean(this.metrics).split(/\s{2,}/),
-      tr("Esc \u505C\u6B62", "Esc stop"),
-      ...queue
-    ].filter(Boolean).join(" \xB7 ")) : !this.context ? theme.muted(state + " \xB7 " + tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit")) : this.idle ? "" : theme.muted(state);
-    const left = [mode ? theme.muted(mode) : "", detail].filter(Boolean).join(theme.muted(" \xB7 "));
     const home = (0, import_node_os4.homedir)(), cwd = clean(this.context?.cwd ?? "");
     const project = cwd === home || cwd.startsWith(home + "/") ? "~" + cwd.slice(home.length) : cwd;
     const branch = clean(this.context?.branch ?? "");
     const right = width >= 60 && project ? theme.muted(project + (branch ? " (" + branch + ")" : "")) : "";
+    const running = () => {
+      const metrics = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
+      const summary = metrics.length > 1 ? metrics[0] : "", elapsed = metrics.at(-1) ?? "";
+      const waiting = tool?.tool === "WaitAgentUpdates" && !!summary;
+      const indicator = clean(this.indicator()).trim();
+      const segments = [
+        { text: waiting ? summary : status, drop: 0 },
+        { text: tr("Esc \u505C\u6B62", "Esc stop"), drop: 0 },
+        { text: waiting || !tool?.tool ? "" : clean(tool.tool), drop: 9 },
+        { text: elapsed, drop: 10 },
+        ...queue.map((text2, index) => ({ text: text2, drop: 1 + index }))
+      ].filter((segment) => segment.text);
+      const used = () => segments.reduce((sum, segment) => sum + (0, import_pi_tui3.visibleWidth)(segment.text) + 2, -2);
+      const full = width - 6 - (mode ? (0, import_pi_tui3.visibleWidth)(mode) + 2 : 0) - (0, import_pi_tui3.visibleWidth)(indicator) - 1;
+      const room = used() <= full - (right ? (0, import_pi_tui3.visibleWidth)(right) + 2 : 0) ? full - (right ? (0, import_pi_tui3.visibleWidth)(right) + 2 : 0) : full;
+      while (used() > room && segments.some((segment) => segment.drop)) {
+        const next = segments.reduce((best, segment) => segment.drop > best.drop ? segment : best);
+        segments.splice(segments.indexOf(next), 1);
+      }
+      return theme.accent(indicator) + " " + theme.muted(segments.map((segment) => segment.text).join("  "));
+    };
+    const detail = this.pending ? "" : this.editor.prediction && !this.editor.getText() ? theme.muted(tr("Tab \u63A5\u53D7\u9884\u6D4B", "Tab accept")) + theme.muted("  Beta") : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9  Enter \u786E\u8BA4  Tab \u8865\u5168  Esc \u5173\u95ED", "\u2191\u2193 select  Enter confirm  Tab complete  Esc close")) : this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
+      { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
+    ) : this.active ? running() : !this.context ? theme.muted(state + "  " + tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit")) : this.idle ? "" : theme.muted(state);
+    const left = [mode, detail].filter(Boolean).join("  ");
     return { top, left, right };
   }
   renderAttachments(width) {
@@ -36721,7 +38811,7 @@ var TerminalUI = class {
         label: skill.id,
         description: clean(skill.name + (skill.description ? " \u2014 " + skill.description : "")).replace(/\s+/g, " ")
       }))
-    ], { hint: tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u6253\u5F00 \xB7 Esc \u8FD4\u56DE", "\u2191\u2193 select \xB7 Enter open \xB7 Esc back") });
+    ], { hint: tr("\u2191\u2193 \u9009\u62E9  Enter \u6253\u5F00  Esc \u8FD4\u56DE", "\u2191\u2193 select  Enter open  Esc back") });
     if (command.startsWith("/skill:")) {
       this.editor.insertTextAtCursor(command + " ");
       this.tui.requestRender();
@@ -36837,7 +38927,7 @@ var TerminalUI = class {
     if (!this.visibleEntries().length) {
       const greeting = [
         theme.accent(theme.bold(tr("\u6B22\u8FCE\u4F7F\u7528 Cortex", "Welcome to Cortex"))),
-        theme.bold("Ctrl+P") + theme.muted(tr(" \u547D\u4EE4 \xB7 ", " commands \xB7 ")) + theme.bold("?") + theme.muted(tr(" \u5FEB\u6377\u952E", " shortcuts"))
+        theme.bold("Ctrl+P") + theme.muted(tr(" \u547D\u4EE4  ", " commands  ")) + theme.bold("?") + theme.muted(tr(" \u5FEB\u6377\u952E", " shortcuts"))
       ];
       const greetingWidth = Math.max(...greeting.map((line) => (0, import_pi_tui3.visibleWidth)(line)));
       const welcome = [];
@@ -37083,7 +39173,7 @@ var TerminalUI = class {
           visible = maxVisible;
           list.onSelectionChange = (item) => options.onHighlight?.(item.value);
         }
-        const hint = clean((searching ? options.searchHint : void 0) ?? options.hint ?? tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 Esc \u8FD4\u56DE", "\u2191\u2193 select \xB7 Enter confirm \xB7 Esc back"));
+        const hint = clean((searching ? options.searchHint : void 0) ?? options.hint ?? tr("\u2191\u2193 \u9009\u62E9  Enter \u786E\u8BA4  Esc \u8FD4\u56DE", "\u2191\u2193 select  Enter confirm  Esc back"));
         return boxed(
           width,
           theme.warning(theme.bold(clean(title))),
@@ -37165,7 +39255,8 @@ var TerminalUI = class {
           width,
           theme.warning(theme.bold(clean(title))),
           [theme.success("\u25CF".repeat(filled)) + theme.muted("\xB7".repeat(inner - filled)), labels, ...info.length ? ["", ...info.map((line) => theme.muted(clean(line)))] : []],
-          tr("\u2190\u2192 \u8C03\u6574 \xB7 Tab \u5217\u8868 \xB7 Enter \u786E\u8BA4 \xB7 Esc \u8FD4\u56DE", "\u2190\u2192 adjust \xB7 Tab list \xB7 Enter confirm \xB7 Esc back")
+          // copy-lint-ok: dot
+          tr("\u2190\u2192 \u8C03\u6574  Tab \u5217\u8868  Enter \u786E\u8BA4  Esc \u8FD4\u56DE", "\u2190\u2192 adjust  Tab list  Enter confirm  Esc back")
         );
       },
       handleInput: (data) => {
@@ -37211,7 +39302,7 @@ var TerminalUI = class {
           width,
           theme.warning(theme.bold(clean(typeof title === "function" ? title() : title))),
           lines.slice(offset, offset + page),
-          (hint ? hint + " \xB7 " : "") + tr("\u2191\u2193 \u6EDA\u52A8 \xB7 PgUp/PgDn \u7FFB\u9875 \xB7 Esc \u8FD4\u56DE \xB7 ", "\u2191\u2193 scroll \xB7 PgUp/PgDn page \xB7 Esc back \xB7 ") + `${offset + 1}/${Math.max(1, count)}`
+          (hint ? hint + "  " : "") + tr("\u2191\u2193 \u6EDA\u52A8  PgUp/PgDn \u7FFB\u9875  Esc \u8FD4\u56DE  ", "\u2191\u2193 scroll  PgUp/PgDn page  Esc back  ") + `${offset + 1}/${Math.max(1, count)}`
         );
       },
       handleInput: (data) => {
@@ -37277,7 +39368,7 @@ var TerminalUI = class {
     };
     const wide = () => this.terminal.columns >= 140;
     return this.view(
-      () => title + (wide() ? "  \xB7  " + (split ? tr("\u5E76\u6392", "Side by side") : tr("\u7EDF\u4E00", "Unified")) : ""),
+      () => title + (wide() ? "  " + (split ? tr("\u5E76\u6392", "Side by side") : tr("\u7EDF\u4E00", "Unified")) : ""),
       render,
       false,
       () => wide() ? tr("Tab \u7EDF\u4E00 / \u5E76\u6392", "Tab unified / side by side") : "",
@@ -37306,7 +39397,7 @@ var TerminalUI = class {
         width,
         theme.warning(theme.bold(clean(title))),
         [...input.render(Math.max(1, width - 4)), ...error ? new import_pi_tui3.Text(theme.error(clean(error)), 0, 0).render(Math.max(1, width - 4)) : []],
-        clean(options.hint ?? tr("Enter \u786E\u8BA4 \xB7 Esc \u53D6\u6D88", "Enter confirm \xB7 Esc cancel"))
+        clean(options.hint ?? tr("Enter \u786E\u8BA4  Esc \u53D6\u6D88", "Enter confirm  Esc cancel"))
       )
     };
     return this.form(component, (resolve7, reject) => {
@@ -37470,21 +39561,21 @@ function providerLabel(id) {
   };
   return labels[id] ?? PROVIDER_LABELS[id];
 }
-function savedConnections(settings2, current2) {
+function savedConnections(settings2, current3) {
   if (!settings2) return [];
-  const seen = /* @__PURE__ */ new Set([current2.provider + ":" + current2.baseUrl]);
+  const seen = /* @__PURE__ */ new Set([current3.provider + ":" + current3.baseUrl]);
   return [settings2.provider + ":" + settings2.baseUrl, ...Object.keys(settings2.credentials ?? {})].flatMap((key) => {
     if (seen.has(key)) return [];
     seen.add(key);
     const at = key.indexOf(":");
     const provider = key.slice(0, at), baseUrl = key.slice(at + 1);
     if (!Object.hasOwn(PROVIDER_LABELS, provider)) return [];
-    const host = baseUrl === PROVIDER_DEFAULT_URLS[provider] ? "" : " \xB7 " + new URL(baseUrl).host;
-    const model = provider === settings2.provider && baseUrl === settings2.baseUrl ? " \xB7 " + settings2.model : "";
+    const host = baseUrl === PROVIDER_DEFAULT_URLS[provider] ? "" : "  " + new URL(baseUrl).host;
+    const model = provider === settings2.provider && baseUrl === settings2.baseUrl ? "  " + settings2.model : "";
     return [{ provider, baseUrl, label: providerLabel(provider) + host + model }];
   });
 }
-async function chooseModel(ui, load2, current2 = "", saveScope, heading, extra = []) {
+async function chooseModel(ui, load2, current3 = "", saveScope, heading, extra = []) {
   while (true) {
     let models = [];
     let error = "";
@@ -37494,19 +39585,19 @@ async function chooseModel(ui, load2, current2 = "", saveScope, heading, extra =
       if (reason instanceof UiCancelled) throw reason;
       error = errorSummary(reason.message);
     }
-    const available = [.../* @__PURE__ */ new Set([...current2 ? [current2] : [], ...models])];
+    const available = [.../* @__PURE__ */ new Set([...current3 ? [current3] : [], ...models])];
     let scope = "default";
     const selection = await ui.select(
       tr("\u9009\u62E9\u6A21\u578B", "Select model"),
       [
-        ...available.map((id, index) => ({ value: id, label: id + (id === current2 ? " \u2713" : ""), ...heading && { group: index ? "" : heading } })),
+        ...available.map((id, index) => ({ value: id, label: id + (id === current3 ? " \u2713" : ""), ...heading && { group: index ? "" : heading } })),
         { value: ":manual", label: tr("\u624B\u52A8\u8F93\u5165\u6A21\u578B ID", "Enter model ID") },
         { value: ":retry", label: tr("\u91CD\u65B0\u83B7\u53D6\u5217\u8868", "Reload models") },
         ...extra
       ],
       {
-        initial: current2 || void 0,
-        description: error || (models.length ? current2 ? tr("\u5F53\u524D\u6A21\u578B\uFF1A", "Current model: ") + current2 : "" : tr("\u4F9B\u5E94\u5546\u672A\u8FD4\u56DE\u53EF\u9009\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u3002", "No models returned; enter a model ID.")),
+        initial: current3 || void 0,
+        description: error || (models.length ? current3 ? tr("\u5F53\u524D\u6A21\u578B\uFF1A", "Current model: ") + current3 : "" : tr("\u4F9B\u5E94\u5546\u672A\u8FD4\u56DE\u53EF\u9009\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u3002", "No models returned; enter a model ID.")),
         ...saveScope ? {
           search: "toggle",
           hint: tr("Enter \u9ED8\u8BA4  s \u672C\u6B21  / \u641C\u7D22  Esc \u8FD4\u56DE", "Enter default  s session  / search  Esc back"),
@@ -37521,7 +39612,7 @@ async function chooseModel(ui, load2, current2 = "", saveScope, heading, extra =
     );
     if (selection === ":retry") continue;
     if (extra.some((item) => item.value === selection)) return selection;
-    const model = selection === ":manual" ? await ui.ask(tr("\u6A21\u578B ID", "Model ID"), { value: current2, validate: (model2) => {
+    const model = selection === ":manual" ? await ui.ask(tr("\u6A21\u578B ID", "Model ID"), { value: current3, validate: (model2) => {
       if (!model2 || model2.length > 256 || /[\s\x00-\x1f\x7f-\x9f]/.test(model2)) throw new Error(tr("\u8BF7\u8F93\u5165\u4E0D\u542B\u7A7A\u767D\u7684\u6A21\u578B ID", "Enter a model ID without spaces"));
     } }) : selection;
     saveScope?.(scope);
@@ -37606,7 +39697,7 @@ async function editConnection(ui, initial, actions, keyEnv, hasKey = !!initial?.
         } catch (error) {
           if (error instanceof UiCancelled) throw error;
           await ui.select(
-            tr("\u8FDE\u63A5\u9A8C\u8BC1\u5931\u8D25", "Couldn\u2019t verify connection"),
+            tr("\u65E0\u6CD5\u9A8C\u8BC1\u8FDE\u63A5", "Couldn\u2019t verify connection"),
             [{ value: "back", label: tr("\u8FD4\u56DE\u8BBE\u7F6E", "Back to settings") }],
             { description: errorSummary(error.message), search: false }
           );
@@ -37716,12 +39807,17 @@ function assertSessionFree(directory, sessionId) {
 }
 function sessionLeaseOwner(directory, sessionId) {
   let pid;
+  let savedIdentity;
   try {
-    pid = JSON.parse((0, import_node_fs14.readFileSync)((0, import_node_path11.join)(directory, "cli-locks", sessionId + ".json"), "utf8")).pid;
+    const owner = JSON.parse((0, import_node_fs14.readFileSync)((0, import_node_path11.join)(directory, "cli-locks", sessionId + ".json"), "utf8"));
+    pid = owner.pid;
+    savedIdentity = owner.identity;
   } catch {
     return void 0;
   }
   if (typeof pid !== "number" || !Number.isSafeInteger(pid) || pid <= 0) return void 0;
+  const identity2 = linuxProcessIdentity(pid);
+  if (typeof savedIdentity === "string" && identity2 && savedIdentity !== identity2) return void 0;
   try {
     process.kill(pid, 0);
     return pid;
@@ -37901,9 +39997,9 @@ async function runSetup(options, ui) {
 }
 
 // src/index.ts
-var import_node_child_process7 = require("node:child_process");
-var import_node_path22 = require("node:path");
-var import_node_util8 = require("node:util");
+var import_node_child_process8 = require("node:child_process");
+var import_node_path23 = require("node:path");
+var import_node_util9 = require("node:util");
 
 // src/desktop-client.ts
 var import_node_events = require("node:events");
@@ -38252,7 +40348,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.23";
+var version = "0.1.31";
 
 // src/interactive.ts
 var import_node_fs18 = require("node:fs");
@@ -38486,12 +40582,12 @@ async function runInteractive(worker, options, request, ui) {
   let timedOut = false;
   let outputFailed = false;
   const commandContext = () => {
-    const current2 = store.get(state);
+    const current3 = store.get(state);
     return {
-      session: current2.session,
-      busy: current2.running || current2.starting || current2.closing || editing || Object.keys(current2.submissions).length > 0,
+      session: current3.session,
+      busy: current3.running || current3.starting || current3.closing || editing || Object.keys(current3.submissions).length > 0,
       desktop: options.desktop,
-      interaction: current2.requests[0]?.interaction.kind
+      interaction: current3.requests[0]?.interaction.kind
     };
   };
   const send = (message) => {
@@ -38523,9 +40619,9 @@ async function runInteractive(worker, options, request, ui) {
     send(message);
   };
   const cancel = (exit = false) => {
-    const current2 = store.get(state);
-    const active = current2.running || current2.starting;
-    if (current2.stopping && !exit) return;
+    const current3 = store.get(state);
+    const active = current3.running || current3.starting;
+    if (current3.stopping && !exit) return;
     update({ queuePaused: true, stopping: active });
     if (exit) update({ closing: true });
     if (exit) send({ type: "close" });
@@ -38534,7 +40630,7 @@ async function runInteractive(worker, options, request, ui) {
       update({ closing: true });
       send({ type: "close" });
     }
-    entry(active ? tr("\u6B63\u5728\u505C\u6B62\u2026", "Stopping\u2026") : tr("\u6B63\u5728\u9000\u51FA\u3002", "Quitting\u2026"), active ? current2.runId + ":cancelled" : void 0);
+    entry(active ? tr("\u6B63\u5728\u505C\u6B62\u2026", "Stopping\u2026") : tr("\u6B63\u5728\u9000\u51FA\u3002", "Quitting\u2026"), active ? current3.runId + ":cancelled" : void 0);
     forceTimer ??= setTimeout(() => {
       entry(tr("\u65E0\u6CD5\u786E\u8BA4\u8FD0\u884C\u5DF2\u505C\u6B62\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u548C\u6587\u4EF6\u3002", "Couldn\u2019t confirm the run stopped. Check the session and files."));
       process.exitCode = 4;
@@ -38542,8 +40638,8 @@ async function runInteractive(worker, options, request, ui) {
     }, 1e4);
   };
   const respond = (answer, item = store.get(state).requests[0], reason) => {
-    const current2 = store.get(state);
-    if (!item || closed || current2.closing || !current2.requests.some((pending) => pending.runId === item.runId && pending.interaction.request.sessionId === item.interaction.request.sessionId && pending.interaction.request.requestId === item.interaction.request.requestId)) return;
+    const current3 = store.get(state);
+    if (!item || closed || current3.closing || !current3.requests.some((pending) => pending.runId === item.runId && pending.interaction.request.sessionId === item.interaction.request.sessionId && pending.interaction.request.requestId === item.interaction.request.requestId)) return;
     tracked({
       type: "respond",
       id: (0, import_node_crypto8.randomUUID)(),
@@ -38592,16 +40688,16 @@ async function runInteractive(worker, options, request, ui) {
     update({ queue });
   };
   const dispatchQueue = () => {
-    const current2 = store.get(state);
-    if (!current2.session || current2.running || current2.starting || current2.closing || current2.stopping || current2.queuePaused || editing || Object.keys(current2.submissions).length) return;
-    const item = current2.queue[0];
+    const current3 = store.get(state);
+    if (!current3.session || current3.running || current3.starting || current3.closing || current3.stopping || current3.queuePaused || editing || Object.keys(current3.submissions).length) return;
+    const item = current3.queue[0];
     if (!item) return;
     if (item.state !== "waiting") {
       update({ queuePaused: true });
       return;
     }
     try {
-      saveQueue(current2.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
+      saveQueue(current3.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
       tracked({ type: "submit", id: item.id, text: item.text, attachments: item.attachments }, { text: item.text, attachments: item.attachments });
     } catch (error) {
       update({ queuePaused: true });
@@ -38609,9 +40705,9 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const resumeQueue = () => {
-    const current2 = store.get(state);
-    if (!current2.queuePaused || current2.running || current2.starting || current2.stopping || current2.closing) return false;
-    const unsure = current2.queue.filter((item) => item.state !== "waiting").length;
+    const current3 = store.get(state);
+    if (!current3.queuePaused || current3.running || current3.starting || current3.stopping || current3.closing) return false;
+    const unsure = current3.queue.filter((item) => item.state !== "waiting").length;
     if (unsure) {
       ui?.notify(tr(`\u6709 ${unsure} \u6761\u6D88\u606F\u53EF\u80FD\u5DF2\u53D1\u9001\uFF0C\u5148\u5728 /queue \u6838\u5BF9`, `${unsure} ${plural(unsure, "message")} may have been sent. Check them in /queue first.`), "warning");
       return false;
@@ -38620,9 +40716,9 @@ async function runInteractive(worker, options, request, ui) {
     return true;
   };
   const steerQueued = (item = store.get(state).queue[0]) => {
-    const current2 = store.get(state);
+    const current3 = store.get(state);
     if (!item) return;
-    if (!current2.running || current2.stopping || current2.closing) {
+    if (!current3.running || current3.stopping || current3.closing) {
       ui?.notify(tr("\u5F53\u524D\u6CA1\u6709\u8FD0\u884C\uFF0C\u6D88\u606F\u4F1A\u6309\u987A\u5E8F\u53D1\u9001\u3002", "Nothing is running; queued messages send in order."), "warning");
       return;
     }
@@ -38634,19 +40730,19 @@ async function runInteractive(worker, options, request, ui) {
       ui?.notify(tr("\u5E26\u9644\u4EF6\u7684\u6D88\u606F\u8981\u7B49\u672C\u8F6E\u7ED3\u675F\u540E\u53D1\u9001\u3002", "Messages with attachments send after this run."), "warning");
       return;
     }
-    if (Object.keys(current2.submissions).length) {
+    if (Object.keys(current3.submissions).length) {
       ui?.notify(tr("\u4E0A\u4E00\u6761\u8FD8\u5728\u63D0\u4EA4\uFF0C\u8BF7\u7A0D\u540E\u518D\u63D2\u8BDD\u3002", "The previous message is still submitting; try again shortly."), "warning");
       return;
     }
     try {
-      saveQueue(current2.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
+      saveQueue(current3.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
       tracked({ type: "submit", id: item.id, text: item.text, steer: true }, { text: item.text, steer: true });
     } catch (error) {
       entry(error.message, void 0, "error");
     }
   };
   const withdrawQueued = (item, edit) => {
-    if (edit) runtimeAttachmentRefs([...draftAttachments, ...(item.attachments ?? []).filter((file) => !draftAttachments.some((current2) => current2.id === file.id))]);
+    if (edit) runtimeAttachmentRefs([...draftAttachments, ...(item.attachments ?? []).filter((file) => !draftAttachments.some((current3) => current3.id === file.id))]);
     saveQueue(store.get(state).queue.filter((value) => value.id !== item.id));
     if (edit) restoreDraft(item.text, item.attachments);
   };
@@ -38664,20 +40760,20 @@ async function runInteractive(worker, options, request, ui) {
     if (!ui || editing) return;
     editing = true;
     try {
-      const current2 = store.get(state);
+      const current3 = store.get(state);
       const selected = await ui.select(tr("\u5F85\u53D1\u9001\u6D88\u606F", "Queued messages"), [
-        ...current2.queue.map((item2) => ({
+        ...current3.queue.map((item2) => ({
           value: item2.id,
           label: item2.text.replace(/\s+/g, " "),
           description: item2.state === "sending" ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : item2.state === "uncertain" ? tr("\u53EF\u80FD\u5DF2\u53D1\u9001\uFF0C\u9700\u6838\u5BF9", "May have been sent; check it") : tr("\u5F85\u53D1\u9001", "Queued")
         })),
         {
           value: ":toggle",
-          label: current2.queuePaused ? tr("\u7EE7\u7EED\u53D1\u9001", "Resume sending") : tr("\u6682\u505C\u53D1\u9001", "Pause sending"),
+          label: current3.queuePaused ? tr("\u7EE7\u7EED\u53D1\u9001", "Resume sending") : tr("\u6682\u505C\u53D1\u9001", "Pause sending"),
           description: tr("\u5F53\u524D\u4EFB\u52A1\u7ED3\u675F\u540E\u9010\u6761\u53D1\u9001", "Sends one by one after the current task")
         }
       ], {
-        description: current2.queue.length ? tr("\u5F85\u53D1\u9001\u5185\u5BB9\u5DF2\u4FDD\u5B58\u5728\u672C\u673A\uFF1B\u53D6\u6D88\u6216\u5F02\u5E38\u7ED3\u675F\u540E\u6682\u505C\uFF0C\u6309 Enter \u6216\u53D1\u65B0\u6D88\u606F\u7EE7\u7EED\u3002", "Queued messages are saved locally and pause after a cancel or error. Press Enter or send a new message to resume.") : tr("\u5F53\u524D\u6CA1\u6709\u5F85\u53D1\u9001\u6D88\u606F\u3002", "No queued messages.")
+        description: current3.queue.length ? tr("\u5F85\u53D1\u9001\u5185\u5BB9\u5DF2\u4FDD\u5B58\u5728\u672C\u673A\uFF1B\u53D6\u6D88\u6216\u5F02\u5E38\u7ED3\u675F\u540E\u6682\u505C\uFF0C\u6309 Enter \u6216\u53D1\u65B0\u6D88\u606F\u7EE7\u7EED\u3002", "Queued messages are saved locally and pause after a cancel or error. Enter or a new message resumes them.") : tr("\u5F53\u524D\u6CA1\u6709\u5F85\u53D1\u9001\u6D88\u606F\u3002", "No queued messages.")
       });
       if (selected === ":toggle") {
         update({ queuePaused: !store.get(state).queuePaused });
@@ -38721,13 +40817,13 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const switchSession = async (command, value) => {
-    const current2 = store.get(state);
-    if (!current2.session || editing || current2.closing) return;
+    const current3 = store.get(state);
+    if (!current3.session || editing || current3.closing) return;
     if (uploading) {
       entry(tr("\u8BF7\u7B49\u5F85\u9644\u4EF6\u6DFB\u52A0\u5B8C\u6210\uFF0C\u518D\u5207\u6362\u4F1A\u8BDD\u3002", "Wait for the attachment before switching sessions."));
       return;
     }
-    if (current2.running || current2.starting || Object.keys(current2.submissions).length) {
+    if (current3.running || current3.starting || Object.keys(current3.submissions).length) {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u5207\u6362\u4F1A\u8BDD\u3002", "Wait for the current operation before switching sessions."));
       return;
     }
@@ -38746,8 +40842,8 @@ async function runInteractive(worker, options, request, ui) {
           await ui.view(tr("\u6062\u590D\u4F1A\u8BDD", "Resume session"), tr("\u5F53\u524D\u6CA1\u6709\u53EF\u6062\u590D\u7684\u4F1A\u8BDD\u3002", "No sessions to resume."));
           return;
         }
-        const now = Date.now(), here = current2.session.cwd;
-        const currentId = current2.session.sessionId;
+        const now = Date.now(), here = current3.session.cwd;
+        const currentId = current3.session.sessionId;
         const rows = [...reply.sessions].sort((a, b) => Number(b.id === currentId) - Number(a.id === currentId) || Number(b.cwd === here) - Number(a.cwd === here) || b.updatedAt - a.updatedAt);
         const older = rows.filter((item) => item.id !== currentId && item.updatedAt < now - 3 * 864e5);
         const option = (item, hidden = false) => {
@@ -38775,7 +40871,7 @@ async function runInteractive(worker, options, request, ui) {
         busy = reply.sessions.some((item) => item.id === sessionId && item.busy);
       }
       if (command === "/resume" && !/^[A-Za-z0-9_-]{1,128}$/.test(sessionId)) throw new Error(tr("\u4F1A\u8BDD ID \u65E0\u6548", "Invalid session ID"));
-      if (sessionId === current2.session.sessionId) return;
+      if (sessionId === current3.session.sessionId) return;
       if (command === "/resume" && value) {
         const reply = await query({ type: "sessions", id: (0, import_node_crypto8.randomUUID)() }, AbortSignal.timeout(1e4));
         if (reply.type !== "sessions" || !reply.sessions.some((item) => item.id === sessionId)) throw new Error(tr("\u4F1A\u8BDD\u4E0D\u5B58\u5728", "Session not found"));
@@ -38791,11 +40887,11 @@ async function runInteractive(worker, options, request, ui) {
       }
       configure = {
         kind: "switch",
-        cwd: current2.session.cwd,
-        sessionId: current2.session.sessionId,
+        cwd: current3.session.cwd,
+        sessionId: current3.session.sessionId,
         next: { command: "interactive", configDir: request.configDir, ...command === "/resume" ? { sessionId } : {
-          cwd: current2.session.cwd,
-          newSessionFrom: current2.session.sessionId
+          cwd: current3.session.cwd,
+          newSessionFrom: current3.session.sessionId
         } }
       };
       update({ closing: true, queuePaused: true });
@@ -38811,15 +40907,15 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const rewind = async () => {
-    const current2 = store.get(state);
-    if (!ui || !current2.session || editing || current2.closing) return;
-    if (current2.running || current2.starting || Object.keys(current2.submissions).length) {
+    const current3 = store.get(state);
+    if (!ui || !current3.session || editing || current3.closing) return;
+    if (current3.running || current3.starting || Object.keys(current3.submissions).length) {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u56DE\u9000\u3002", "Wait for the current operation before rewinding."));
       return;
     }
     editing = true;
     try {
-      const sessionId = current2.session.sessionId;
+      const sessionId = current3.session.sessionId;
       const reply = await ui.wait(tr("\u8BFB\u53D6\u56DE\u9000\u70B9", "Reading rewind points"), (signal) => query({ type: "rewind", id: (0, import_node_crypto8.randomUUID)(), sessionId }, signal));
       if (reply.type !== "rewind-points") return;
       if (!reply.points.length) {
@@ -38850,7 +40946,7 @@ async function runInteractive(worker, options, request, ui) {
           throw error;
         }
         restoreDraft(rewindDraft);
-        entry(tr("\u56DE\u9000\u7ED3\u679C\u672A\u786E\u8BA4\uFF0C\u539F\u6D88\u606F\u5DF2\u653E\u56DE\u8F93\u5165\u6846\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u3002", "Couldn\u2019t confirm the rewind. The message is back in the input; check the session.") + (known === void 0 && excerpt.length >= 200 ? tr("\u53EA\u53D6\u56DE\u4E86\u524D 200 \u4E2A\u5B57\u7B26\uFF0C\u539F\u6587\u53EF\u80FD\u4E0D\u5B8C\u6574\u3002", " Only the first 200 characters were recovered; the text may be incomplete.") : "") + "\n" + error.message, void 0, "error");
+        entry(tr("\u65E0\u6CD5\u786E\u8BA4\u56DE\u9000\u7ED3\u679C\uFF0C\u539F\u6D88\u606F\u5DF2\u653E\u56DE\u8F93\u5165\u6846\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u3002", "Couldn\u2019t confirm the rewind. The message is back in the input; check the session.") + (known === void 0 && excerpt.length >= 200 ? tr("\u53EA\u53D6\u56DE\u4E86\u524D 200 \u4E2A\u5B57\u7B26\uFF0C\u539F\u6587\u53EF\u80FD\u4E0D\u5B8C\u6574\u3002", " Only the first 200 characters were recovered; the text may be incomplete.") : "") + "\n" + error.message, void 0, "error");
         return;
       }
       rewindDraft = void 0;
@@ -38864,11 +40960,11 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const showDiff = async () => {
-    const current2 = store.get(state);
-    if (!ui || !current2.session || editing || current2.closing) return;
+    const current3 = store.get(state);
+    if (!ui || !current3.session || editing || current3.closing) return;
     editing = true;
     try {
-      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto8.randomUUID)(), sessionId: current2.session.sessionId }, signal));
+      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto8.randomUUID)(), sessionId: current3.session.sessionId }, signal));
       if (reply.type !== "diff") return;
       if (!reply.fileChanges.length) {
         await ui.view(tr("\u672C\u4F1A\u8BDD\u6539\u52A8", "Changes in this session"), tr("\u672C\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u6587\u4EF6\u6539\u52A8", "No file changes in this session yet"));
@@ -38902,16 +40998,16 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const openSettings = async (command) => {
-    const current2 = store.get(state);
-    if (!ui || !current2.session || editing) return;
-    const busy = current2.running || Object.keys(current2.submissions).length > 0;
+    const current3 = store.get(state);
+    if (!ui || !current3.session || editing) return;
+    const busy = current3.running || Object.keys(current3.submissions).length > 0;
     if (busy && command !== "/settings") {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u4FEE\u6539\u8BBE\u7F6E\u3002", "Wait for the current operation before changing settings."));
       return;
     }
     editing = true;
     let next;
-    const session = current2.session;
+    const session = current3.session;
     const connection = { version: 1, provider: session.provider, baseUrl: session.baseUrl, model: session.model };
     const actions = {
       models: async (draft, signal) => {
@@ -39020,13 +41116,13 @@ async function runInteractive(worker, options, request, ui) {
         );
       } else if (command === "/permissions") {
         const mode = await ui.select(tr("\u6743\u9650\u6A21\u5F0F", "Permission mode"), [
-          { value: "auto", label: tr("\u6309\u9700\u786E\u8BA4", "Ask for approval") },
-          { value: "plan", label: tr("\u8BA1\u5212", "Plan"), description: tr("\u53EA\u8BFB\u5206\u6790", "Read-only analysis") },
-          { value: "bypassPermissions", label: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve"), description: tr("\u4ECD\u4FDD\u7559\u4E0D\u53EF\u9006\u547D\u4EE4\u4FDD\u62A4", "Irreversible commands stay protected") }
+          { value: "auto", label: modeLabel("auto") },
+          { value: "plan", label: modeLabel("plan"), description: tr("\u53EA\u8BFB\u5206\u6790", "Read-only analysis") },
+          { value: "bypassPermissions", label: modeLabel("bypassPermissions"), description: tr("\u4ECD\u4FDD\u7559\u4E0D\u53EF\u9006\u547D\u4EE4\u4FDD\u62A4", "Irreversible commands stay protected") }
         ], { initial: session.mode, search: false });
         tracked(
           { type: "settings", id: (0, import_node_crypto8.randomUUID)(), mode },
-          { notice: { auto: "Auto", plan: "Plan", bypassPermissions: "Bypass" }[mode] + tr("  \u6743\u9650\u5DF2\u66F4\u65B0\u3002", "  Permissions updated") }
+          { notice: modeNotice(mode), log: true }
         );
       } else {
         if (options.desktop) {
@@ -39045,16 +41141,16 @@ async function runInteractive(worker, options, request, ui) {
     if (next) await openSettings(next);
   };
   const addAttachment = async (path) => {
-    const current2 = store.get(state);
-    if (!ui || !current2.session || current2.closing || uploading) return;
+    const current3 = store.get(state);
+    if (!ui || !current3.session || current3.closing || uploading) return;
     if (draftAttachments.length >= 8) throw new Error(tr("\u6700\u591A\u6DFB\u52A0 8 \u4E2A\u9644\u4EF6", "You can add up to 8 attachments"));
     uploading = true;
     let staged;
     try {
-      const file = path ? readSelectedAttachment(path, current2.session.cwd) : { bytes: await clipboardImage(), filename: "clipboard-" + Date.now() + ".png" };
+      const file = path ? readSelectedAttachment(path, current3.session.cwd) : { bytes: await clipboardImage(), filename: "clipboard-" + Date.now() + ".png" };
       staged = stageAttachment(request.configDir, file.bytes);
       const reply = await query(
-        { type: "attachment", id: (0, import_node_crypto8.randomUUID)(), sessionId: current2.session.sessionId, path: staged, filename: file.filename },
+        { type: "attachment", id: (0, import_node_crypto8.randomUUID)(), sessionId: current3.session.sessionId, path: staged, filename: file.filename },
         AbortSignal.timeout(1e4)
       );
       if (reply.type !== "attachment" || reply.sessionId !== store.get(state).session?.sessionId || store.get(state).closing) {
@@ -39089,10 +41185,10 @@ async function runInteractive(worker, options, request, ui) {
   const requestPrediction = () => {
     predicting?.abort();
     predicting = void 0;
-    const current2 = store.get(state);
-    if (!ui?.setPrediction || appearanceStore.get(appearanceAtom).predictions === false || !current2.session || current2.running || current2.starting || current2.queue.length || current2.requests.length || ui.editor.getText()) return;
-    const user = current2.entries.findLast((item) => item.kind === "user" && !item.agentId)?.text ?? "";
-    const assistant = current2.entries.findLast((item) => item.kind === "assistant" && !item.agentId)?.text ?? "";
+    const current3 = store.get(state);
+    if (!ui?.setPrediction || appearanceStore.get(appearanceAtom).predictions === false || !current3.session || current3.running || current3.starting || current3.queue.length || current3.requests.length || ui.editor.getText()) return;
+    const user = current3.entries.findLast((item) => item.kind === "user" && !item.agentId)?.text ?? "";
+    const assistant = current3.entries.findLast((item) => item.kind === "assistant" && !item.agentId)?.text ?? "";
     if (!user || !assistant) return;
     const controller = predicting = new AbortController();
     const screen = ui;
@@ -39112,8 +41208,8 @@ async function runInteractive(worker, options, request, ui) {
       else if (store.get(state).queue.length && resumeQueue()) dispatchQueue();
       return;
     }
-    const current2 = store.get(state);
-    if (!current2.session || current2.closing) {
+    const current3 = store.get(state);
+    if (!current3.session || current3.closing) {
       entry(tr("\u5F53\u524D\u5C1A\u4E0D\u80FD\u53D1\u9001\uFF0C\u8349\u7A3F\u5DF2\u4FDD\u7559\u3002", "Can\u2019t send yet; draft kept."));
       restoreDraft(text2);
       return;
@@ -39125,9 +41221,9 @@ async function runInteractive(worker, options, request, ui) {
         if (ui) ui.showHelp();
         else entry(help(commandContext()));
       } else if (command === "/status") {
-        const session = current2.session;
-        const context = current2.context;
-        entry("Cortex CLI v" + version + "\n" + (session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + (session.provider ? tr("\u4F9B\u5E94\u5546\uFF1A", "Provider: ") + session.provider + (session.credentialSource === "environment" ? tr("\uFF08\u73AF\u5883\u53D8\u91CF\u51ED\u636E\uFF09", " (environment credentials)") : session.credentialSource === "saved" ? tr("\uFF08\u5DF2\u4FDD\u5B58\u8FDE\u63A5\uFF09", " (saved connection)") : session.credentialSource === "desktop" ? tr("\uFF08\u684C\u9762\u8FDE\u63A5\uFF09", " (desktop connection)") : "") + "\n" : "") + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
+        const session = current3.session;
+        const context = current3.context;
+        entry("Cortex CLI v" + version + "\n" + (session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + (session.provider ? tr("\u4F9B\u5E94\u5546\uFF1A", "Provider: ") + session.provider + (session.credentialSource === "environment" ? tr("\uFF08\u73AF\u5883\u53D8\u91CF\u51ED\u636E\uFF09", " (environment credentials)") : session.credentialSource === "saved" ? tr("\uFF08\u5DF2\u4FDD\u5B58\u8FDE\u63A5\uFF09", " (saved connection)") : session.credentialSource === "desktop" ? tr("\uFF08\u684C\u9762\u8FDE\u63A5\uFF09", " (desktop connection)") : "") + "\n" : "") + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current3.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
       } else if (command === "/mcp") {
         void (async () => {
           const ask = (signal) => query({ type: "mcp", id: (0, import_node_crypto8.randomUUID)() }, signal);
@@ -39142,7 +41238,7 @@ async function runInteractive(worker, options, request, ui) {
       } else if (command === "/queue") {
         if (ui) void openQueue();
         else {
-          const count = current2.queue.length;
+          const count = current3.queue.length;
           entry(tr("\u5F85\u53D1\u9001\uFF1A", "Queued: ") + count + tr(" \u6761\uFF1B\u4F7F\u7528\u4EA4\u4E92\u7EC8\u7AEF\u7BA1\u7406\u3002", " " + plural(count, "message") + "; manage them in an interactive terminal."));
         }
       } else if (command === "/attach" || command === "/attachments" || command === "/stop-agents") {
@@ -39163,18 +41259,18 @@ async function runInteractive(worker, options, request, ui) {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
         else {
-          entry(current2.agents.length ? current2.agents.map((agent) => agent.name + tr("\uFF1A", ": ") + agent.status).join("\n") : tr("\u672C\u8F6E\u8FD8\u6CA1\u6709\u5B50\u4EE3\u7406\u3002", "No subagents in this run yet."));
+          entry(current3.agents.length ? current3.agents.map((agent) => agent.name + tr("\uFF1A", ": ") + agent.status).join("\n") : tr("\u672C\u8F6E\u8FD8\u6CA1\u6709\u5B50\u4EE3\u7406\u3002", "No subagents in this run yet."));
         }
       } else if (command === "/rename") {
-        if (current2.running || current2.starting || Object.keys(current2.submissions).length) {
+        if (current3.running || current3.starting || Object.keys(current3.submissions).length) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u6539\u540D\u3002", "Wait for the current operation before renaming."));
           return;
         }
-        const sessionId = current2.session.sessionId;
+        const sessionId = current3.session.sessionId;
         void (async () => {
           const title = (value || await ui?.ask(tr("\u4F1A\u8BDD\u540D\u79F0", "Session name"), {
             // 未命名标记不作为预填内容
-            value: DEFAULT_SESSION_TITLES.has(current2.session.title ?? "") ? "" : current2.session.title ?? ""
+            value: DEFAULT_SESSION_TITLES.has(current3.session.title ?? "") ? "" : current3.session.title ?? ""
           }) || "").trim();
           if (!title) {
             entry(tr("\u7528\u6CD5\uFF1A/rename <\u540D\u79F0>", "Usage: /rename <title>"));
@@ -39186,7 +41282,7 @@ async function runInteractive(worker, options, request, ui) {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
       } else if (command === "/export") {
-        const session = current2.session;
+        const session = current3.session;
         const stamp = /* @__PURE__ */ new Date(), pad = (n) => String(n).padStart(2, "0");
         const time = `${stamp.getFullYear()}${pad(stamp.getMonth() + 1)}${pad(stamp.getDate())}-${pad(stamp.getHours())}${pad(stamp.getMinutes())}`;
         const slug = (session.title ?? "").replace(/[\\/:*?"<>|\x00-\x1f]/g, "").trim().replace(/\s+/g, "-") || session.sessionId.slice(0, 8);
@@ -39194,7 +41290,7 @@ async function runInteractive(worker, options, request, ui) {
         try {
           (0, import_node_fs18.writeFileSync)(
             path,
-            transcriptMarkdown(current2.entries, { title: session.title, model: session.model, cwd: session.cwd, exportedAt: stamp.getTime() }),
+            transcriptMarkdown(current3.entries, { title: session.title, model: session.model, cwd: session.cwd, exportedAt: stamp.getTime() }),
             { flag: "wx" }
           );
           entry(tr("\u5DF2\u5BFC\u51FA\uFF1A", "Exported: ") + path);
@@ -39202,14 +41298,14 @@ async function runInteractive(worker, options, request, ui) {
           entry(error.code === "EEXIST" ? tr("\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u672A\u8986\u76D6\uFF1A", "File already exists, not overwritten: ") + path : error.message, void 0, "error");
         }
       } else if (command === "/copy") {
-        const reply = mainTranscript(current2.entries).findLast((item) => item.kind === "assistant");
+        const reply = mainTranscript(current3.entries).findLast((item) => item.kind === "assistant");
         if (!reply) {
           entry(tr("\u8FD8\u6CA1\u6709\u53EF\u590D\u5236\u7684\u56DE\u590D\u3002", "No reply to copy yet."));
           return;
         }
-        void (ui?.copyText(clean(rewriteMentionLinks(reply.text, current2.session.cwd, false))) ?? Promise.resolve(false)).then((ok) => ok ? ui?.notify(tr("\u5DF2\u590D\u5236", "Copied"), "success") : (ui?.notify(tr("\u590D\u5236\u5931\u8D25", "Couldn\u2019t copy"), "error"), entry(tr("\u590D\u5236\u5931\u8D25\u3002", "Couldn\u2019t copy."), void 0, "error")));
+        void (ui?.copyText(clean(rewriteMentionLinks(reply.text, current3.session.cwd, false))) ?? Promise.resolve(false)).then((result) => result === "clipboard" ? ui?.notify(tr("\u5DF2\u590D\u5236", "Copied"), "success") : result === "terminal" ? ui?.notify(tr("\u5DF2\u53D1\u9001\u5230\u7EC8\u7AEF\uFF0C\u8BF7\u7C98\u8D34\u6838\u5BF9", "Copy sent to terminal. Paste to verify"), "info") : (ui?.notify(tr("\u65E0\u6CD5\u590D\u5236", "Couldn\u2019t copy"), "error"), entry(tr("\u65E0\u6CD5\u590D\u5236\u3002", "Couldn\u2019t copy."), void 0, "error")));
       } else if (command === "/todos") {
-        const tasks = currentTasks(current2);
+        const tasks = currentTasks(current3);
         const body = tasks.length ? taskLines(tasks) : tr("\u5F53\u524D\u6CA1\u6709\u4EFB\u52A1\u6E05\u5355\u3002", "No tasks yet.");
         if (ui) void ui.view(tr("\u4EFB\u52A1\u6E05\u5355", "Tasks"), body).catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
@@ -39222,7 +41318,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         try {
-          saveQueue([...current2.queue, { id: (0, import_node_crypto8.randomUUID)(), text: "/compact", state: "waiting" }]);
+          saveQueue([...current3.queue, { id: (0, import_node_crypto8.randomUUID)(), text: "/compact", state: "waiting" }]);
           dispatchQueue();
         } catch (error) {
           entry(error.message, void 0, "error");
@@ -39248,7 +41344,7 @@ async function runInteractive(worker, options, request, ui) {
           entry(tr("\u5171\u4EAB\u6A21\u5F0F\u8BF7\u5728 Cortex \u684C\u9762\u4E2D\u8BBE\u7F6E\u4F9B\u5E94\u5546\u3002", "In shared mode, set providers in Cortex desktop."));
           return;
         }
-        if (command === "/config" && (current2.running || Object.keys(current2.submissions).length)) {
+        if (command === "/config" && (current3.running || Object.keys(current3.submissions).length)) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u4FEE\u6539\u914D\u7F6E\u3002", "Wait for the current operation before changing the configuration."));
           return;
         }
@@ -39264,23 +41360,16 @@ async function runInteractive(worker, options, request, ui) {
           "\u8BBE\u7F6E\u4FDD\u5B58\u540E\u5C06\u65B0\u5EFA\u4F1A\u8BDD\uFF1B\u5F53\u524D\u4F1A\u8BDD\u4FDD\u7559\u3002\u53D6\u6D88\u8BBE\u7F6E\u5219\u8FD4\u56DE\u5F53\u524D\u4F1A\u8BDD\u3002",
           "Saving settings starts a new session and keeps this one. Cancel to return to this session."
         ));
-        configure = { kind: "configure", cwd: current2.session.cwd, sessionId: current2.session.sessionId };
+        configure = { kind: "configure", cwd: current3.session.cwd, sessionId: current3.session.sessionId };
         update({ closing: true });
         send({ type: "close" });
       } else if (command === "/exit") {
-        if (value === "detach" && options.desktop) {
-          update({ closing: true });
-          send({ type: "detach" });
-          return;
-        }
-        if (current2.running && value !== "cancel") {
-          entry(options.desktop ? tr("\u5F53\u524D\u4ECD\u5728\u8FD0\u884C\u3002/exit detach \u4FDD\u7559\u4EFB\u52A1\u5E76\u79BB\u5F00\uFF1B/exit cancel \u53D6\u6D88\u5E76\u9000\u51FA\u3002", "Still running. /exit detach leaves it running; /exit cancel cancels and quits.") : tr("\u5F53\u524D\u4ECD\u5728\u8FD0\u884C\u3002\u8F93\u5165 /exit cancel \u53D6\u6D88\u5E76\u9000\u51FA\uFF0C\u6216\u7EE7\u7EED\u7B49\u5F85\u3002", "Still running. Enter /exit cancel to cancel and quit, or keep waiting."));
-        } else cancel(true);
+        requestExit(value);
       } else if (command === "/model" || command === "/permissions" || command === "/thinking") {
         if (!value) {
           if (ui) void openSettings(command);
           else {
-            entry(command === "/model" ? tr("\u6A21\u578B\uFF1A", "Model: ") + current2.session.model : command === "/thinking" ? tr("\u601D\u8003\uFF1A", "Thinking: ") + (current2.session.thinking?.value ?? tr("\u672A\u77E5", "Unknown")) : tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(current2.session.mode));
+            entry(command === "/model" ? tr("\u6A21\u578B\uFF1A", "Model: ") + current3.session.model : command === "/thinking" ? tr("\u601D\u8003\uFF1A", "Thinking: ") + (current3.session.thinking?.value ?? tr("\u672A\u77E5", "Unknown")) : tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(current3.session.mode));
           }
           return;
         }
@@ -39288,7 +41377,7 @@ async function runInteractive(worker, options, request, ui) {
           entry(tr("\u6743\u9650\u6A21\u5F0F\u65E0\u6548\u3002", "Invalid permission mode."));
           return;
         }
-        if (command === "/thinking" && !current2.session.thinking?.levels.includes(value)) {
+        if (command === "/thinking" && !current3.session.thinking?.levels.includes(value)) {
           entry(tr("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6\u3002", "This model doesn\u2019t support that thinking level."));
           return;
         }
@@ -39297,9 +41386,9 @@ async function runInteractive(worker, options, request, ui) {
           id: (0, import_node_crypto8.randomUUID)(),
           scope: "session",
           ...command === "/model" ? { model: value } : command === "/thinking" ? { thinking: value } : { mode: value }
-        }, { notice: value + tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only") });
+        }, command === "/permissions" ? { notice: modeNotice(value) + "\n" + tr("\u4EC5\u5F53\u524D\u4F1A\u8BDD\u3002", "This session only."), log: true } : { notice: value + tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only") });
       } else if (command === "/allow" || command === "/deny") {
-        const pending = current2.requests[0]?.interaction;
+        const pending = current3.requests[0]?.interaction;
         if (!pending || pending.kind === "question") {
           entry(tr("\u5F53\u524D\u6CA1\u6709\u5F85\u786E\u8BA4\u64CD\u4F5C\uFF1B\u95EE\u9898\u8BF7\u7528 /answer \u56DE\u7B54\u3002", "Nothing to approve; answer questions with /answer."));
           return;
@@ -39313,14 +41402,14 @@ async function runInteractive(worker, options, request, ui) {
           respond("allow_session");
         } else respond(pending.kind === "plan" ? "approve_edit" : "allow");
       } else if (command === "/answer") {
-        const pending = current2.requests[0]?.interaction;
+        const pending = current3.requests[0]?.interaction;
         if (pending?.kind !== "question" || !value) {
           entry(tr("\u8BF7\u5728\u6709\u95EE\u9898\u65F6\u8F93\u5165 /answer <\u56DE\u7B54\u5185\u5BB9>\u3002", "Use /answer <answer> when there\u2019s a question."));
           return;
         }
-        const question = pending.request.questions.find((item) => !current2.answers[item.question]);
+        const question = pending.request.questions.find((item) => !current3.answers[item.question]);
         if (!question) return;
-        const answers = { ...current2.answers, [question.question]: value };
+        const answers = { ...current3.answers, [question.question]: value };
         update({ answers });
         if (pending.request.questions.every((item) => answers[item.question])) respond(answers);
       } else {
@@ -39336,7 +41425,7 @@ async function runInteractive(worker, options, request, ui) {
     }
     let attachments;
     try {
-      attachments = runtimeAttachmentRefs(draftAttachments, current2.session.sessionId);
+      attachments = runtimeAttachmentRefs(draftAttachments, current3.session.sessionId);
     } catch (error) {
       entry(error.message, void 0, "error");
       restoreDraft(text2);
@@ -39344,7 +41433,7 @@ async function runInteractive(worker, options, request, ui) {
     }
     if (!text2.trim()) text2 = "\u8BF7\u67E5\u770B\u9644\u4EF6\u3002";
     try {
-      saveQueue([...current2.queue, { id: (0, import_node_crypto8.randomUUID)(), text: text2, attachments, state: "waiting" }]);
+      saveQueue([...current3.queue, { id: (0, import_node_crypto8.randomUUID)(), text: text2, attachments, state: "waiting" }]);
       draftAttachments = [];
       ui?.setAttachments?.([]);
       resumeQueue();
@@ -39355,8 +41444,8 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const pendingText = () => {
-    const current2 = store.get(state);
-    const item = current2.requests[0]?.interaction;
+    const current3 = store.get(state);
+    const item = current3.requests[0]?.interaction;
     if (!item) return "";
     if (item.kind === "permission") {
       return tr("\u9700\u8981\u786E\u8BA4\uFF1A", "Approval needed: ") + item.request.toolName + "\n" + item.request.description + "\n" + (item.request.editPreview ?? JSON.stringify(item.request.toolInput, null, 2)) + "\n" + (item.request.decisionReason ?? "") + "\n" + (item.request.allowAlways === false ? tr("/allow \u5141\u8BB8\u672C\u6B21    /deny [\u539F\u56E0] \u62D2\u7EDD", "/allow allow once    /deny [reason] deny") : tr(
@@ -39367,9 +41456,19 @@ async function runInteractive(worker, options, request, ui) {
     if (item.kind === "plan") {
       return tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?") + "\n" + item.request.plan + "\n" + tr("/allow \u6279\u51C6    /deny [\u610F\u89C1] \u62D2\u7EDD", "/allow approve    /deny [feedback] deny");
     }
-    const question = item.request.questions.find((value) => !current2.answers[value.question]);
+    const question = item.request.questions.find((value) => !current3.answers[value.question]);
     if (!question) return tr("\u6B63\u5728\u63D0\u4EA4\u56DE\u7B54\u3002", "Submitting answer\u2026");
     return tr("\u9700\u8981\u56DE\u7B54\uFF1A", "Answer needed: ") + question.question + "\n" + question.options.map((option) => option.label + (option.description ? tr("\uFF1A", ": ") + option.description : "")).join("\n") + "\n" + tr("/answer <\u56DE\u7B54\u5185\u5BB9>", "/answer <answer>") + (question.multiSelect ? tr("\uFF08\u53EF\u586B\u5199\u591A\u4E2A\u9009\u9879\uFF09", " (multiple options allowed)") : "");
+  };
+  const requestExit = (value) => {
+    if (value === "detach" && options.desktop) {
+      update({ closing: true });
+      send({ type: "detach" });
+      return;
+    }
+    if (store.get(state).running && value !== "cancel") {
+      entry(options.desktop ? tr("\u5F53\u524D\u4ECD\u5728\u8FD0\u884C\u3002/exit detach \u4FDD\u7559\u4EFB\u52A1\u5E76\u79BB\u5F00\uFF1B/exit cancel \u53D6\u6D88\u5E76\u9000\u51FA\u3002", "Still running. /exit detach leaves it running; /exit cancel cancels and quits.") : tr("\u5F53\u524D\u4ECD\u5728\u8FD0\u884C\u3002\u8F93\u5165 /exit cancel \u53D6\u6D88\u5E76\u9000\u51FA\uFF0C\u6216\u7EE7\u7EED\u7B49\u5F85\u3002", "Still running. Enter /exit cancel to cancel and quit, or keep waiting."));
+    } else cancel(true);
   };
   const onSignal = () => cancel();
   const onEnd = () => {
@@ -39422,7 +41521,7 @@ async function runInteractive(worker, options, request, ui) {
             entry(tr("\u5DF2\u6062\u590D ", "Restored ") + queue.length + tr(" \u6761\u5F85\u53D1\u9001\u6D88\u606F\uFF1B/queue \u6838\u5BF9\u540E\u7EE7\u7EED\u3002", " queued " + plural(queue.length, "message") + "; check them with /queue to continue."));
           }
         } catch (error) {
-          entry(tr("\u5F85\u53D1\u9001\u6062\u590D\u5931\u8D25\uFF1A", "Couldn\u2019t restore queued messages: ") + error.message, void 0, "error");
+          entry(tr("\u65E0\u6CD5\u6062\u590D\u5F85\u53D1\u9001\u7684\u6D88\u606F\uFF1A", "Couldn\u2019t restore queued messages: ") + error.message, void 0, "error");
         }
         addHistory(message);
         if (!ui) entry(tr("\u4F1A\u8BDD\uFF1A", "Session: ") + message.sessionId + "\n" + help(commandContext()));
@@ -39455,20 +41554,20 @@ async function runInteractive(worker, options, request, ui) {
         else lookup.reject(new HostRejected(message.message ?? tr("\u67E5\u8BE2\u5931\u8D25", "Query failed")));
         return;
       }
-      const current2 = store.get(state);
-      const submission = current2.submissions[message.id];
-      const submissions = { ...current2.submissions };
+      const current3 = store.get(state);
+      const submission = current3.submissions[message.id];
+      const submissions = { ...current3.submissions };
       delete submissions[message.id];
       update({ submissions });
-      const queued = current2.queue.find((item) => item.id === message.id);
+      const queued = current3.queue.find((item) => item.id === message.id);
       if (queued) {
         try {
-          saveQueue(message.accepted ? current2.queue.filter((item) => item.id !== message.id) : current2.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto8.randomUUID)(), state: "waiting" } : item));
+          saveQueue(message.accepted ? current3.queue.filter((item) => item.id !== message.id) : current3.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto8.randomUUID)(), state: "waiting" } : item));
           if (!message.accepted) update({ queuePaused: true });
         } catch (error) {
-          update({ queue: current2.queue.map((item) => item.id === message.id ? { ...item, state: "uncertain" } : item), queuePaused: true });
+          update({ queue: current3.queue.map((item) => item.id === message.id ? { ...item, state: "uncertain" } : item), queuePaused: true });
           entry(
-            tr("\u961F\u5217\u4FDD\u5B58\u5931\u8D25\uFF0C\u8BF7\u6838\u5BF9\u6D88\u606F\uFF0C\u52FF\u91CD\u590D\u53D1\u9001\uFF1A", "Couldn\u2019t save the queue. Check the messages and don\u2019t resend them: ") + error.message,
+            tr("\u65E0\u6CD5\u4FDD\u5B58\u961F\u5217\uFF0C\u8BF7\u6838\u5BF9\u6D88\u606F\uFF0C\u52FF\u91CD\u590D\u53D1\u9001\uFF1A", "Couldn\u2019t save the queue. Check the messages and don\u2019t resend them: ") + error.message,
             void 0,
             "error"
           );
@@ -39477,7 +41576,7 @@ async function runInteractive(worker, options, request, ui) {
       if (message.accepted) {
         if (message.message && message.message !== "\u5DF2\u6392\u961F") entry(message.message);
         else if (submission?.notice) {
-          if (ui) ui.notify(submission.notice, "success");
+          if (ui && !submission.log) ui.notify(submission.notice, "success");
           else entry(submission.notice);
         }
         if (submission?.text) {
@@ -39490,10 +41589,10 @@ async function runInteractive(worker, options, request, ui) {
           );
         }
         if (submission?.requestId) {
-          update({ requests: current2.requests.filter((item) => item.interaction.request.requestId !== submission.requestId), answers: {} });
+          update({ requests: current3.requests.filter((item) => item.interaction.request.requestId !== submission.requestId), answers: {} });
         }
       } else {
-        if (submission?.text && current2.startingId === message.id) update({ starting: false, startingId: void 0 });
+        if (submission?.text && current3.startingId === message.id) update({ starting: false, startingId: void 0 });
         if (message.message !== "\u6D88\u606F\u672A\u53D7\u7406\uFF0C\u8BF7\u67E5\u770B\u9519\u8BEF\u540E\u91CD\u8BD5")
           entry(tr("\u672A\u53D7\u7406\uFF1A", "Not accepted: ") + message.message, void 0, "error");
         if (submission?.text && !queued) restoreDraft(submission.text, submission.attachments);
@@ -39526,14 +41625,14 @@ async function runInteractive(worker, options, request, ui) {
       } else if (event.type === "context.updated") {
         if (event.sessionId === store.get(state).session?.sessionId && event.runId === store.get(state).runId) update({ context: event.context });
       } else if (event.type === "agents.updated") {
-        const current2 = store.get(state);
-        if (current2.running && event.sessionId === current2.session?.sessionId && event.runId === current2.runId && (current2.agentsSequence === void 0 || event.sequence >= current2.agentsSequence)) {
-          const notifications = agentEntries(event.agents ?? [], current2.agents, event.runId);
+        const current3 = store.get(state);
+        if (current3.running && event.sessionId === current3.session?.sessionId && event.runId === current3.runId && (current3.agentsSequence === void 0 || event.sequence >= current3.agentsSequence)) {
+          const notifications = agentEntries(event.agents ?? [], current3.agents, event.runId);
           update({
             agents: event.agents ?? [],
             agentsSequence: event.sequence,
             agentsTruncated: event.agentsTruncated,
-            entries: upsertEntries(current2.entries, notifications)
+            entries: upsertEntries(current3.entries, notifications)
           });
         }
       } else if (event.type === "message.updated") entry(event.text ?? "", `${event.sessionId}:${event.messageId}`, "assistant", void 0, event.agentId);
@@ -39566,21 +41665,21 @@ async function runInteractive(worker, options, request, ui) {
         update({ entries });
       }
     } else if (message.type === "result") {
-      const current2 = store.get(state);
+      const current3 = store.get(state);
       if (!isCurrentResult(
         message.result,
-        current2.session?.sessionId,
-        current2.running ? current2.runId : void 0,
-        current2.starting ? current2.startingId : void 0
+        current3.session?.sessionId,
+        current3.running ? current3.runId : void 0,
+        current3.starting ? current3.startingId : void 0
       )) {
         const history = resultEntries(message.result);
-        if (message.result.answer && !current2.entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === message.result.runId)) history.unshift({
+        if (message.result.answer && !current3.entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === message.result.runId)) history.unshift({
           id: message.result.runId + ":history-answer",
           kind: "assistant",
           runId: message.result.runId ?? void 0,
           text: clean(message.result.answer)
         });
-        update({ entries: [...current2.entries, ...history.filter((item) => !current2.entries.some((existing) => existing.id === item.id))] });
+        update({ entries: [...current3.entries, ...history.filter((item) => !current3.entries.some((existing) => existing.id === item.id))] });
         return;
       }
       if (timeout) clearTimeout(timeout);
@@ -39596,20 +41695,20 @@ async function runInteractive(worker, options, request, ui) {
         queuePaused: store.get(state).queuePaused || !["completed", "blocked"].includes(message.result.status),
         startupFailed: !store.get(state).session
       });
-      if (current2.session) refreshBranch(current2.session.cwd);
+      if (current3.session) refreshBranch(current3.session.cwd);
       process.exitCode = outputFailed ? 4 : timedOut && message.result.status === "cancelled" ? 124 : message.result.exitCode;
       const result = message.result;
       update({
-        agents: result.agents ?? current2.agents.map((agent) => ({
+        agents: result.agents ?? current3.agents.map((agent) => ({
           ...agent,
           ...["queued", "running"].includes(agent.status) && { status: "interrupted" },
           controllable: false,
           steerable: false,
           waitingConfirmation: false
         })),
-        agentsTruncated: result.agentsTruncated ?? current2.agentsTruncated
+        agentsTruncated: result.agentsTruncated ?? current3.agentsTruncated
       });
-      const notifications = agentEntries(store.get(state).agents, current2.agents, result.runId ?? "");
+      const notifications = agentEntries(store.get(state).agents, current3.agents, result.runId ?? "");
       update({ entries: upsertEntries(store.get(state).entries, notifications) });
       if (result.answer && !store.get(state).entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === result.runId)) {
         entry(result.answer, void 0, "assistant");
@@ -39651,8 +41750,8 @@ async function runInteractive(worker, options, request, ui) {
         process.stdout.write(tr("\u672A\u53D1\u9001\u8349\u7A3F\uFF1A", "Unsent draft: ") + clean(text2) + "\n");
       };
       const unsubscribe = store.sub(state, () => {
-        const current2 = store.get(state);
-        for (const item of current2.entries) {
+        const current3 = store.get(state);
+        for (const item of current3.entries) {
           if (printed.get(item.id) !== item.text) {
             const speaker = item.agentId ? "@" + item.agentId + tr("\uFF1A", ": ") : item.kind === "assistant" ? tr("Cortex\uFF1A", "Cortex: ") : item.kind === "user" ? tr("\u4F60\uFF1A", "You: ") : "";
             process.stdout.write(speaker + item.text + "\n");
@@ -39721,7 +41820,7 @@ async function runInteractive(worker, options, request, ui) {
             const description = pending.kind === "permission" ? approvalDetails(pending.request) : pending.request.plan;
             const session2 = pending.kind === "permission" && pending.request.allowAlways !== false;
             const remembered = pending.kind === "permission" && pending.request.toolName === "Bash" ? clean(extractBaseCommand(String(pending.request.toolInput.command ?? ""))) : "";
-            const scope = pending.kind !== "permission" ? "" : remembered ? tr(" \xB7 \u4E0D\u518D\u8BE2\u95EE " + remembered + " \u547D\u4EE4", " \xB7 " + remembered + " commands won\u2019t ask again") : tr(" \xB7 \u4E0D\u518D\u8BE2\u95EE " + pending.request.toolName, " \xB7 " + pending.request.toolName + " won\u2019t ask again");
+            const scope = pending.kind !== "permission" ? "" : remembered ? tr("  \u4E0D\u518D\u8BE2\u95EE " + remembered + " \u547D\u4EE4", "  " + remembered + " commands won\u2019t ask again") : tr("  \u4E0D\u518D\u8BE2\u95EE " + pending.request.toolName, "  " + pending.request.toolName + " won\u2019t ask again");
             const feedback = { value: "feedback", key: "e", label: tr("\u62D2\u7EDD\u5E76\u8BF4\u660E\u539F\u56E0\u2026", "Deny and explain\u2026") };
             const deny = { value: "deny", key: "n", label: tr("\u62D2\u7EDD", "Deny") };
             const items = pending.kind === "permission" ? [
@@ -39731,10 +41830,10 @@ async function runInteractive(worker, options, request, ui) {
               feedback
             ] : [{ value: "approve_edit", key: "y", label: tr("\u6279\u51C6\u8BA1\u5212", "Approve plan") }, deny, feedback];
             const shortcuts = { y: items[0].value, n: "deny", e: "feedback", ...session2 && { a: "allow_session" } };
-            const hint = tr("\u2191\u2193 \u9009\u62E9 \xB7 Enter \u786E\u8BA4 \xB7 \u5B57\u6BCD\u76F4\u63A5\u9009", "\u2191\u2193 select \xB7 Enter confirm \xB7 or press a letter");
+            const hint = tr("\u2191\u2193 \u9009\u62E9  Enter \u786E\u8BA4  \u5B57\u6BCD\u76F4\u63A5\u9009", "\u2191\u2193 select  Enter confirm  or press a letter");
             for (; ; ) {
               const answer = await screen.select(
-                pending.kind === "permission" ? tr("\u9700\u8981\u786E\u8BA4 \xB7 \u5C1A\u672A\u6267\u884C", "Approval needed \xB7 not run yet") : tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?"),
+                pending.kind === "permission" ? tr("\u7B49\u4F60\u786E\u8BA4\u540E\u6267\u884C", "Runs after you approve") : tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?"),
                 items,
                 {
                   initial: items[0].value,
@@ -39770,35 +41869,35 @@ async function runInteractive(worker, options, request, ui) {
         }
       };
       const render = () => {
-        const current2 = store.get(state);
-        const tasks = currentTasks(current2);
-        const queue = current2.queue.length ? tr("  \u5F85\u53D1\u9001 ", "  Queued ") + current2.queue.length + (current2.queuePaused ? tr("\uFF08\u6682\u505C\uFF09", " (paused)") : "") + (current2.running && current2.queue[0]?.state === "waiting" && !current2.queue[0].attachments?.length ? tr("  Enter \u63D2\u8BDD", "  Enter send now") : "") + (current2.queuePaused && !current2.running && !current2.starting && !current2.stopping && current2.queue.every((item) => item.state === "waiting") ? tr("  Enter \u7EE7\u7EED", "  Enter resume") : "") + (current2.queue.some((item) => item.state === "waiting") ? tr("  \u2191 \u6539\u56DE\u8349\u7A3F", "  \u2191 edit") : "") : "";
-        const elapsed = current2.running && current2.startedAt !== void 0 ? "  " + formatDuration(Math.max(0, Date.now() - current2.startedAt)) : "";
-        const status = current2.closing ? configure?.kind === "switch" ? tr("\u6B63\u5728\u5207\u6362\u4F1A\u8BDD", "Switching sessions\u2026") : tr("\u6B63\u5728\u9000\u51FA", "Quitting\u2026") : current2.requests.length ? tr("\u7B49\u5F85\u786E\u8BA4 ", "Awaiting confirmation ") + current2.requests.length : current2.stopping ? tr("\u6B63\u5728\u505C\u6B62", "Stopping\u2026") : current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : current2.starting ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : current2.startupFailed ? tr("\u542F\u52A8\u5931\u8D25\uFF1B/config \u8BBE\u7F6E", "Startup failed; set up with /config") : current2.session ? tr("\u7A7A\u95F2", "Idle") : tr("\u6B63\u5728\u8FDE\u63A5", "Connecting\u2026");
-        const activeAgents = current2.agents.filter((agent) => agent.kind !== "workflow" && ["queued", "running"].includes(agent.status)).length;
-        const waiting = current2.agents.filter((agent) => agent.waitingConfirmation).length;
-        const waitingAgents = current2.entries.some((item) => item.kind === "tool" && item.status === "running" && /WaitAgentUpdates/.test(item.text));
-        const summary = current2.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u4EE3\u7406", " " + plural(activeAgents, "agent")) : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
-        screen.liveRunId = current2.running ? current2.runId : void 0;
+        const current3 = store.get(state);
+        const tasks = currentTasks(current3);
+        const queue = current3.queue.length ? tr("  \u5F85\u53D1\u9001 ", "  Queued ") + current3.queue.length + (current3.queuePaused ? tr("\uFF08\u6682\u505C\uFF09", " (paused)") : "") + (current3.running && current3.queue[0]?.state === "waiting" && !current3.queue[0].attachments?.length ? tr("  Enter \u63D2\u8BDD", "  Enter send now") : "") + (current3.queuePaused && !current3.running && !current3.starting && !current3.stopping && current3.queue.every((item) => item.state === "waiting") ? tr("  Enter \u7EE7\u7EED", "  Enter resume") : "") + (current3.queue.some((item) => item.state === "waiting") ? tr("  \u2191 \u6539\u56DE\u8349\u7A3F", "  \u2191 edit") : "") : "";
+        const elapsed = current3.running && current3.startedAt !== void 0 ? "  " + formatDuration(Math.max(0, Date.now() - current3.startedAt)) : "";
+        const status = current3.closing ? configure?.kind === "switch" ? tr("\u6B63\u5728\u5207\u6362\u4F1A\u8BDD", "Switching sessions\u2026") : tr("\u6B63\u5728\u9000\u51FA", "Quitting\u2026") : current3.requests.length ? tr("\u7B49\u5F85\u786E\u8BA4 ", "Awaiting confirmation ") + current3.requests.length : current3.stopping ? tr("\u6B63\u5728\u505C\u6B62", "Stopping\u2026") : current3.running ? tr("\u8FD0\u884C\u4E2D", "Running") : current3.starting ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : current3.startupFailed ? tr("\u542F\u52A8\u5931\u8D25\uFF1B/config \u8BBE\u7F6E", "Startup failed; set up with /config") : current3.session ? tr("\u7A7A\u95F2", "Idle") : tr("\u6B63\u5728\u8FDE\u63A5", "Connecting\u2026");
+        const activeAgents = current3.agents.filter((agent) => agent.kind !== "workflow" && ["queued", "running"].includes(agent.status)).length;
+        const waiting = current3.agents.filter((agent) => agent.waitingConfirmation).length;
+        const waitingAgents = current3.entries.some((item) => item.kind === "tool" && item.status === "running" && /WaitAgentUpdates/.test(item.text));
+        const summary = current3.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u4EE3\u7406", " " + plural(activeAgents, "agent")) : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
+        screen.liveRunId = current3.running ? current3.runId : void 0;
         screen.update(
-          current2.entries,
-          current2.session && { ...current2.session, branch: current2.branch },
+          current3.entries,
+          current3.session && { ...current3.session, branch: current3.branch },
           status + queue,
           [waitingAgents ? summary : "", elapsed.trim()].filter(Boolean).join("  "),
-          current2.agents,
-          current2.runId,
-          !current2.requests.length && (current2.running || current2.starting || !current2.session && !current2.startupFailed),
-          current2.agentsTruncated,
-          !!current2.session && !current2.running && !current2.starting && !current2.requests.length && !current2.closing && !current2.stopping && !current2.startupFailed && !queue,
-          current2.context?.tokens === null || !current2.context?.window ? "" : contextLabel(current2.context),
+          current3.agents,
+          current3.runId,
+          !current3.requests.length && (current3.running || current3.starting || !current3.session && !current3.startupFailed),
+          current3.agentsTruncated,
+          !!current3.session && !current3.running && !current3.starting && !current3.requests.length && !current3.closing && !current3.stopping && !current3.startupFailed && !queue,
+          current3.context?.tokens === null || !current3.context?.window ? "" : contextLabel(current3.context),
           taskSummary(tasks),
-          !!current2.requests.length
+          !!current3.requests.length
         );
         screen.setCommandContext(commandContext());
-        if (current2.session && completionSession !== current2.session.sessionId) {
-          completionSession = current2.session.sessionId;
-          for (const text2 of readPromptHistory(request.configDir, current2.session.cwd).reverse()) screen.editor.addToHistory(text2);
-          screen.editor.setAutocompleteProvider(new CortexAutocomplete(commandContext, current2.session.cwd, discoverSkills, async (signal) => {
+        if (current3.session && completionSession !== current3.session.sessionId) {
+          completionSession = current3.session.sessionId;
+          for (const text2 of readPromptHistory(request.configDir, current3.session.cwd).reverse()) screen.editor.addToHistory(text2);
+          screen.editor.setAutocompleteProvider(new CortexAutocomplete(commandContext, current3.session.cwd, discoverSkills, async (signal) => {
             try {
               const reply = await query({ type: "sessions", id: (0, import_node_crypto8.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
               return reply.type === "sessions" ? reply.sessions : [];
@@ -39810,7 +41909,7 @@ async function runInteractive(worker, options, request, ui) {
             }
           }));
         }
-        const pending = current2.requests[0];
+        const pending = current3.requests[0];
         const id = pending?.interaction.request.requestId ?? "";
         if (id !== prompted) {
           if (prompted) screen.cancelForm();
@@ -39849,7 +41948,7 @@ async function runInteractive(worker, options, request, ui) {
       };
       restoreDraft = (text2, files = []) => {
         screen.editor.setText([screen.editor.getExpandedText(), text2].filter(Boolean).join("\n"));
-        draftAttachments = [...draftAttachments, ...files.filter((file) => !draftAttachments.some((current2) => current2.id === file.id))];
+        draftAttachments = [...draftAttachments, ...files.filter((file) => !draftAttachments.some((current3) => current3.id === file.id))];
         screen.setAttachments?.(draftAttachments);
         screen.tui.requestRender();
       };
@@ -39873,21 +41972,21 @@ async function runInteractive(worker, options, request, ui) {
         await discoverSkills(signal);
       };
       screen.onCycleMode = () => {
-        const current2 = store.get(state);
-        if (!current2.session || commandContext().busy) {
+        const current3 = store.get(state);
+        if (!current3.session || commandContext().busy) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u5207\u6362\u6743\u9650\u3002", "Wait for the current operation before changing permissions."));
           return;
         }
-        if (current2.session.mode === "plan") {
+        if (current3.session.mode === "plan") {
           submit("/permissions");
           return;
         }
-        submit("/permissions " + (current2.session.mode === "auto" ? "plan" : "auto"));
+        submit("/permissions " + (current3.session.mode === "auto" ? "plan" : "auto"));
       };
       screen.onDial = () => {
-        const current2 = store.get(state);
-        const thinking = current2.session?.thinking;
-        if (!current2.session || commandContext().busy) {
+        const current3 = store.get(state);
+        const thinking = current3.session?.thinking;
+        if (!current3.session || commandContext().busy) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u8C03\u6574\u601D\u8003\u5F3A\u5EA6\u3002", "Wait for the current operation before changing thinking."));
           return;
         }
@@ -39899,7 +41998,7 @@ async function runInteractive(worker, options, request, ui) {
           tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"),
           thinking.levels.map((level) => ({ value: level, label: thinkingLabel(level) })),
           thinking.value,
-          [tr("\u6A21\u578B  ", "Model  ") + current2.session.model, tr("\u8303\u56F4  \u5F53\u524D\u4F1A\u8BDD", "Scope  This session")]
+          [tr("\u6A21\u578B  ", "Model  ") + current3.session.model, tr("\u8303\u56F4  \u5F53\u524D\u4F1A\u8BDD", "Scope  This session")]
         ).then((value) => {
           if (value === ":list") submit("/thinking");
           else if (value !== thinking.value) submit("/thinking " + value);
@@ -39909,8 +42008,8 @@ async function runInteractive(worker, options, request, ui) {
       };
       screen.onError = (error) => entry(error.message, void 0, "error");
       screen.onAgentControl = async (action, text2) => {
-        const current2 = store.get(state);
-        if (!current2.running || current2.stopping || current2.closing || current2.session?.sessionId !== action.sessionId || current2.runId !== action.runId) {
+        const current3 = store.get(state);
+        if (!current3.running || current3.stopping || current3.closing || current3.session?.sessionId !== action.sessionId || current3.runId !== action.runId) {
           throw new Error(tr("\u4EE3\u7406\u64CD\u4F5C\u5DF2\u8FC7\u671F", "The agent action is stale"));
         }
         const controller = new AbortController();
@@ -39929,7 +42028,7 @@ async function runInteractive(worker, options, request, ui) {
           clearTimeout(timer);
         }
       };
-      screen.onEnd = onEnd;
+      screen.onEnd = () => options.desktop ? onEnd() : requestExit();
       const unsubscribe = store.sub(state, render);
       renderTimer = setInterval(() => {
         if (store.get(state).running) render();
@@ -39957,13 +42056,13 @@ async function runInteractive(worker, options, request, ui) {
       try {
         outbox.save([...store.get(state).queue, { id: (0, import_node_crypto8.randomUUID)(), text: rewindDraft, state: "waiting" }]);
       } catch (error) {
-        process.stderr.write(tr("\u56DE\u9000\u524D\u7684\u6D88\u606F\u672A\u80FD\u4FDD\u5B58\uFF1A", "Couldn\u2019t save the message from before the rewind: ") + clean(error.message) + "\n" + clean(rewindDraft) + "\n");
+        process.stderr.write(tr("\u65E0\u6CD5\u4FDD\u5B58\u56DE\u9000\u524D\u7684\u6D88\u606F\uFF1A", "Couldn\u2019t save the message from before the rewind: ") + clean(error.message) + "\n" + clean(rewindDraft) + "\n");
       }
     }
     try {
       outbox?.release();
     } catch (error) {
-      process.stderr.write(tr("\u5F85\u53D1\u9001\u6587\u4EF6\u91CA\u653E\u5931\u8D25\uFF0C\u9000\u51FA\u540E\u4ECD\u53EF\u6062\u590D\uFF1A", "Couldn\u2019t release the queue file; it can still be recovered after exit: ") + clean(error.message) + "\n");
+      process.stderr.write(tr("\u65E0\u6CD5\u91CA\u653E\u5F85\u53D1\u9001\u6587\u4EF6\uFF0C\u9000\u51FA\u540E\u4ECD\u53EF\u6062\u590D\uFF1A", "Couldn\u2019t release the queue file; it can still be recovered after exit: ") + clean(error.message) + "\n");
     }
     if (ownsUI) await ui?.stop();
     for (const pending of queries.values()) pending.reject(new Error(tr("\u8FDE\u63A5\u5DF2\u5173\u95ED", "Connection closed")));
@@ -39977,9 +42076,9 @@ async function runInteractive(worker, options, request, ui) {
 
 // src/args.ts
 var import_node_os7 = require("node:os");
-var import_node_path20 = require("node:path");
-var import_node_crypto12 = require("node:crypto");
-var import_node_util6 = require("node:util");
+var import_node_path21 = require("node:path");
+var import_node_crypto13 = require("node:crypto");
+var import_node_util7 = require("node:util");
 init_src();
 
 // src/mcp.ts
@@ -40087,7 +42186,7 @@ complete -o default -F _cortex cortex
 `;
 }
 function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
-  const { values, positionals } = (0, import_node_util6.parseArgs)({ args, allowPositionals: true, strict: true, options: cliOptions });
+  const { values, positionals } = (0, import_node_util7.parseArgs)({ args, allowPositionals: true, strict: true, options: cliOptions });
   const format = values["output-format"] ?? "text";
   if (!["text", "json", "stream-json"].includes(format)) {
     throw new Error(tr("--output-format \u5FC5\u987B\u662F text\u3001json \u6216 stream-json", "--output-format must be text, json or stream-json"));
@@ -40109,7 +42208,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   }
   if (positionals[0] === "mcp") {
     if (options.desktop) throw new Error(tr("\u5171\u4EAB\u6A21\u5F0F\u7684 MCP \u8BF7\u5728 Cortex \u684C\u9762\u7684\u6269\u5C55\u4E2D\u5FC3\u7BA1\u7406", "In desktop mode, manage MCP servers in the Cortex desktop extension center"));
-    return { ...options, mcp: { command: parseMcpCommand(positionals, values), configDir: values["config-dir"] ?? (0, import_node_path20.join)((0, import_node_os7.homedir)(), ".cortex-cli-preview") } };
+    return { ...options, mcp: { command: parseMcpCommand(positionals, values), configDir: values["config-dir"] ?? (0, import_node_path21.join)((0, import_node_os7.homedir)(), ".cortex-cli-preview") } };
   }
   if (values.url || values.header || values.env) throw new Error(tr("--url\u3001--header\u3001--env \u53EA\u7528\u4E8E cortex mcp add", "--url, --header and --env are only for cortex mcp add"));
   if (positionals[0] === "completions") {
@@ -40155,7 +42254,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   if (command === "interactive" && (options.stdin || format !== "text")) {
     throw new Error(tr("\u4EA4\u4E92\u6A21\u5F0F\u4E0D\u63A5\u53D7 --stdin \u6216\u673A\u5668\u8F93\u51FA\uFF1B\u8BF7\u4F7F\u7528 exec", "Interactive mode doesn\u2019t accept --stdin or machine output. Use exec."));
   }
-  values["config-dir"] ??= (0, import_node_path20.join)((0, import_node_os7.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
+  values["config-dir"] ??= (0, import_node_path21.join)((0, import_node_os7.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
   if (!values["config-dir"]?.trim()) {
     throw new Error(tr(
       "\u9884\u89C8\u5FC5\u987B\u7528 --config-dir \u6307\u5B9A\u72EC\u7ACB\u76EE\u5F55\uFF0C\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55",
@@ -40179,8 +42278,8 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   options.request = {
     command,
     configDir: values["config-dir"],
-    cwd: options.desktop && (command === "exec" || command === "interactive") && !values.session ? (0, import_node_path20.resolve)(values.cwd ?? process.cwd()) : values.cwd,
-    requestId: values["request-id"] ?? (options.desktop && command === "exec" ? (0, import_node_crypto12.randomUUID)() : void 0),
+    cwd: options.desktop && (command === "exec" || command === "interactive") && !values.session ? (0, import_node_path21.resolve)(values.cwd ?? process.cwd()) : values.cwd,
+    requestId: values["request-id"] ?? (options.desktop && command === "exec" ? (0, import_node_crypto13.randomUUID)() : void 0),
     prompt: prompt.join(" "),
     sessionId: values.session,
     channelId: values.channel,
@@ -40193,11 +42292,11 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
 }
 
 // src/update.ts
-var import_node_child_process6 = require("node:child_process");
-var import_node_fs22 = require("node:fs");
+var import_node_child_process7 = require("node:child_process");
+var import_node_fs23 = require("node:fs");
 var import_node_os8 = require("node:os");
-var import_node_path21 = require("node:path");
-var import_node_util7 = require("node:util");
+var import_node_path22 = require("node:path");
+var import_node_util8 = require("node:util");
 init_src();
 init_safe_file();
 var updateSource = "github:createpjf/cortex-cli";
@@ -40212,37 +42311,37 @@ function compareVersions(a, b) {
   }
   return 0;
 }
-function changelog(commits, current2, latest) {
+function changelog(commits, current3, latest) {
   const entries = [];
   for (const { commit } of commits) {
     const [subject = "", ...body] = (commit?.message ?? "").split("\n");
     const version2 = /^cortex-cli (\d+\.\d+\.\d+)/.exec(subject.trim())?.[1];
-    if (!version2 || compareVersions(version2, current2) <= 0 || compareVersions(version2, latest) > 0 || entries.some((entry) => entry.version === version2)) continue;
+    if (!version2 || compareVersions(version2, current3) <= 0 || compareVersions(version2, latest) > 0 || entries.some((entry) => entry.version === version2)) continue;
     entries.push({ version: version2, items: body.map((line) => line.trim()).filter((line) => line.startsWith("- ")).map((line) => line.slice(2)) });
   }
   return entries.sort((a, b) => compareVersions(b.version, a.version));
 }
 async function runUpdate(deps) {
-  const { current: current2, write } = deps;
+  const { current: current3, write } = deps;
   write(theme.bold(tr("Cortex CLI \u66F4\u65B0", "Cortex CLI update")) + "\n");
   let latest;
   try {
     latest = String(JSON.parse(await deps.fetchText(manifestUrl)).version ?? "");
     if (!/^\d+\.\d+\.\d+/.test(latest)) throw new Error(tr("\u7248\u672C\u53F7\u683C\u5F0F\u4E0D\u5BF9", "unexpected version format"));
   } catch (error) {
-    write(theme.error("\u2717 " + tr("\u8BFB\u53D6\u6700\u65B0\u7248\u672C\u5931\u8D25", "Couldn\u2019t check the latest version")) + "  " + theme.muted(error.message) + "\n");
+    write(theme.error("\u2717 " + tr("\u65E0\u6CD5\u8BFB\u53D6\u6700\u65B0\u7248\u672C", "Couldn\u2019t check the latest version")) + "  " + theme.muted(error.message) + "\n");
     return 1;
   }
   const [currentLabel, latestLabel] = [tr("\u5F53\u524D", "Current"), tr("\u6700\u65B0", "Latest")];
   const labelWidth = Math.max(currentLabel.length, latestLabel.length);
-  write("  " + theme.muted(currentLabel.padEnd(labelWidth)) + "  " + current2 + "\n  " + theme.muted(latestLabel.padEnd(labelWidth)) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
-  if (compareVersions(latest, current2) <= 0) {
-    write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current2) + "\n");
+  write("  " + theme.muted(currentLabel.padEnd(labelWidth)) + "  " + current3 + "\n  " + theme.muted(latestLabel.padEnd(labelWidth)) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
+  if (compareVersions(latest, current3) <= 0) {
+    write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current3) + "\n");
     return 0;
   }
   let notes = [];
   try {
-    notes = changelog(JSON.parse(await deps.fetchText(commitsUrl)), current2, latest);
+    notes = changelog(JSON.parse(await deps.fetchText(commitsUrl)), current3, latest);
   } catch {
     notes = [];
   }
@@ -40259,29 +42358,29 @@ async function runUpdate(deps) {
   deps.progress("");
   const took = formatDuration(deps.now() - started);
   if (result.code !== 0) {
-    write(theme.error("\u2717 " + tr("\u66F4\u65B0\u5931\u8D25", "Update failed")) + "  " + theme.muted(tr("npm \u9000\u51FA\u7801 ", "npm exit code ") + result.code + tr("\uFF0C\u5F53\u524D\u4ECD\u662F ", "; still on ") + current2) + "\n");
+    write(theme.error("\u2717 " + tr("\u66F4\u65B0\u5931\u8D25", "Update failed")) + "  " + theme.muted(tr("npm \u9000\u51FA\u7801 ", "npm exit code ") + result.code + tr("\uFF0C\u5F53\u524D\u4ECD\u662F ", "; still on ") + current3) + "\n");
     for (const line of result.output.trim().split("\n").slice(-4)) if (line.trim()) write("  " + theme.muted(line) + "\n");
     write("  " + theme.muted(tr("\u53EF\u4EE5\u91CD\u8BD5\uFF0C\u6216\u624B\u52A8\u8FD0\u884C\uFF1Anpm install -g ", "Try again, or run: npm install -g ") + updateSource) + "\n");
     return 1;
   }
   const now = deps.installed();
-  if (now && compareVersions(now, current2) <= 0) {
+  if (now && compareVersions(now, current3) <= 0) {
     write(theme.warning("\u26A0 " + tr("\u5B89\u88C5\u5B8C\u6210\uFF0C\u4F46\u7248\u672C\u4ECD\u662F ", "Installed, but the version is still ") + now) + "\n");
     return 1;
   }
-  write(theme.success("\u2713 " + tr("\u5DF2\u66F4\u65B0  ", "Updated  ") + current2 + " \u2192 " + (now ?? latest)) + "  " + theme.muted(tr("\u7528\u65F6 ", "took ") + took) + "\n  " + theme.muted(tr("\u91CD\u65B0\u6253\u5F00 cortex \u5373\u53EF\u4F7F\u7528\u65B0\u7248\u672C", "Reopen cortex to use the new version")) + "\n");
+  write(theme.success("\u2713 " + tr("\u5DF2\u66F4\u65B0  ", "Updated  ") + current3 + " \u2192 " + (now ?? latest)) + "  " + theme.muted(tr("\u7528\u65F6 ", "took ") + took) + "\n  " + theme.muted(tr("\u91CD\u65B0\u6253\u5F00 cortex \u5373\u53EF\u4F7F\u7528\u65B0\u7248\u672C", "Reopen cortex to use the new version")) + "\n");
   return 0;
 }
-function systemUpdateDeps(current2) {
+function systemUpdateDeps(current3) {
   const unicode = unicodeSupported();
   const out = (text2) => {
     const shown = unicode ? text2 : toAscii(text2);
-    process.stdout.write(process.stdout.isTTY ? shown : (0, import_node_util7.stripVTControlCharacters)(shown));
+    process.stdout.write(process.stdout.isTTY ? shown : (0, import_node_util8.stripVTControlCharacters)(shown));
   };
   const command = process.platform === "win32" ? "npm.cmd" : "npm";
   let progressShown = false;
   return {
-    current: current2,
+    current: current3,
     now: Date.now,
     write: out,
     fetchText: async (url) => {
@@ -40304,7 +42403,7 @@ function systemUpdateDeps(current2) {
         progressShown = true;
       }, 120);
       let output = "";
-      const child = (0, import_node_child_process6.spawn)(command, args, { stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32" });
+      const child = (0, import_node_child_process7.spawn)(command, args, { stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32" });
       child.stdout.on("data", (chunk) => {
         output += chunk;
       });
@@ -40321,23 +42420,23 @@ function systemUpdateDeps(current2) {
       });
     }),
     installed: () => {
-      const root = (0, import_node_child_process6.spawnSync)(command, ["root", "-g"], { encoding: "utf8", shell: process.platform === "win32" }).stdout?.trim();
+      const root = (0, import_node_child_process7.spawnSync)(command, ["root", "-g"], { encoding: "utf8", shell: process.platform === "win32" }).stdout?.trim();
       try {
-        return root ? String(JSON.parse((0, import_node_fs22.readFileSync)((0, import_node_path21.join)(root, "cortex-cli", "package.json"), "utf8")).version) : void 0;
+        return root ? String(JSON.parse((0, import_node_fs23.readFileSync)((0, import_node_path22.join)(root, "cortex-cli", "package.json"), "utf8")).version) : void 0;
       } catch {
         return void 0;
       }
     }
   };
 }
-async function checkForUpdate(current2, options = {}) {
+async function checkForUpdate(current3, options = {}) {
   const env = options.env ?? process.env;
   if (env.CORTEX_NO_UPDATE_CHECK === "1" || env.CORTEX_NO_UPDATE_CHECK === "true") return void 0;
-  const path = options.path ?? (0, import_node_path21.join)((0, import_node_os8.homedir)(), ".cortex-cli-update.json");
+  const path = options.path ?? (0, import_node_path22.join)((0, import_node_os8.homedir)(), ".cortex-cli-update.json");
   const now = options.now ?? Date.now();
   let cached = {};
   try {
-    cached = JSON.parse((0, import_node_fs22.readFileSync)(path, "utf8"));
+    cached = JSON.parse((0, import_node_fs23.readFileSync)(path, "utf8"));
   } catch {
     cached = {};
   }
@@ -40360,7 +42459,7 @@ async function checkForUpdate(current2, options = {}) {
       return void 0;
     }
   }
-  return latest && compareVersions(latest, current2) > 0 ? latest : void 0;
+  return latest && compareVersions(latest, current3) > 0 ? latest : void 0;
 }
 
 // src/index.ts
@@ -40496,8 +42595,8 @@ async function main() {
     if (format === "json") process.stdout.write(JSON.stringify(result) + "\n");
     else if (format === "stream-json") process.stdout.write(JSON.stringify({ type: "run.result", ...result }) + "\n");
     else {
-      if (result.answer) process.stdout.write((0, import_node_util8.stripVTControlCharacters)(result.answer) + "\n");
-      for (const error of result.errors) process.stderr.write((0, import_node_util8.stripVTControlCharacters)(error.message) + "\n");
+      if (result.answer) process.stdout.write((0, import_node_util9.stripVTControlCharacters)(result.answer) + "\n");
+      for (const error of result.errors) process.stderr.write((0, import_node_util9.stripVTControlCharacters)(error.message) + "\n");
       if (result.recovery) process.stderr.write(JSON.stringify({ recovery: result.recovery }) + "\n");
       if (result.sessionId) process.stderr.write(tr("\u4F1A\u8BDD\uFF1A", "Session: ") + result.sessionId + "\n");
     }
@@ -40543,7 +42642,7 @@ async function main() {
       ui.onEnd = () => ui?.cancelForm(new UiCancelled(0));
       const screen = ui;
       void checkForUpdate(version).then((latest) => {
-        if (latest) setTimeout(() => screen.notify(tr("\u6709\u65B0\u7248\u672C ", "New version ") + latest + " \xB7 cortex update", "info", 1e4), 1500).unref();
+        if (latest) setTimeout(() => screen.notify(tr("\u6709\u65B0\u7248\u672C ", "New version ") + latest + "  cortex update", "info", 1e4), 1500).unref();
       });
     }
     if (options.setup) {
@@ -40569,7 +42668,7 @@ async function main() {
     while (true) {
       const apiKey = options.desktop ? "" : process.env[options.keyEnv] ?? "";
       const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== options.keyEnv && !/(?:api.?key|token|secret|password|credential)/i.test(name)));
-      const worker = options.desktop ? await connectDesktop(request.configDir) : (0, import_node_child_process7.fork)((0, import_node_path22.join)(__dirname, "worker.cjs"), [], { env, stdio: ["ignore", "ignore", "ignore", "ipc"], execArgv: [] });
+      const worker = options.desktop ? await connectDesktop(request.configDir) : (0, import_node_child_process8.fork)((0, import_node_path23.join)(__dirname, "worker.cjs"), [], { env, stdio: ["ignore", "ignore", "ignore", "ipc"], execArgv: [] });
       if (options.desktop && request.requestId) process.stderr.write(tr("\u8BF7\u6C42\uFF1A", "Request: ") + request.requestId + "\n");
       if (request.command === "interactive") {
         const configure = await runInteractive(worker, options, { ...request, apiKey }, ui);
@@ -40612,7 +42711,7 @@ async function main() {
         if (worker.connected) worker.send({ type: "cancel" });
         forceTimer ??= setTimeout(() => {
           const message = tr(
-            "\u672A\u80FD\u786E\u8BA4\u4EFB\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u548C\u5DE5\u4F5C\u76EE\u5F55",
+            "\u65E0\u6CD5\u786E\u8BA4\u4EFB\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u548C\u5DE5\u4F5C\u76EE\u5F55",
             "Couldn\u2019t confirm the task stopped. Check the session and working directory."
           );
           output({ ...failure("CANCELLATION_UNCONFIRMED", message, 4), status: "unknown", sessionId: lastSessionId, runId: lastRunId });
