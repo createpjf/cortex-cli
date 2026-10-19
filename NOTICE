@@ -1,0 +1,18 @@
+Cortex CLI distribution
+Copyright (c) 2026 Cortex contributors
+
+The Cortex CLI distribution is licensed under the MIT License in LICENSE.
+Bundled and installed components retain their respective licenses.
+
+Cortex shared/core components bundled in dist retain their original
+Apache License 2.0 terms; see licenses/Apache-2.0.txt.
+
+Third-party bundled code is listed in THIRD-PARTY-NOTICES.txt.
+Dependencies installed from package.json include their own license files.
+
+Terminal ASCII fallback and six color palettes include adaptations from
+termcn (https://github.com/shadcn-labs/termcn), MIT License,
+Copyright (c) 2026 Aniket Pawar.
+
+This repository contains distribution builds, documentation and images.
+The private Cortex source repository is not included in this distribution.

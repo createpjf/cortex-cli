@@ -1,99 +1,86 @@
-<p align="center"><strong>Cortex CLI</strong> is the Cortex agent in your terminal. It runs locally on your computer.</p>
-
+<h1 align="center">Cortex CLI</h1>
+<p align="center">An AI agent for your terminal. Work on code, files and research with the model you choose.</p>
 <p align="center"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a></p>
-
-<p align="center">If you use the Cortex desktop app, run <code>cortex --desktop</code> to share its providers, permissions and conversations.</p>
-
 <p align="center">
-  <img src="./media/session.svg" alt="A Cortex CLI session: a finished code change, three research agents, and a suggested next message in the input box" width="90%" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.19-43853d" alt="Node.js 22.19 or later" /></a>
+  <a href="https://github.com/createpjf/cortex-cli/commits/main"><img src="https://img.shields.io/badge/status-preview-8b5cf6" alt="Preview" /></a>
 </p>
 
-<details>
-<summary>More screenshots</summary>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/session.png" />
+  <img src="./media/session-light.png" alt="Cortex CLI: tool activity, parallel agents and a suggested next message" width="100%" />
+</picture>
 
-<p align="center">
-  <img src="./media/start.svg" alt="Cortex CLI start screen" width="90%" />
-  <img src="./media/commands.svg" alt="Command palette opened with Ctrl+P" width="90%" />
-</p>
+## Get started
 
-</details>
+Requires **Node.js 22.19+** and an API key for your chosen provider.
 
----
-
-## Quickstart
-
-### Installing and running Cortex CLI
-
-Cortex CLI needs Node.js 22.19 or later. Install it from GitHub with npm:
-
-```shell
+```sh
 npm install -g github:createpjf/cortex-cli --loglevel=error
-```
-
-Then run `cortex` to get started. The first run walks you through choosing a provider, a model and an API key.
-
-```shell
 cortex
 ```
 
+First launch guides you through choosing a provider, model and API key. The interface defaults to English; change it in **`/settings` → Language**.
+
+**Providers:** Anthropic, OpenAI, Google, DeepSeek, FLock API Platform, xAI / Grok, OpenRouter, Kimi, Zhipu AI, MiniMax, Doubao, Qwen and custom OpenAI-compatible endpoints. Use `/config` to change connections and `/model` to switch models. Availability depends on your provider and account.
+
+## In a conversation
+
+| Action | Shortcut or command |
+| --- | --- |
+| Send a message / add a newline | Enter / Ctrl+J |
+| Choose work mode | Shift+Tab |
+| Switch model / thinking level | `/model` / Ctrl+S |
+| Find commands and skills / reference a file | Ctrl+P or `/` / `@` |
+| View agents / sessions needing attention | `/agents` / `/inbox` |
+| Stop the current run / reopen a pending request | Esc / `/pending` |
+| Resume a conversation / change settings | `/resume` / `/settings` |
+
+The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Use `/keymap` to customize bindings and `/help` for more.
+
 <details>
-<summary>About <code>--loglevel=error</code>, updating and uninstalling</summary>
+<summary>Welcome screen, command palette and agent dashboard</summary>
 
-`--loglevel=error` keeps npm quiet except for errors. Without it, npm prints a few deprecation and install-script warnings from upstream dependencies; they don't affect Cortex.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/start.png" />
+  <img src="./media/start-light.png" alt="Cortex welcome screen with the CX dot-matrix mark" width="100%" />
+</picture>
 
-- **Update:** `cortex update` shows your version and the latest one, what changed, and install progress. The interactive screen checks for a new version at most once a day and mentions it below the input box. Set `CORTEX_NO_UPDATE_CHECK=1` to turn the check off.
-- **Uninstall:** `npm uninstall -g cortex-cli`
+![Command palette](./media/commands.png)
+![Agent dashboard](./media/agents.png)
 
+Screens are rendered from the real TUI with example data.
 </details>
 
-### Using Cortex CLI
+## Scripts and integrations
 
-**Standalone mode** keeps its own settings and conversations in `~/.cortex-cli-preview`. You can open `cortex` in several terminals at once; each conversation runs in one terminal at a time.
-
-**Desktop mode** connects to the Cortex desktop app running on this computer and uses its providers, models, permissions and conversations. Keep the desktop app open while you use it.
-
-```shell
-cortex --desktop
-```
-
-**Run without the interactive screen** to script Cortex. Results go to standard output, and redirecting output to a file switches to this mode automatically:
-
-```shell
+```sh
 cortex exec "Summarize this project" --output-format json
-cortex "Summarize this project" > summary.txt
-```
-
-**MCP servers** work in both modes. Desktop mode uses the servers set up in the desktop app. In standalone mode, add your own; `/mcp` in a conversation lists them, and tool calls ask for approval first:
-
-```shell
+cortex review                         # Read-only review of uncommitted changes
+cortex sessions                      # List saved conversations
+cortex resume <session-id>
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
-cortex mcp add docs --url https://example.com/mcp --header "Authorization: Bearer $TOKEN"
-cortex mcp list
 ```
 
-**Computer use** is available in desktop mode, in conversations you're watching, when it's turned on in the desktop app's extension center. The first use of each app and every click or keystroke ask for approval in the terminal, and `exec` runs can't use it.
+Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to save the final reply without overwriting an existing file. `cortex --help` lists every option.
 
-**Predictions (beta):** after each turn, a grey suggestion for your next message appears in the empty input box. Press Tab to fill it in; it never sends on its own. Each turn makes one extra small request with your current model. Turn it off in `/settings`.
+**Already using Cortex desktop?** Run `cortex --desktop` to share its providers, permissions and conversations. Keep a compatible desktop app running. Desktop mode is unsupported on Windows and unverified on Linux; computer use requires desktop mode, interactive approval and the desktop extension.
 
-In a conversation, press `?` for keyboard shortcuts and `/` for commands and skills. Run `cortex --help` for every option.
+## Settings and updates
 
-<details>
-<summary>Shell completion</summary>
+Standalone settings and conversations live in `~/.cortex-cli-preview`; appearance and language live in `~/.cortex-cli-ui.json`. Model requests go to your configured provider; tools run on your computer. `CORTEX_LANGUAGE=en` or `zh-CN` overrides the saved language. `NO_COLOR=1` disables colors; `/motion` reduces animation. Next-message predictions are beta, make an extra model request per turn, and can be disabled in `/settings`.
 
-```shell
-source <(cortex completions zsh)
+```sh
+cortex update                        # Update from this repository
+cortex doctor                        # Check installation and terminal
+npm uninstall -g cortex-cli
 ```
 
-</details>
+This is a preview; commands and settings may change. Knowledge-base local model dependencies are not included. Report reproducible problems in [Issues](https://github.com/createpjf/cortex-cli/issues).
 
-## Limitations
+## License and repository scope
 
-- This is a preview. Commands and configuration formats may change.
-- Local models used by the knowledge base (ONNX, tokenizers) aren't installed with this package.
-- Desktop mode isn't supported on Windows and hasn't been verified on Linux.
+[MIT](./LICENSE). This repository distributes Cortex CLI builds, documentation and images. The TypeScript source remains in the private Cortex repository; it is not published here.
 
-## Source and licenses
-
-This repository holds build output only. The source lives in the Cortex repository under `apps/cli/`, and this repository is generated by `apps/cli/scripts/package.ts`, so please don't edit files here directly.
-
-`dist/cortex.cjs` and `dist/worker.cjs` bundle third-party npm packages; their licenses and copyright notices are in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Packages installed as dependencies (see `package.json`) ship their own licenses. The ASCII fallback for terminal symbols and the colors of six themes are adapted from [termcn](https://github.com/shadcn-labs/termcn) (MIT License, Copyright (c) 2026 Aniket Pawar).
+Bundled components retain their own licenses, including Apache-2.0 for Cortex shared/core components. See [NOTICE](./NOTICE), [third-party notices](./THIRD-PARTY-NOTICES.txt) and [Apache-2.0](./licenses/Apache-2.0.txt). Installed dependencies include their own license files. Terminal themes and ASCII fallback include adaptations from [termcn](https://github.com/shadcn-labs/termcn) (MIT).

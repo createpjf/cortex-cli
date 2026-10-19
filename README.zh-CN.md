@@ -1,99 +1,86 @@
-<p align="center"><strong>Cortex CLI</strong> 让你在终端里使用 Cortex Agent，运行在你自己的电脑上。</p>
-
+<h1 align="center">Cortex CLI</h1>
+<p align="center">终端里的 AI Agent。选择自己的模型，处理代码、文件与调研任务。</p>
 <p align="center"><a href="./README.md">English</a> · <strong>简体中文</strong></p>
-
-<p align="center">如果你在用 Cortex 桌面，运行 <code>cortex --desktop</code> 即可共用桌面的供应商、权限和对话。</p>
-
 <p align="center">
-  <img src="./media/session.svg" alt="Cortex CLI 对话：一轮完成的代码修改、三个调研子代理，输入框里是下一步预测" width="90%" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT 许可证" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.19-43853d" alt="需要 Node.js 22.19 或更高版本" /></a>
+  <a href="https://github.com/createpjf/cortex-cli/commits/main"><img src="https://img.shields.io/badge/status-preview-8b5cf6" alt="预览版" /></a>
 </p>
 
-<details>
-<summary>更多截图</summary>
-
-<p align="center">
-  <img src="./media/start.svg" alt="Cortex CLI 开始页" width="90%" />
-  <img src="./media/commands.svg" alt="Ctrl+P 打开的命令面板" width="90%" />
-</p>
-
-</details>
-
----
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/session.png" />
+  <img src="./media/session-light.png" alt="Cortex CLI：工具执行、并行代理与下一步输入建议" width="100%" />
+</picture>
 
 ## 快速开始
 
-### 安装并运行 Cortex CLI
+需要 **Node.js 22.19+**，以及所选供应商的 API Key。
 
-需要 Node.js 22.19 或更高版本。用 npm 从 GitHub 安装：
-
-```shell
+```sh
 npm install -g github:createpjf/cortex-cli --loglevel=error
-```
-
-然后运行 `cortex`。首次运行会引导你选择供应商、模型并填写 API Key。
-
-```shell
 cortex
 ```
 
+首次启动会引导你选择供应商、模型并填写 API Key。界面默认英文，可在 **`/settings` → Language** 中切换中文。
+
+**支持的平台：** Anthropic、OpenAI、Google、DeepSeek、FLock API Platform、xAI / Grok、OpenRouter、Kimi、智谱 AI、MiniMax、豆包、通义千问及自定义 OpenAI 兼容端点。`/config` 修改连接，`/model` 切换模型；可用模型取决于供应商与账户权限。
+
+## 对话中的操作
+
+| 操作 | 快捷键或命令 |
+| --- | --- |
+| 发送消息 / 换行 | Enter / Ctrl+J |
+| 选择工作方式 | Shift+Tab |
+| 切换模型 / 思考强度 | `/model` / Ctrl+S |
+| 查找命令与 Skills / 引用文件 | Ctrl+P 或 `/` / `@` |
+| 查看代理 / 待处理会话 | `/agents` / `/inbox` |
+| 停止当前运行 / 重开待确认请求 | Esc / `/pending` |
+| 恢复对话 / 修改设置 | `/resume` / `/settings` |
+
+默认按需确认。**Plan** 只读；**Auto-approve** 减少确认，但仍保留不可逆操作保护。运行中按 Enter 将消息排队，Alt+Enter 向当前运行插话。`/keymap` 自定义快捷键，`/help` 查看更多操作。
+
 <details>
-<summary>关于 <code>--loglevel=error</code>、更新与卸载</summary>
+<summary>欢迎页、命令面板与代理看板</summary>
 
-`--loglevel=error` 让 npm 只输出错误。去掉它会看到几条来自上游依赖的废弃与安装脚本警告，不影响使用。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/start.png" />
+  <img src="./media/start-light.png" alt="使用 CX 点阵标志的 Cortex 欢迎页" width="100%" />
+</picture>
 
-- **更新：** `cortex update` 显示当前与最新版本、更新内容和安装进度。交互界面每天最多检查一次新版本，有新版本时在输入框下方提示；设置 `CORTEX_NO_UPDATE_CHECK=1` 可关闭。
-- **卸载：** `npm uninstall -g cortex-cli`
+![命令面板](./media/commands.png)
+![代理看板](./media/agents.png)
 
+截图由真实 TUI 使用示例数据渲染。
 </details>
 
-### 使用 Cortex CLI
+## 脚本与集成
 
-**独立模式**的设置和对话保存在 `~/.cortex-cli-preview`。可以同时在多个终端打开 `cortex`；同一个对话同一时间只在一个终端运行。
-
-**共享模式**连接本机正在运行的 Cortex 桌面，沿用桌面的供应商、模型、权限和对话。使用时保持桌面开着。
-
-```shell
-cortex --desktop
-```
-
-**无人值守执行**适合写进脚本，结果写到标准输出；把输出重定向到文件时会自动按这种方式运行：
-
-```shell
+```sh
 cortex exec "总结当前项目" --output-format json
-cortex "总结当前项目" > 总结.txt
-```
-
-**MCP 服务器**两种模式都能用。共享模式沿用桌面里配置的服务器；独立模式自己添加，对话里 `/mcp` 查看，工具调用会先请你确认：
-
-```shell
+cortex review                         # 只读审查未提交的改动
+cortex sessions                      # 查看已保存的对话
+cortex resume <session-id>
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
-cortex mcp add docs --url https://example.com/mcp --header "Authorization: Bearer $TOKEN"
-cortex mcp list
 ```
 
-**操作电脑**在共享模式里、你正看着的对话中可用，需先在桌面扩展中心打开。首次使用某个应用、每次点击或输入都会在终端里请你确认，`exec` 不能使用。
+`--output-schema schema.json` 校验 JSON 回复，`-o answer.md` 保存最终回复且拒绝覆盖已有文件。`cortex --help` 查看全部参数。
 
-**下一步预测（Beta）：**每轮结束后，空着的输入框里会用灰字提示你可能要发的下一句，按 Tab 填入，不会自动发送。每轮会用当前模型多发一次小请求，可在 `/settings` 关闭。
+**已经在用 Cortex 桌面？** 运行 `cortex --desktop` 共用桌面的供应商、权限和对话，并保持兼容的桌面应用运行。Windows 不支持共享模式，Linux 共享模式尚未验收；操作电脑还需交互审批和桌面扩展。
 
-对话里按 `?` 查看快捷键，按 `/` 打开命令与 Skills。`cortex --help` 查看全部参数。
+## 设置与更新
 
-<details>
-<summary>Shell 补全</summary>
+独立模式的设置和对话保存在 `~/.cortex-cli-preview`，外观与语言保存在 `~/.cortex-cli-ui.json`。模型请求发往你配置的供应商，工具在本机执行。`CORTEX_LANGUAGE=en` 或 `zh-CN` 优先于保存的语言；`NO_COLOR=1` 关闭颜色，`/motion` 减少动画。下一步预测仍为 Beta，每轮会额外请求一次模型，可在 `/settings` 关闭。
 
-```shell
-source <(cortex completions zsh)
+```sh
+cortex update                        # 从本仓库更新
+cortex doctor                        # 检查安装与终端
+npm uninstall -g cortex-cli
 ```
 
-</details>
+当前是预览版，命令和配置可能变化；知识库所需的本地模型依赖不随包安装。问题请附复现步骤，提交到 [Issues](https://github.com/createpjf/cortex-cli/issues)。
 
-## 限制
+## 许可与仓库范围
 
-- 预览版，命令和配置格式可能变化。
-- 知识库相关的本地模型（ONNX、tokenizers）不随本包安装。
-- Windows 不支持共享模式；Linux 的共享模式尚未验收。
+采用 [MIT 许可证](./LICENSE)。本仓库分发 Cortex CLI 构建产物、文档与图片；TypeScript 源码仍保留在私有 Cortex 仓库中，不在此公开。
 
-## 源码与许可
-
-本仓库只放构建产物。源码在 Cortex 主仓库的 `apps/cli/`，本仓库由 `apps/cli/scripts/package.ts` 生成，请不要直接改这里的文件。
-
-`dist/cortex.cjs` 与 `dist/worker.cjs` 打包了第三方 npm 包，各包的许可证与版权声明见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；作为依赖安装的包（见 `package.json`）随包自带许可证。终端符号的 ASCII 降级规则与六套主题的色值改写自 [termcn](https://github.com/shadcn-labs/termcn)（MIT License，Copyright (c) 2026 Aniket Pawar）。
+打包组件保留各自的许可，包括 Cortex shared/core 组件原有的 Apache-2.0。详见 [NOTICE](./NOTICE)、[第三方声明](./THIRD-PARTY-NOTICES.txt) 与 [Apache-2.0](./licenses/Apache-2.0.txt)；安装依赖随包附带许可证。终端主题和 ASCII 降级包含对 [termcn](https://github.com/shadcn-labs/termcn) 的改写（MIT）。

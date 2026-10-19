@@ -2,7 +2,23 @@
   "name": "cortex-cli",
   "version": "0.1.37",
   "private": true,
-  "description": "Cortex Agent in your terminal (preview build)",
+  "description": "An AI agent for your terminal. Bring your own model.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/createpjf/cortex-cli.git"
+  },
+  "homepage": "https://github.com/createpjf/cortex-cli#readme",
+  "bugs": {
+    "url": "https://github.com/createpjf/cortex-cli/issues"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "cli",
+    "tui",
+    "terminal"
+  ],
   "bin": {
     "cortex": "dist/cortex.cjs"
   },
@@ -12,6 +28,9 @@
   "files": [
     "dist",
     "README.zh-CN.md",
+    "LICENSE",
+    "NOTICE",
+    "licenses",
     "THIRD-PARTY-NOTICES.txt"
   ],
   "dependencies": {
