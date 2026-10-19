@@ -74,6 +74,7 @@ var init_i18n = __esm({
     IPC_ERRORS = {
       sessionNotRunning: () => tr("\u5BF9\u8BDD\u672A\u8FD0\u884C\uFF0C\u65E0\u6CD5\u8FFD\u52A0\u6D88\u606F", "Chat isn\u2019t running, so the message can\u2019t be added"),
       questionExpired: () => tr("\u95EE\u9898\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u63D0\u95EE", "This question has expired. Ask again."),
+      permissionExpired: () => tr("\u8FD9\u4E2A\u8BF7\u6C42\u5DF2\u7ECF\u7ED3\u675F\uFF0C\u6CA1\u6709\u6267\u884C\u4F60\u7684\u9009\u62E9", "This request already ended. Your choice wasn\u2019t applied."),
       /** 供应商流在长度上限处结束（core sse-reader 产生，主进程按它改写为本次预算说明） */
       outputLimit: () => tr("\u6A21\u578B\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210", "The model hit its output limit, so the response is incomplete"),
       /** 本次输出预算说明的开头，错误卡片按它识别 */
@@ -179,6 +180,9 @@ var init_channel = __esm({
       minimax: "https://api.minimax.io/anthropic/v1",
       doubao: "https://ark.cn-beijing.volces.com/api/v3",
       qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      flock: "https://api.flock.io/v1",
+      xai: "https://api.x.ai/v1",
+      openrouter: "https://openrouter.ai/api/v1",
       custom: ""
     };
     PROVIDER_ENDPOINT_PRESETS = {
@@ -205,6 +209,9 @@ var init_channel = __esm({
       minimax: "MiniMax",
       doubao: tr("\u8C46\u5305", "Doubao"),
       qwen: tr("\u901A\u4E49\u5343\u95EE", "Qwen"),
+      flock: "FLock API Platform",
+      xai: "xAI / Grok",
+      openrouter: "OpenRouter",
       custom: tr("OpenAI \u517C\u5BB9\u683C\u5F0F", "OpenAI-compatible")
     };
   }
@@ -1370,8 +1377,8 @@ function releaseLock(lockPath, descriptor, checkOwner = false) {
   else removeOwnedLock(lockPath, owned);
 }
 function removeOwnedLock(lockPath, owned) {
-  const current3 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
-  if (!current3?.isFile() || current3.size > 1024) return;
+  const current2 = (0, import_node_fs2.lstatSync)(lockPath, { throwIfNoEntry: false });
+  if (!current2?.isFile() || current2.size > 1024) return;
   try {
     if ((0, import_node_fs2.readFileSync)(lockPath, "utf8") === owned) (0, import_node_fs2.rmSync)(lockPath);
   } catch (error) {
@@ -1454,1033 +1461,6 @@ var init_file_lock = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/scheduled-tasks.ts
-var init_scheduled_tasks2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/scheduled-tasks.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/i18n/index.ts
-function initialLanguage2() {
-  const scope = globalThis;
-  return scope.electronAPI?.language === "en" || scope.process?.env?.CORTEX_LANGUAGE === "en" ? "en" : "zh-CN";
-}
-function tr2(zh, en) {
-  return current2 === "en" ? en : zh;
-}
-var current2, SEGMENT_GAP2, englishPlurals2, IPC_ERRORS2;
-var init_i18n2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/i18n/index.ts"() {
-    "use strict";
-    current2 = initialLanguage2();
-    SEGMENT_GAP2 = "\u2003";
-    englishPlurals2 = new Intl.PluralRules("en");
-    IPC_ERRORS2 = {
-      sessionNotRunning: () => tr2("\u5BF9\u8BDD\u672A\u8FD0\u884C\uFF0C\u65E0\u6CD5\u8FFD\u52A0\u6D88\u606F", "Chat isn\u2019t running, so the message can\u2019t be added"),
-      questionExpired: () => tr2("\u95EE\u9898\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u63D0\u95EE", "This question has expired. Ask again."),
-      /** 供应商流在长度上限处结束（core sse-reader 产生，主进程按它改写为本次预算说明） */
-      outputLimit: () => tr2("\u6A21\u578B\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210", "The model hit its output limit, so the response is incomplete"),
-      /** 本次输出预算说明的开头，错误卡片按它识别 */
-      outputBudgetLead: () => tr2("\u672C\u6B21\u8F93\u51FA\u8FBE\u5230", "Output budget reached"),
-      outputBudget: (tokens) => tr2(
-        `\u672C\u6B21\u8F93\u51FA\u8FBE\u5230 ${tokens} token \u9884\u7B97\uFF0C\u54CD\u5E94\u672A\u5B8C\u6210\uFF1B\u672A\u81EA\u52A8\u91CD\u653E\u5DF2\u6267\u884C\u7684\u5DE5\u5177\uFF0C\u53EF\u4EE5\u8BA9\u5B83\u4ECE\u4E2D\u65AD\u5904\u7EE7\u7EED\u3002`,
-        `Output budget reached (${tokens} tokens), so the response is incomplete. Tools that already ran weren\u2019t replayed; ask it to continue from where it stopped.`
-      ),
-      imageInputDisabled: () => tr2("\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165", "Image input isn\u2019t enabled for this model"),
-      /** 知识库模型回复的结束原因（Wiki 编辑器按它给出建议） */
-      modelOutputTruncated: () => tr2("\u8F93\u51FA\u8FBE\u5230\u957F\u5EA6\u4E0A\u9650\u88AB\u622A\u65AD", "output was cut off at the length limit"),
-      modelContentBlocked: () => tr2("\u88AB\u6A21\u578B\u670D\u52A1\u7684\u5185\u5BB9\u5BA1\u6838\u62E6\u622A", "blocked by the model provider\u2019s content filter")
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/office.ts
-var OFFICE_GRID_EDIT_COMMANDS2, OFFICE_WORD_EDIT_COMMANDS2, OFFICE_DECK_EDIT_COMMANDS2, OFFICE_EDIT_COMMANDS2;
-var init_office2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/office.ts"() {
-    "use strict";
-    init_i18n2();
-    OFFICE_GRID_EDIT_COMMANDS2 = ["cell.set", "range.setValues", "selection.set", "home.bold", "home.italic", "home.underline", "edit.undo", "edit.redo"];
-    OFFICE_WORD_EDIT_COMMANDS2 = ["text.insert", "text.delete", "edit.replace", "select.text", "select.all", "select.range", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "para.align", "edit.undo", "edit.redo"];
-    OFFICE_DECK_EDIT_COMMANDS2 = ["slide.new", "slide.duplicate", "slide.delete", "slide.move", "slide.go", "slide.layout", "slide.notes", "shape.insert", "shape.move", "shape.resize", "shape.fill", "edit.select", "edit.deselect", "text.edit", "text.exit", "text.set", "text.insert", "text.delete", "text.selectAll", "format.bold", "format.italic", "format.underline", "format.font", "format.size", "edit.undo", "edit.redo"];
-    OFFICE_EDIT_COMMANDS2 = [.../* @__PURE__ */ new Set([...OFFICE_WORD_EDIT_COMMANDS2, ...OFFICE_GRID_EDIT_COMMANDS2, ...OFFICE_DECK_EDIT_COMMANDS2])];
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola.ts
-var RUNNER_RESUME_MIN_OFFLINE_MS2;
-var init_cola2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola.ts"() {
-    "use strict";
-    init_i18n2();
-    RUNNER_RESUME_MIN_OFFLINE_MS2 = 10 * 6e4;
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola-recipe.ts
-var init_cola_recipe2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/cola-recipe.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/session-messages.ts
-var SESSION_MESSAGE_LIMITS2;
-var init_session_messages2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/session-messages.ts"() {
-    "use strict";
-    SESSION_MESSAGE_LIMITS2 = {
-      /** 正文最大字符数 */
-      maxBodyChars: 32e3,
-      /** 每个目标会话未处理请求上限 */
-      maxQueuedPerTarget: 20,
-      /** 消息链最大深度，超过则拒绝，防止两个会话互相唤醒 */
-      maxHop: 4,
-      /** 单个授权默认允许的自动唤醒次数 */
-      defaultMaxWakes: 20,
-      /** 未处理请求的默认有效期（毫秒） */
-      defaultTtlMs: 7 * 24 * 60 * 6e4
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/browser.ts
-var init_browser2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/browser.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/computer-use.ts
-var init_computer_use3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/computer-use.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/runtime.ts
-var init_runtime2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/runtime.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/channel.ts
-var PROVIDER_ENDPOINT_PRESETS2, PROVIDER_LABELS2;
-var init_channel2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/channel.ts"() {
-    "use strict";
-    init_i18n2();
-    PROVIDER_ENDPOINT_PRESETS2 = {
-      deepseek: [
-        { label: tr2(`\u539F\u5382${SEGMENT_GAP2}Chat Completions`, `Official${SEGMENT_GAP2}Chat Completions`), value: "https://api.deepseek.com" },
-        { label: tr2(`\u539F\u5382${SEGMENT_GAP2}Messages`, `Official${SEGMENT_GAP2}Messages`), value: "https://api.deepseek.com/anthropic" }
-      ],
-      minimax: [
-        { label: tr2(`\u56FD\u5185\u7AD9${SEGMENT_GAP2}Messages`, `China${SEGMENT_GAP2}Messages`), value: "https://api.minimax.cn/anthropic/v1" },
-        { label: tr2(`\u56FD\u9645\u7AD9${SEGMENT_GAP2}Messages`, `Global${SEGMENT_GAP2}Messages`), value: "https://api.minimax.io/anthropic/v1" },
-        { label: tr2(`\u56FD\u5185\u7AD9${SEGMENT_GAP2}Chat Completions`, `China${SEGMENT_GAP2}Chat Completions`), value: "https://api.minimax.cn/v1" },
-        { label: tr2(`\u56FD\u9645\u7AD9${SEGMENT_GAP2}Chat Completions`, `Global${SEGMENT_GAP2}Chat Completions`), value: "https://api.minimax.io/v1" }
-      ]
-    };
-    PROVIDER_LABELS2 = {
-      anthropic: "Anthropic",
-      openai: "OpenAI",
-      deepseek: "DeepSeek",
-      google: "Google",
-      moonshot: tr2("Moonshot / Kimi\uFF08OpenAI \u534F\u8BAE\uFF09", "Moonshot / Kimi (OpenAI API)"),
-      "kimi-api": tr2("Kimi API\uFF08Anthropic \u534F\u8BAE\uFF09", "Kimi API (Anthropic API)"),
-      "kimi-coding": "Kimi Coding Plan",
-      zhipu: tr2("\u667A\u8C31 AI", "Zhipu AI"),
-      minimax: "MiniMax",
-      doubao: tr2("\u8C46\u5305", "Doubao"),
-      qwen: tr2("\u901A\u4E49\u5343\u95EE", "Qwen"),
-      custom: tr2("OpenAI \u517C\u5BB9\u683C\u5F0F", "OpenAI-compatible")
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/proxy.ts
-var init_proxy2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/proxy.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat.ts
-var init_chat2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent.ts
-var init_agent2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-provider.ts
-var init_agent_provider2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-provider.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-loop.ts
-var init_agent_loop2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/agent-loop.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/local-memory.ts
-var init_local_memory3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/local-memory.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/enterprise-memory.ts
-var init_enterprise_memory3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/enterprise-memory.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/workspace-knowledge.ts
-var init_workspace_knowledge3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/workspace-knowledge.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-center.ts
-var init_memory_center2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-center.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-share.ts
-var init_memory_share2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/memory-share.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/organization.ts
-var init_organization2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/organization.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/knowledge.ts
-var init_knowledge2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/knowledge.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/environment.ts
-var init_environment2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/environment.ts"() {
-    "use strict";
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/installer.ts
-var init_installer2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/installer.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/github.ts
-var init_github2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/github.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/system-prompt.ts
-var init_system_prompt2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/system-prompt.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/quick-phrase.ts
-var init_quick_phrase2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/quick-phrase.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat-tool.ts
-var init_chat_tool2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/chat-tool.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/feishu.ts
-var init_feishu2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/feishu.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/dingtalk.ts
-var init_dingtalk2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/dingtalk.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/wechat.ts
-var init_wechat2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/wechat.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-thinking.ts
-var init_model_thinking2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-thinking.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-routing.ts
-var FAST_CATEGORY_ID2, QUALITY_CATEGORY_ID2, LOCAL_GROUP_ID2, PRIVACY_RULE_ID2;
-var init_model_routing3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/model-routing.ts"() {
-    "use strict";
-    FAST_CATEGORY_ID2 = "fast";
-    QUALITY_CATEGORY_ID2 = "quality";
-    LOCAL_GROUP_ID2 = "local";
-    PRIVACY_RULE_ID2 = "privacy";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/creative.ts
-var CREATIVE_LIMITS2;
-var init_creative2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/creative.ts"() {
-    "use strict";
-    CREATIVE_LIMITS2 = { maxVideoBytes: 256 * 1024 * 1024, maxImageBytes: 25 * 1024 * 1024, maxPixels: 4e7, thumbnailSize: 512, thumbnailConcurrency: 2, pageSize: 60, maxNodes: 500, maxEdges: 1e3, maxPromptLength: 5e4, maxFeedbackAnnotations: 100, maxOutputsPerNode: 64 };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/terminal.ts
-var TERMINAL_LIMITS2;
-var init_terminal2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/terminal.ts"() {
-    "use strict";
-    TERMINAL_LIMITS2 = { perSession: 4, total: 12, retained: 48, inputBytes: 64 * 1024, excerptBytes: 32 * 1024, queueBytes: 256 * 1024 };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/index.ts
-var init_types2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/types/index.ts"() {
-    "use strict";
-    init_scheduled_tasks2();
-    init_office2();
-    init_cola2();
-    init_cola_recipe2();
-    init_session_messages2();
-    init_browser2();
-    init_computer_use3();
-    init_runtime2();
-    init_channel2();
-    init_proxy2();
-    init_chat2();
-    init_agent2();
-    init_agent_provider2();
-    init_agent_loop2();
-    init_local_memory3();
-    init_enterprise_memory3();
-    init_workspace_knowledge3();
-    init_memory_center2();
-    init_memory_share2();
-    init_organization2();
-    init_knowledge2();
-    init_environment2();
-    init_installer2();
-    init_github2();
-    init_system_prompt2();
-    init_quick_phrase2();
-    init_chat_tool2();
-    init_feishu2();
-    init_dingtalk2();
-    init_wechat2();
-    init_model_thinking2();
-    init_model_routing3();
-    init_creative2();
-    init_terminal2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-templates.ts
-var t2, NOTICE2, SAMPLE_SUFFIX2, STARTERS2, DOCUMENT_TEMPLATES2;
-var init_knowledge_templates2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-templates.ts"() {
-    "use strict";
-    init_i18n2();
-    t2 = (zh, en) => ({ zh, en });
-    NOTICE2 = t2("\u4EE5\u4E0B\u4E3A\u6A21\u677F\u793A\u4F8B\uFF0C\u8BF7\u66FF\u6362\u4E3A\u672C\u516C\u53F8\u5B9E\u9645\u5236\u5EA6\u540E\u518D\u6295\u5165\u4F7F\u7528\u3002", "This is a sample from a template. Replace it with your company\u2019s actual policies before relying on it.");
-    SAMPLE_SUFFIX2 = t2("\uFF08\u793A\u4F8B\uFF09", " (sample)");
-    STARTERS2 = [
-      {
-        id: "hr",
-        name: t2("\u4EBA\u4E8B\u5236\u5EA6", "HR policies"),
-        description: t2("\u5165\u804C\u529E\u7406\u3001\u8003\u52E4\u4F11\u5047\u3001\u5DEE\u65C5\u62A5\u9500\u7684\u5236\u5EA6\u4E0E\u6D41\u7A0B", "Onboarding, attendance, leave, and travel expense policies"),
-        documents: [
-          { id: "onboarding", title: t2("\u5165\u804C\u529E\u7406\u8BF4\u660E", "Onboarding guide"), sections: [
-            { heading: t2("\u5165\u804C\u524D\u51C6\u5907", "Before day one"), text: t2(
-              "\u4EBA\u4E8B\u8D1F\u8D23\u4EBA\u5411\u65B0\u5458\u5DE5\u53D1\u9001\u62A5\u5230\u65F6\u95F4\u3001\u5730\u70B9\u548C\u6750\u6599\u6E05\u5355\u3002\u6750\u6599\u901A\u8FC7\u516C\u53F8\u6307\u5B9A\u7684\u5B89\u5168\u6E20\u9053\u63D0\u4EA4\uFF0C\u4E0D\u5728\u5171\u4EAB\u77E5\u8BC6\u5E93\u4FDD\u5B58\u8EAB\u4EFD\u8BC1\u3001\u94F6\u884C\u5361\u7B49\u4E2A\u4EBA\u654F\u611F\u4FE1\u606F\u3002\n\n\u5F85\u8865\u5145\uFF1A\u4EBA\u4E8B\u8054\u7CFB\u4EBA\u3001\u62A5\u5230\u5730\u70B9\u3001\u6750\u6599\u63D0\u4EA4\u5165\u53E3\u3002",
-              "The HR owner sends the new hire the start time, location and a list of documents. Documents are submitted through the company\u2019s designated secure channel; ID cards, bank cards and other sensitive personal information are not stored in the shared knowledge base.\n\nTo fill in: HR contact, check-in location, where to submit documents."
-            ) },
-            { heading: t2("\u5165\u804C\u5F53\u5929", "First day"), text: t2(
-              "- \u4EBA\u4E8B\uFF1A\u6838\u5BF9\u5165\u804C\u6750\u6599\uFF0C\u8BF4\u660E\u5236\u5EA6\u67E5\u9605\u65B9\u5F0F\u3002\n- IT\uFF1A\u6309\u5C97\u4F4D\u9700\u8981\u5F00\u901A\u8D26\u53F7\u5E76\u4EA4\u4ED8\u8BBE\u5907\u3002\n- \u76F4\u5C5E\u8D1F\u8D23\u4EBA\uFF1A\u4ECB\u7ECD\u56E2\u961F\u3001\u5B89\u6392\u5165\u804C\u4F19\u4F34\uFF0C\u786E\u8BA4\u7B2C\u4E00\u5468\u76EE\u6807\u3002\n\n\u5F85\u8865\u5145\uFF1A\u8D26\u53F7\u7533\u8BF7\u5165\u53E3\u3001\u8BBE\u5907\u9886\u53D6\u5730\u70B9\u3002",
-              "- HR: check the onboarding documents and explain where to find policies.\n- IT: set up accounts and hand over equipment as the role requires.\n- Manager: introduce the team, assign an onboarding buddy and agree on first-week goals.\n\nTo fill in: where to request accounts, where to pick up equipment."
-            ) },
-            { heading: t2("\u7B2C\u4E00\u5468\u56DE\u8BBF", "First-week check-in"), text: t2(
-              "\u76F4\u5C5E\u8D1F\u8D23\u4EBA\u4E0E\u65B0\u5458\u5DE5\u786E\u8BA4\u804C\u8D23\u3001\u534F\u4F5C\u65B9\u5F0F\u548C\u5F85\u89E3\u51B3\u95EE\u9898\uFF1B\u4EBA\u4E8B\u8BB0\u5F55\u529E\u7406\u8FDB\u5EA6\u3002\u6D89\u53CA\u8BD5\u7528\u671F\u3001\u52B3\u52A8\u5408\u540C\u548C\u798F\u5229\u7684\u8981\u6C42\uFF0C\u4EE5\u516C\u53F8\u6B63\u5F0F\u5236\u5EA6\u53CA\u9002\u7528\u6CD5\u5F8B\u4E3A\u51C6\u3002",
-              "The manager confirms responsibilities, ways of working and open questions with the new hire; HR records progress. Probation, employment contract and benefit requirements follow the company\u2019s official policies and applicable law."
-            ) }
-          ] },
-          { id: "leave", title: t2("\u8003\u52E4\u4E0E\u4F11\u5047\u8BF4\u660E", "Attendance and leave"), sections: [
-            { heading: t2("\u63D0\u4EA4\u4F11\u5047\u7533\u8BF7", "Requesting leave"), text: t2(
-              "\u5458\u5DE5\u5728\u516C\u53F8\u6307\u5B9A\u5165\u53E3\u9009\u62E9\u5047\u522B\u3001\u65E5\u671F\u548C\u4EA4\u63A5\u4EBA\uFF0C\u8865\u5145\u5FC5\u8981\u8BF4\u660E\u3002\u5BA1\u6279\u901A\u8FC7\u540E\uFF0C\u6309\u56E2\u961F\u8981\u6C42\u5B8C\u6210\u4EA4\u63A5\u3002\n\n\u5F85\u8865\u5145\uFF1A\u7533\u8BF7\u5165\u53E3\u3001\u5BA1\u6279\u4EBA\u3001\u63D0\u524D\u7533\u8BF7\u8981\u6C42\u3001\u7D27\u6025\u60C5\u51B5\u5904\u7406\u65B9\u5F0F\u3002",
-              "Employees choose the leave type, dates and a cover person in the company\u2019s designated system and add any needed notes. Once approved, they hand over work as the team requires.\n\nTo fill in: where to apply, approver, how far in advance to apply, what to do in an emergency."
-            ) },
-            { heading: t2("\u6838\u5BF9\u5047\u671F\u4E0E\u8003\u52E4", "Checking leave and attendance"), text: t2(
-              "\u4F11\u5047\u989D\u5EA6\u3001\u9002\u7528\u8D44\u683C\u3001\u8BA1\u85AA\u89C4\u5219\u548C\u8BC1\u660E\u8981\u6C42\uFF0C\u987B\u7531\u4EBA\u4E8B\u8865\u5145\u6B63\u5F0F\u4F9D\u636E\u3002\u9047\u5230\u4F59\u989D\u6216\u8003\u52E4\u8BB0\u5F55\u7591\u95EE\uFF0C\u8054\u7CFB\u6307\u5B9A\u8D1F\u8D23\u4EBA\u6838\u5BF9\uFF0C\u4E0D\u4EE5\u793A\u4F8B\u5185\u5BB9\u8BA1\u7B97\u5B9E\u9645\u5F85\u9047\u3002",
-              "HR must add the official basis for leave allowances, eligibility, pay rules and required proof. For questions about balances or attendance records, check with the designated owner; don\u2019t calculate actual entitlements from this sample."
-            ) }
-          ] },
-          { id: "travel", title: t2("\u5DEE\u65C5\u4E0E\u62A5\u9500\u8BF4\u660E", "Travel and expenses"), sections: [
-            { heading: t2("\u51FA\u5DEE\u524D", "Before the trip"), text: t2(
-              "\u8BF4\u660E\u51FA\u5DEE\u76EE\u7684\u3001\u884C\u7A0B\u548C\u9884\u8BA1\u8D39\u7528\uFF0C\u6309\u516C\u53F8\u6D41\u7A0B\u5B8C\u6210\u5BA1\u6279\u540E\u5B89\u6392\u9884\u8BA2\u3002\n\n\u5F85\u8865\u5145\uFF1A\u5DEE\u65C5\u7533\u8BF7\u5165\u53E3\u3001\u9884\u7B97\u6807\u51C6\u3001\u9884\u8BA2\u6E20\u9053\u3001\u5BA1\u6279\u4EBA\u3002",
-              "Describe the purpose, itinerary and estimated cost, get approval through the company process, then book.\n\nTo fill in: where to request travel, budget limits, booking channels, approver."
-            ) },
-            { heading: t2("\u51FA\u5DEE\u540E", "After the trip"), text: t2(
-              "\u6574\u7406\u8D39\u7528\u660E\u7EC6\u548C\u5408\u89C4\u51ED\u8BC1\uFF0C\u5173\u8054\u539F\u51FA\u5DEE\u7533\u8BF7\u5E76\u63D0\u4EA4\u62A5\u9500\u3002\u8D22\u52A1\u6838\u5BF9\u540E\u53CD\u9988\u8865\u5145\u6750\u6599\u6216\u4ED8\u6B3E\u5B89\u6392\u3002\n\n\u5F85\u8865\u5145\uFF1A\u62A5\u9500\u5165\u53E3\u3001\u63D0\u4EA4\u65F6\u9650\u3001\u7968\u636E\u8981\u6C42\u3001\u7279\u6B8A\u8D39\u7528\u5904\u7406\u89C4\u5219\u3002",
-              "Collect itemized expenses and valid receipts, link them to the original travel request and submit for reimbursement. Finance reviews them and asks for more documents or arranges payment.\n\nTo fill in: where to submit, deadline, receipt requirements, rules for special expenses."
-            ) }
-          ] }
-        ],
-        topics: [
-          { id: "new-employee", title: t2("\u65B0\u5458\u5DE5\u5165\u804C\u6307\u5F15", "New employee guide"), sections: [{ documentId: "onboarding", section: 0 }, { documentId: "onboarding", section: 1 }, { documentId: "onboarding", section: 2 }, { documentId: "leave", section: 0 }] },
-          { id: "business-trip", title: t2("\u51FA\u5DEE\u4E0E\u62A5\u9500\u6D41\u7A0B", "Business travel and expenses"), sections: [{ documentId: "travel", section: 0 }, { documentId: "travel", section: 1 }] }
-        ]
-      },
-      {
-        id: "project",
-        name: t2("\u9879\u76EE\u534F\u4F5C", "Project collaboration"),
-        description: t2("\u9879\u76EE\u8BF4\u660E\u3001\u91CC\u7A0B\u7891\u7EA6\u5B9A\u4E0E\u4EA4\u4ED8\u4EA4\u63A5\u6E05\u5355", "Project briefs, milestone agreements, and handover checklists"),
-        documents: [
-          { id: "brief", title: t2("\u9879\u76EE\u8BF4\u660E", "Project brief"), sections: [
-            { heading: t2("\u76EE\u6807\u4E0E\u8303\u56F4", "Goals and scope"), text: t2(
-              "\u9879\u76EE\u540D\u79F0\uFF1A[\u586B\u5199\u9879\u76EE\u540D\u79F0]\n\n\u76EE\u6807\uFF1A[\u63CF\u8FF0\u8981\u89E3\u51B3\u7684\u95EE\u9898\u548C\u53EF\u9A8C\u6536\u7684\u7ED3\u679C]\n\n\u672C\u671F\u8303\u56F4\uFF1A[\u5217\u51FA\u672C\u671F\u4EA4\u4ED8]\n\n\u6682\u4E0D\u5305\u542B\uFF1A[\u660E\u786E\u6682\u4E0D\u5B9E\u65BD\u7684\u4E8B\u9879]",
-              "Project name: [fill in]\n\nGoal: [the problem to solve and a result that can be accepted]\n\nIn scope: [deliverables for this phase]\n\nOut of scope: [what won\u2019t be done for now]"
-            ) },
-            { heading: t2("\u534F\u4F5C\u7EA6\u5B9A", "Working agreements"), text: t2(
-              "\u8D1F\u8D23\u4EBA\uFF1A[\u59D3\u540D\u6216\u89D2\u8272]\n\n\u91CC\u7A0B\u7891\uFF1A[\u65E5\u671F\u4E0E\u4EA4\u4ED8\u7269]\n\n\u6C9F\u901A\u5165\u53E3\uFF1A[\u9879\u76EE\u7FA4\u6216\u4EFB\u52A1\u94FE\u63A5]\n\n\u53D8\u66F4\u9700\u8BB0\u5F55\u539F\u56E0\u3001\u5F71\u54CD\u548C\u786E\u8BA4\u4EBA\uFF0C\u518D\u66F4\u65B0\u9879\u76EE\u8BF4\u660E\u3002",
-              "Owner: [name or role]\n\nMilestones: [dates and deliverables]\n\nWhere to talk: [project group or task link]\n\nFor any change, record the reason, impact and who approved it, then update this brief."
-            ) }
-          ] },
-          { id: "handover", title: t2("\u4EA4\u4ED8\u4E0E\u4EA4\u63A5\u6E05\u5355", "Delivery and handover checklist"), sections: [
-            { heading: t2("\u4EA4\u4ED8\u68C0\u67E5", "Delivery check"), text: t2(
-              "- \u5BF9\u7167\u7EA6\u5B9A\u9010\u9879\u786E\u8BA4\u9A8C\u6536\u7ED3\u679C\u3002\n- \u9644\u4E0A\u4EA4\u4ED8\u6587\u4EF6\u548C\u4F7F\u7528\u8BF4\u660E\u3002\n- \u8BB0\u5F55\u672A\u89E3\u51B3\u95EE\u9898\u3001\u8D1F\u8D23\u4EBA\u53CA\u540E\u7EED\u5B89\u6392\u3002",
-              "- Check each acceptance criterion against what was agreed.\n- Attach the deliverables and instructions for using them.\n- Record open issues, owners and next steps."
-            ) },
-            { heading: t2("\u4EA4\u63A5\u786E\u8BA4", "Handover sign-off"), text: t2(
-              "\u63A5\u6536\u4EBA\u786E\u8BA4\u6587\u4EF6\u53EF\u8BBF\u95EE\u3001\u64CD\u4F5C\u53EF\u590D\u73B0\uFF0C\u5E76\u8BB0\u5F55\u4EA4\u63A5\u65E5\u671F\u3002\u8D26\u53F7\u5BC6\u94A5\u901A\u8FC7\u516C\u53F8\u6307\u5B9A\u6E20\u9053\u4EA4\u63A5\uFF0C\u4E0D\u5199\u5165\u77E5\u8BC6\u5E93\u3002",
-              "The recipient confirms the files are accessible and the steps can be reproduced, and records the handover date. Accounts and keys are handed over through the company\u2019s designated channel, never written into the knowledge base."
-            ) }
-          ] }
-        ],
-        topics: [{ id: "project-guide", title: t2("\u9879\u76EE\u4ECE\u542F\u52A8\u5230\u4EA4\u63A5", "From kickoff to handover"), sections: [{ documentId: "brief", section: 0 }, { documentId: "brief", section: 1 }, { documentId: "handover", section: 0 }, { documentId: "handover", section: 1 }] }]
-      },
-      {
-        id: "product",
-        name: t2("\u4EA7\u54C1\u652F\u6301", "Product support"),
-        description: t2("\u4EA7\u54C1\u4ECB\u7ECD\u3001\u5E38\u89C1\u95EE\u9898\u4E0E\u6545\u969C\u5904\u7406\u6D41\u7A0B", "Product overviews, FAQs, and troubleshooting processes"),
-        documents: [
-          { id: "overview", title: t2("\u4EA7\u54C1\u4ECB\u7ECD", "Product overview"), sections: [
-            { heading: t2("\u4EA7\u54C1\u4E0E\u9002\u7528\u573A\u666F", "Product and use cases"), text: t2(
-              "\u4EA7\u54C1\u540D\u79F0\uFF1A[\u586B\u5199\u540D\u79F0]\n\n\u76EE\u6807\u7528\u6237\uFF1A[\u586B\u5199\u7528\u6237\u7FA4\u4F53]\n\n\u6838\u5FC3\u7528\u9014\uFF1A[\u8BF4\u660E\u80FD\u5E2E\u52A9\u7528\u6237\u5B8C\u6210\u4EC0\u4E48]\n\n\u4F7F\u7528\u8FB9\u754C\uFF1A[\u8BF4\u660E\u9002\u7528\u6761\u4EF6\u548C\u9650\u5236]",
-              "Product name: [fill in]\n\nWho it\u2019s for: [fill in]\n\nWhat it does: [what it helps users get done]\n\nLimits: [when it applies and what it can\u2019t do]"
-            ) },
-            { heading: t2("\u5F00\u59CB\u4F7F\u7528", "Getting started"), text: t2(
-              "1. \u786E\u8BA4\u8D26\u53F7\u3001\u6743\u9650\u548C\u8FD0\u884C\u73AF\u5883\u3002\n2. \u6309\u64CD\u4F5C\u6307\u5357\u5B8C\u6210\u7B2C\u4E00\u4E2A\u4EFB\u52A1\u3002\n3. \u68C0\u67E5\u7ED3\u679C\uFF1B\u5982\u672A\u8FBE\u9884\u671F\uFF0C\u6309\u95EE\u9898\u5904\u7406\u6D41\u7A0B\u53CD\u9988\u3002\n\n\u5F85\u8865\u5145\uFF1A\u64CD\u4F5C\u6307\u5357\u94FE\u63A5\u3001\u652F\u6301\u5165\u53E3\u3001\u7248\u672C\u8BF4\u660E\u3002",
-              "1. Make sure the account, permissions and environment are ready.\n2. Complete a first task by following the guide.\n3. Check the result; if it isn\u2019t what you expected, report it through the support process.\n\nTo fill in: guide link, where to get support, release notes."
-            ) }
-          ] },
-          { id: "support", title: t2("\u95EE\u9898\u5904\u7406\u8BF4\u660E", "Handling issues"), sections: [
-            { heading: t2("\u6536\u96C6\u95EE\u9898\u4FE1\u606F", "Gathering details"), text: t2(
-              "\u8BB0\u5F55\u51FA\u73B0\u95EE\u9898\u7684\u64CD\u4F5C\u3001\u9884\u671F\u7ED3\u679C\u3001\u5B9E\u9645\u7ED3\u679C\u3001\u53D1\u751F\u65F6\u95F4\u548C\u4EA7\u54C1\u7248\u672C\u3002\u622A\u56FE\u6216\u65E5\u5FD7\u9700\u53BB\u9664\u4E2A\u4EBA\u4FE1\u606F\u53CA\u5BC6\u94A5\u3002",
-              "Record the steps taken, the expected and actual results, when it happened and the product version. Remove personal information and keys from screenshots and logs."
-            ) },
-            { heading: t2("\u8DDF\u8FDB\u4E0E\u5173\u95ED", "Follow-up and closing"), text: t2(
-              "\u652F\u6301\u4EBA\u5458\u590D\u73B0\u5E76\u8BB0\u5F55\u5904\u7406\u65B9\u6848\uFF1B\u65E0\u6CD5\u89E3\u51B3\u65F6\u4EA4\u7ED9\u5BF9\u5E94\u8D1F\u8D23\u4EBA\u3002\u7528\u6237\u786E\u8BA4\u95EE\u9898\u89E3\u51B3\u540E\uFF0C\u8865\u5145\u53EF\u590D\u7528\u7684\u5904\u7406\u6B65\u9AA4\u3002\n\n\u5F85\u8865\u5145\uFF1A\u652F\u6301\u8054\u7CFB\u4EBA\u3001\u5347\u7EA7\u5904\u7406\u8DEF\u5F84\u3001\u54CD\u5E94\u65F6\u95F4\u7EA6\u5B9A\u3002",
-              "Support reproduces the issue and records the fix; if they can\u2019t solve it, they pass it to the right owner. After the user confirms it\u2019s fixed, add reusable steps.\n\nTo fill in: support contacts, escalation path, response time targets."
-            ) }
-          ] }
-        ],
-        topics: [{ id: "support-guide", title: t2("\u4EA7\u54C1\u4F7F\u7528\u4E0E\u6C42\u52A9\u6307\u5F15", "Using the product and getting help"), sections: [{ documentId: "overview", section: 0 }, { documentId: "overview", section: 1 }, { documentId: "support", section: 0 }, { documentId: "support", section: 1 }] }]
-      }
-    ];
-    DOCUMENT_TEMPLATES2 = [
-      { id: "meeting", title: t2("\u4F1A\u8BAE\u7EAA\u8981", "Meeting notes"), sections: [
-        { heading: t2("\u4F1A\u8BAE\u4FE1\u606F", "Meeting details"), text: t2("\u65E5\u671F\uFF1A[\u586B\u5199]\n\n\u53C2\u4E0E\u4EBA\uFF1A[\u586B\u5199]\n\n\u8BAE\u9898\uFF1A[\u586B\u5199]", "Date: [fill in]\n\nAttendees: [fill in]\n\nTopics: [fill in]") },
-        { heading: t2("\u51B3\u7B56\u4E0E\u4F9D\u636E", "Decisions and basis"), text: t2("| \u51B3\u7B56 | \u4F9D\u636E\u6216\u76F8\u5173\u8D44\u6599 | \u786E\u8BA4\u4EBA |\n| --- | --- | --- |\n| [\u586B\u5199] | [\u586B\u5199] | [\u586B\u5199] |", "| Decision | Basis or related documents | Approved by |\n| --- | --- | --- |\n| [fill in] | [fill in] | [fill in] |") },
-        { heading: t2("\u884C\u52A8\u9879", "Action items"), text: t2("| \u4E8B\u9879 | \u8D1F\u8D23\u4EBA | \u622A\u6B62\u65E5\u671F |\n| --- | --- | --- |\n| [\u586B\u5199] | [\u586B\u5199] | [\u586B\u5199] |", "| Item | Owner | Due date |\n| --- | --- | --- |\n| [fill in] | [fill in] | [fill in] |") },
-        { heading: t2("\u5F85\u786E\u8BA4\u95EE\u9898", "Open questions"), text: t2("[\u8BB0\u5F55\u4ECD\u9700\u6838\u5BF9\u7684\u95EE\u9898\u4E0E\u4E0B\u4E00\u6B65]", "[Questions still to check, and next steps]") }
-      ] },
-      { id: "sop", title: t2("\u64CD\u4F5C\u6D41\u7A0B", "Standard procedure"), sections: [
-        { heading: t2("\u9002\u7528\u8303\u56F4", "Scope"), text: t2("\u9002\u7528\u5BF9\u8C61\uFF1A[\u586B\u5199]\n\n\u524D\u63D0\u6761\u4EF6\uFF1A[\u586B\u5199]\n\n\u8D1F\u8D23\u4EBA\uFF1A[\u586B\u5199]", "Applies to: [fill in]\n\nPrerequisites: [fill in]\n\nOwner: [fill in]") },
-        { heading: t2("\u64CD\u4F5C\u6B65\u9AA4", "Steps"), text: t2("1. [\u51C6\u5907\u4E8B\u9879]\n2. [\u6267\u884C\u64CD\u4F5C]\n3. [\u68C0\u67E5\u7ED3\u679C]", "1. [Prepare]\n2. [Do the work]\n3. [Check the result]") },
-        { heading: t2("\u4F8B\u5916\u4E0E\u6C42\u52A9", "Exceptions and help"), text: t2("[\u586B\u5199\u5F02\u5E38\u60C5\u51B5\u3001\u5904\u7406\u65B9\u5F0F\u53CA\u8054\u7CFB\u4EBA]", "[Exceptions, how to handle them, and who to contact]") },
-        { heading: t2("\u7EF4\u62A4\u8BB0\u5F55", "Maintenance"), text: t2("\u4F9D\u636E\u8D44\u6599\uFF1A[\u586B\u5199]\n\n\u6700\u540E\u6838\u5BF9\u65E5\u671F\uFF1A[\u586B\u5199]\n\n\u4E0B\u6B21\u590D\u6838\u65E5\u671F\uFF1A[\u586B\u5199]", "Sources: [fill in]\n\nLast checked: [fill in]\n\nNext review: [fill in]") }
-      ] }
-    ];
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/subagent-templates.ts
-var SUBAGENT_PRESETS2;
-var init_subagent_templates2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/subagent-templates.ts"() {
-    "use strict";
-    SUBAGENT_PRESETS2 = {
-      "web-research": {
-        name: "\u7F51\u9875\u8C03\u7814",
-        base: "explore",
-        maxTurns: 20,
-        description: "\u8054\u7F51\u8C03\u7814\u4E00\u4E2A\u5177\u4F53\u4E3B\u9898\uFF08\u51FA\u884C\u3001\u4EF7\u683C\u3001\u4EA7\u54C1\u3001\u6280\u672F\u8D44\u6599\u7B49\uFF09\uFF0C\u8FD4\u56DE\u5E26\u6765\u6E90\u548C\u65E5\u671F\u7684\u4E8B\u5B9E\uFF1B\u591A\u4E2A\u4E3B\u9898\u5404\u6D3E\u4E00\u4E2A\u5E76\u884C\uFF0C\u6C47\u603B\u3001\u9884\u7B97\u3001\u5BF9\u6BD4\u7559\u7ED9\u7236\u4EE3\u7406",
-        prompt: [
-          "\u4F60\u662F\u7F51\u9875\u8C03\u7814\u5458\uFF0C\u53EA\u8C03\u7814\u5206\u914D\u7ED9\u4F60\u7684\u8FD9\u4E00\u4E2A\u4E3B\u9898\uFF0C\u4E0D\u505A\u4E3B\u9898\u4E4B\u5916\u7684\u6C47\u603B\u6216\u4F30\u7B97\u3002",
-          "1. \u5148\u5217\u51FA\u8981\u56DE\u7B54\u7684\u95EE\u9898\uFF0C\u518D\u641C\u7D22\uFF1B\u641C\u7D22\u7EA6 8 \u6B21\u3001\u8BFB\u7F51\u9875\u7EA6 6 \u7BC7\u4E3A\u9650\uFF0C\u591F\u7528\u5C31\u505C\u3002",
-          "2. \u8BFB\u7F51\u9875\u65F6\u7ED9 WebFetch \u5E26\u4E0A prompt\uFF0C\u5199\u660E\u8981\u4ECE\u9875\u9762\u627E\u4EC0\u4E48\uFF0C\u53EA\u62FF\u8981\u70B9\uFF1B\u786E\u9700\u539F\u6587\u65F6\u518D\u7701\u7565 prompt\u3002",
-          "3. \u4F18\u5148\u5B98\u65B9\u7F51\u7AD9\u3001\u4E00\u624B\u516C\u544A\u548C\u6743\u5A01\u5E73\u53F0\uFF1B\u8F6C\u8F7D\u3001\u8BBA\u575B\u548C\u8FC7\u671F\u9875\u9762\u53EA\u4F5C\u65C1\u8BC1\u3002",
-          "4. \u6BCF\u6761\u4E8B\u5B9E\u9644\u6765\u6E90\u7F51\u5740\u548C\u9875\u9762\u65E5\u671F\u6216\u6838\u5BF9\u65E5\u671F\uFF1B\u4EF7\u683C\u3001\u73ED\u6B21\u3001\u5F00\u653E\u65F6\u95F4\u3001\u653F\u7B56\u5199\u660E\u9002\u7528\u65F6\u6BB5\u3002",
-          "5. \u67E5\u4E0D\u5230\u6216\u6765\u6E90\u4E92\u76F8\u77DB\u76FE\u65F6\u5199\u300C\u5F85\u6838\u5B9E\u300D\u5E76\u8BF4\u660E\u539F\u56E0\uFF0C\u4E0D\u7528\u5E38\u8BC6\u6216\u65E7\u6570\u636E\u8865\u9F50\u3002"
-        ].join("\n")
-      },
-      "knowledge-research": {
-        name: "\u77E5\u8BC6\u5E93\u68C0\u7D22",
-        base: "explore",
-        maxTurns: 20,
-        description: "\u5728\u672C\u6B21\u5BF9\u8BDD\u6240\u9009\u7684\u77E5\u8BC6\u5E93\u91CC\u67E5\u4E00\u4E2A\u4E3B\u9898\uFF0C\u8BFB\u6700\u76F8\u5173\u7684\u539F\u6587\u5E76\u5E26\u51FA\u5904\u56DE\u7B54\uFF1B\u53EA\u7528\u77E5\u8BC6\u5E93\uFF0C\u4E0D\u4E0A\u7F51",
-        prompt: [
-          "\u4F60\u662F\u77E5\u8BC6\u5E93\u68C0\u7D22\u5458\uFF0C\u53EA\u5728\u672C\u6B21\u77E5\u8BC6\u8303\u56F4\u5185\u67E5\u627E\uFF0C\u4E0D\u8054\u7F51\u8865\u5145\u3002",
-          "1. \u7528 knowledge_search \u6362\u4E24\u4E09\u79CD\u8BF4\u6CD5\u68C0\u7D22\uFF0C\u6311\u6700\u76F8\u5173\u7684\u8D44\u6599\u8BFB\u539F\u6587\uFF0C\u4E0D\u53EA\u770B\u7247\u6BB5\u3002",
-          "2. \u6BCF\u6761\u7ED3\u8BBA\u5199\u660E\u8D44\u6599\u540D\u79F0\u4E0E\u4F4D\u7F6E\uFF08\u7AE0\u8282\u3001\u9875\u7801\u6216\u6BB5\u843D\uFF09\uFF0C\u5E76\u6458\u5F55\u5173\u952E\u539F\u53E5\u3002",
-          "3. \u5206\u5F00\u5199\u300C\u8D44\u6599\u539F\u6587\u300D\u548C\u300C\u63A8\u65AD\u300D\uFF1B\u8D44\u6599\u4E4B\u95F4\u4E0D\u4E00\u81F4\u65F6\u90FD\u5217\u51FA\u6765\uFF0C\u5E76\u6CE8\u660E\u5404\u81EA\u7248\u672C\u6216\u65E5\u671F\u3002",
-          "4. \u67E5\u4E0D\u5230\u5C31\u76F4\u63A5\u8BF4\u67E5\u4E0D\u5230\uFF0C\u4EE5\u53CA\u67E5\u8FC7\u54EA\u4E9B\u5173\u952E\u8BCD\uFF0C\u4E0D\u8981\u7F16\u9020\u6216\u7528\u5E38\u8BC6\u4EE3\u66FF\u3002"
-        ].join("\n")
-      },
-      "doc-maker": {
-        name: "\u6587\u6863\u5236\u4F5C",
-        base: "general",
-        context: "inherit",
-        maxTurns: 30,
-        description: "\u6839\u636E\u5DF2\u6574\u7406\u597D\u7684\u5185\u5BB9\u751F\u6210\u4E00\u4E2A\u6210\u54C1\u6587\u4EF6\uFF08Word\u3001PDF\u3001Excel \u6216 PPT\uFF09\uFF1B\u4E00\u6B21\u53EA\u505A\u4E00\u4E2A\u6210\u54C1\uFF0C\u591A\u4E2A\u683C\u5F0F\u5404\u6D3E\u4E00\u4E2A\u5E76\u884C",
-        prompt: [
-          "\u4F60\u662F\u6587\u6863\u5236\u4F5C\u5458\uFF0C\u53EA\u5236\u4F5C\u4EFB\u52A1\u8BF4\u660E\u91CC\u6307\u5B9A\u7684\u8FD9\u4E00\u4E2A\u6587\u4EF6\u3002",
-          "1. \u5185\u5BB9\u53EA\u7528\u4EFB\u52A1\u8BF4\u660E\u548C\u5BF9\u8BDD\u8BB0\u5F55\u91CC\u5DF2\u6709\u7684\u6750\u6599\uFF0C\u4E0D\u53E6\u884C\u8C03\u7814\u6216\u7F16\u9020\uFF1B\u7F3A\u5185\u5BB9\u65F6\u5728\u62A5\u544A\u91CC\u5217\u51FA\u3002",
-          "2. \u5148\u52A0\u8F7D\u5BF9\u5E94\u6280\u80FD\u7167\u505A\uFF1AWord / Excel / PPT \u7528 OfficeCLI\uFF0CPDF \u7528 ExportPdf\u3002",
-          "3. \u6210\u54C1\u5B58\u5230\u672C\u8F6E\u4EA4\u4ED8\u76EE\u5F55\uFF1B\u5236\u4F5C\u811A\u672C\u4E0E\u4E34\u65F6\u6587\u4EF6\u653E\u5728\u5DE5\u4F5C\u76EE\u5F55\u7684 .context/scratch/\u3002",
-          "4. \u4EA4\u4ED8\u524D\u68C0\u67E5\uFF1A\u6587\u4EF6\u5B58\u5728\u4E14\u975E\u7A7A\uFF1BOffice \u6587\u4EF6\u8DD1 validate\uFF0CPDF \u7528 Read \u56DE\u8BFB\u6587\u5B57\uFF0C\u786E\u8BA4\u6807\u9898\u3001\u8868\u683C\u4E0E\u5173\u952E\u6570\u5B57\u3002",
-          "5. \u62A5\u544A\u5199\u660E\u6587\u4EF6\u8DEF\u5F84\u3001\u9875\u6570\u6216\u8868\u6570\u3001\u505A\u8FC7\u54EA\u4E9B\u68C0\u67E5\uFF0C\u4EE5\u53CA\u6CA1\u80FD\u68C0\u67E5\u7684\u90E8\u5206\u3002"
-        ].join("\n")
-      },
-      "fact-check": {
-        name: "\u6838\u67E5",
-        base: "explore",
-        maxTurns: 20,
-        description: "\u5B9A\u7A3F\u524D\u6838\u67E5\u4E00\u4EFD\u65B9\u6848\u3001\u56DE\u7B54\u6216\u6587\u6863\u91CC\u53EF\u6838\u5B9E\u7684\u4E8B\u5B9E\uFF08\u4EF7\u683C\u3001\u65F6\u95F4\u3001\u653F\u7B56\u3001\u6570\u5B57\u3001\u51FA\u5904\uFF09\uFF1B\u53EA\u62A5\u544A\u7ED3\u679C\uFF0C\u4E0D\u6539\u5199\u539F\u6587",
-        prompt: [
-          "\u4F60\u662F\u6838\u67E5\u5458\uFF0C\u53EA\u8BFB\u4E0D\u6539\u3002",
-          "1. \u4ECE\u7ED9\u4F60\u7684\u5185\u5BB9\u91CC\u6311\u51FA\u53EF\u6838\u5B9E\u7684\u8BF4\u6CD5\uFF1A\u4EF7\u683C\u3001\u65E5\u671F\u65F6\u95F4\u3001\u8425\u4E1A\u6216\u5F00\u653E\u5B89\u6392\u3001\u653F\u7B56\u89C4\u5B9A\u3001\u7EDF\u8BA1\u6570\u5B57\u3001\u5F15\u7528\u51FA\u5904\u3002",
-          "2. \u6309\u5F71\u54CD\u6392\u5E8F\uFF0C\u9010\u6761\u7528\u539F\u51FA\u5904\u3001\u5B98\u65B9\u6765\u6E90\u6216\u77E5\u8BC6\u5E93\u6838\u5BF9\uFF1B\u641C\u7D22\u4E0E\u8BFB\u7F51\u9875\u9002\u5EA6\uFF0C\u591F\u5224\u65AD\u5C31\u505C\u3002",
-          "3. \u8F93\u51FA\u8868\u683C\uFF1A\u539F\u8BF4\u6CD5\uFF5C\u7ED3\u8BBA\uFF08\u4E00\u81F4 / \u6709\u51FA\u5165 / \u67E5\u4E0D\u5230\uFF09\uFF5C\u4F9D\u636E\uFF08\u7F51\u5740\u6216\u8D44\u6599\u4F4D\u7F6E\uFF0C\u9644\u65E5\u671F\uFF09\uFF5C\u5EFA\u8BAE\u6539\u6CD5\u3002",
-          "4. \u6CA1\u6709\u95EE\u9898\u5C31\u76F4\u63A5\u8BF4\u6CA1\u6709\uFF0C\u4E0D\u51D1\u6570\uFF1B\u4E0D\u8981\u91CD\u5199\u5168\u6587\u3002"
-        ].join("\n")
-      }
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-files.ts
-var init_knowledge_files2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/knowledge-files.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/index.ts
-var init_config2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/config/index.ts"() {
-    "use strict";
-    init_knowledge_templates2();
-    init_subagent_templates2();
-    init_knowledge_files2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/capabilities-diff.ts
-var init_capabilities_diff2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/capabilities-diff.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/mcp-failure.ts
-var init_mcp_failure2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/mcp-failure.ts"() {
-    "use strict";
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-content.ts
-var init_session_content2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-content.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-naming.ts
-var init_creative_naming2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-naming.ts"() {
-    "use strict";
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/task-items.ts
-var init_task_items2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/task-items.ts"() {
-    "use strict";
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/local-memory.ts
-var DAY_MS3;
-var init_local_memory4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/local-memory.ts"() {
-    "use strict";
-    init_i18n2();
-    DAY_MS3 = 24 * 60 * 60 * 1e3;
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/enterprise-memory.ts
-var init_enterprise_memory4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/enterprise-memory.ts"() {
-    "use strict";
-    init_local_memory4();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/workspace-knowledge.ts
-var DAY_MS4;
-var init_workspace_knowledge4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/workspace-knowledge.ts"() {
-    "use strict";
-    init_local_memory4();
-    DAY_MS4 = 24 * 60 * 60 * 1e3;
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-scope.ts
-var init_knowledge_scope2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-scope.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/currency-safe-math.ts
-var init_currency_safe_math2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/currency-safe-math.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/file-mentions.ts
-var init_file_mentions2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/file-mentions.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-mentions.ts
-var init_knowledge_mentions2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/knowledge-mentions.ts"() {
-    "use strict";
-    init_currency_safe_math2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-title.ts
-var RECAP_AWAY_MS2;
-var init_session_title2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-title.ts"() {
-    "use strict";
-    init_i18n2();
-    init_knowledge_mentions2();
-    RECAP_AWAY_MS2 = 10 * 6e4;
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-mentions.ts
-var init_session_mentions2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/session-mentions.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/assistant-content.ts
-var init_assistant_content2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/assistant-content.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/deid.ts
-var init_deid2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/deid.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/model-routing.ts
-var oneOf2, isReason2, isClassifier2, isClassifierError2, isSkipReason2, isRuleKind2, TASK_TYPE_NAMES2, BUILTIN_NAMES2;
-var init_model_routing4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/model-routing.ts"() {
-    "use strict";
-    init_channel2();
-    init_model_routing3();
-    init_i18n2();
-    oneOf2 = (values) => (value) => typeof value === "string" && Object.hasOwn(values, value);
-    isReason2 = oneOf2({ first: true, continued: true, same_category: true, switch: true, rule: true, same_tier: true, upgrade: true, downgrade: true, short_followup: true, uncertain: true, no_candidate: true, regenerate: true, retry_after_failure: true, manual: true });
-    isClassifier2 = oneOf2({ "this-that": true, fast_model: true, none: true });
-    isClassifierError2 = oneOf2({ timeout: true, error: true, invalid: true });
-    isSkipReason2 = oneOf2({ disabled: true, not_local: true, no_tools: true, image: true, native_file: true, context: true, price_unknown: true, failed_last_run: true });
-    isRuleKind2 = oneOf2({ detect: true, terms: true, project: true, sticky: true });
-    TASK_TYPE_NAMES2 = {
-      qa: ["\u7B80\u5355\u95EE\u7B54", "Quick questions"],
-      rewrite: ["\u7FFB\u8BD1\u3001\u6539\u5199\u4E0E\u683C\u5F0F\u8F6C\u6362", "Translate, rewrite, and convert"],
-      summary: ["\u603B\u7ED3\u63D0\u70BC", "Summaries"],
-      long_writing: ["\u64B0\u5199\u957F\u6587", "Long-form writing"],
-      document: ["\u5236\u4F5C\u6587\u6863\u8868\u683C", "Documents and spreadsheets"],
-      analysis: ["\u6570\u636E\u5206\u6790\u4E0E\u8C03\u7814", "Analysis and research"]
-    };
-    BUILTIN_NAMES2 = {
-      [FAST_CATEGORY_ID2]: ["\u5FEB\u901F", "Fast"],
-      [QUALITY_CATEGORY_ID2]: ["\u9AD8\u8D28\u91CF", "High quality"],
-      [LOCAL_GROUP_ID2]: ["\u672C\u5730", "Local"],
-      [PRIVACY_RULE_ID2]: ["\u9690\u79C1", "Private"],
-      ...TASK_TYPE_NAMES2
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/subagent-model.ts
-var init_subagent_model2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/subagent-model.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/computer-use.ts
-var ELEMENT_ROLES2;
-var init_computer_use4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/computer-use.ts"() {
-    "use strict";
-    ELEMENT_ROLES2 = [
-      "button",
-      "close button",
-      "minimize button",
-      "full screen button",
-      "zoom button",
-      "link",
-      "tab",
-      "checkbox",
-      "check box",
-      "radio button",
-      "radio group",
-      "pop up button",
-      "combo box",
-      "menu item",
-      "menu button",
-      "menu bar",
-      "menu bar item",
-      "increment arrow",
-      "decrement arrow",
-      "text field",
-      "search text field",
-      "text entry area",
-      "secure text field",
-      "static text",
-      "text",
-      "row",
-      "cell",
-      "group",
-      "container",
-      "collection",
-      "image",
-      "heading",
-      "list",
-      "sortable",
-      "outline",
-      "table",
-      "ruler",
-      "splitter",
-      "grow area",
-      "toolbar",
-      "scroll area",
-      "scroll bar",
-      "split group",
-      "standard window",
-      "window",
-      "\u6309\u94AE",
-      "\u94FE\u63A5",
-      "\u590D\u9009\u6846",
-      "\u5355\u9009\u6309\u94AE",
-      "\u5F39\u51FA\u5F0F\u6309\u94AE",
-      "\u83DC\u5355\u9879",
-      "\u83DC\u5355\u6309\u94AE",
-      "\u6587\u672C\u680F",
-      "\u641C\u7D22\u6587\u672C\u680F",
-      "\u6587\u672C\u8F93\u5165\u533A",
-      "\u5B89\u5168\u6587\u672C\u680F",
-      "\u9759\u6001\u6587\u672C",
-      "\u6587\u672C",
-      "\u884C",
-      "\u5355\u5143\u683C",
-      "\u7EC4",
-      "\u56FE\u50CF",
-      "\u6807\u9898",
-      "\u5217\u8868",
-      "\u6807\u51C6\u7A97\u53E3",
-      "\u7A97\u53E3"
-    ].sort((a, b) => b.length - a.length);
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/research-progress.ts
-var researchStatusLabel2, subagentOutcomeLabel2;
-var init_research_progress2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/research-progress.ts"() {
-    "use strict";
-    init_i18n2();
-    researchStatusLabel2 = {
-      queued: tr2("\u6392\u961F\u4E2D", "Queued"),
-      running: tr2("\u8FD0\u884C\u4E2D", "Running"),
-      completed: tr2("\u5DF2\u5B8C\u6210", "Done"),
-      failed: tr2("\u5931\u8D25", "Failed"),
-      stopped: tr2("\u5DF2\u505C\u6B62", "Stopped"),
-      interrupted: tr2("\u5DF2\u4E2D\u65AD", "Interrupted"),
-      cached: tr2("\u590D\u7528\u5DF2\u6709\u7ED3\u679C", "Reused")
-    };
-    subagentOutcomeLabel2 = { partial: tr2("\u90E8\u5206\u5B8C\u6210", "Partly done"), failed: tr2("\u672A\u5B8C\u6210", "Not done") };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/memory-ref.ts
-var init_memory_ref2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/memory-ref.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-video.ts
-var MINIMAX_RATIOS2, SEEDANCE_RATIOS2, WAN_RATIOS2, KLING_RATIOS2, CREATIVE_VIDEO_MODELS2;
-var init_creative_video2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-video.ts"() {
-    "use strict";
-    init_creative2();
-    init_i18n2();
-    init_creative_graph2();
-    MINIMAX_RATIOS2 = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
-    SEEDANCE_RATIOS2 = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"];
-    WAN_RATIOS2 = ["16:9", "9:16", "1:1", "4:3", "3:4"];
-    KLING_RATIOS2 = ["16:9", "9:16", "1:1"];
-    CREATIVE_VIDEO_MODELS2 = [
-      // https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md
-      { protocol: "minimax", pattern: /^MiniMax-H3$/, duration: [4, 15], resolutions: ["768P", "2K"], resolution: "768P", ratios: MINIMAX_RATIOS2, frames: [0, 2] },
-      { protocol: "minimax", pattern: /^MiniMax-H3-Max$/, duration: [5, 15], resolutions: ["480P", "768P"], resolution: "768P", ratios: MINIMAX_RATIOS2, frames: [0, 2] },
-      // 火山方舟与 BytePlus ModelArk 同一套参数：https://docs.byteplus.com/en/docs/modelark/create-video-generation-task-api
-      { protocol: "seedance", pattern: /seedance-2-5/i, duration: [4, 30], resolutions: ["480p", "720p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
-      { protocol: "seedance", pattern: /seedance-2-0-(?:fast|mini)/i, duration: [4, 15], resolutions: ["480p", "720p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
-      { protocol: "seedance", pattern: /seedance-2-0/i, duration: [4, 15], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true },
-      { protocol: "seedance", pattern: /seedance-1-5-pro/i, duration: [4, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], audio: true, seed: true },
-      { protocol: "seedance", pattern: /seedance-1-0-pro-fast/i, duration: [2, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 1], seed: true },
-      { protocol: "seedance", pattern: /seedance-1-0-pro/i, duration: [2, 12], resolutions: ["480p", "720p", "1080p"], resolution: "720p", ratios: SEEDANCE_RATIOS2, frames: [0, 2], seed: true },
-      // 未知型号与 ep- 端点：沿用端点默认参数
-      { protocol: "seedance", pattern: /seedance|^ep-/i, resolutions: [], ratios: [], frames: [0, 2] },
-      // 百炼万相：https://help.aliyun.com/zh/model-studio/wan3-video-generation-api-reference ；单价（北京地域刊例价）：https://help.aliyun.com/zh/model-studio/model-pricing
-      { protocol: "dashscope", pattern: /^wan3\.0-video-prime$/, duration: [2, 30], resolutions: ["480P", "720P", "1080P"], resolution: "720P", ratios: [...WAN_RATIOS2, "21:9"], frames: [0, 2], audio: true, seed: true, price: { currency: "CNY", perSecond: { "480P": 0.45, "720P": 0.9, "1080P": 1.8 } } },
-      { protocol: "dashscope", pattern: /^wan3\.0-video$/, duration: [2, 30], resolutions: ["480P", "720P", "1080P"], resolution: "720P", ratios: [...WAN_RATIOS2, "21:9"], frames: [0, 2], audio: true, seed: true, price: { currency: "CNY", perSecond: { "480P": 0.3, "720P": 0.6, "1080P": 1.2 } } },
-      // https://help.aliyun.com/zh/model-studio/text-to-video-api-reference ；https://help.aliyun.com/zh/model-studio/image-to-video-general-api-reference
-      { protocol: "dashscope", pattern: /^wan2\.7-t2v(?:-\d{4}-\d{2}-\d{2})?$/, duration: [2, 15], resolutions: ["720P", "1080P"], resolution: "720P", ratios: WAN_RATIOS2, frames: [0, 0], seed: true, price: { currency: "CNY", perSecond: { "720P": 0.6, "1080P": 1 } } },
-      { protocol: "dashscope", pattern: /^wan2\.7-i2v(?:-\d{4}-\d{2}-\d{2})?$/, duration: [2, 15], resolutions: ["720P", "1080P"], resolution: "720P", ratios: [], frames: [1, 2], seed: true, price: { currency: "CNY", perSecond: { "720P": 0.6, "1080P": 1 } } },
-      // 可灵：https://kling.ai/document-api/api/video/3-0-omni/text-to-video ；模型 ID 即接口路径的最后一段
-      { protocol: "kling", pattern: /^kling-3\.0$/, duration: [3, 15], resolutions: ["720p", "1080p"], resolution: "720p", ratios: KLING_RATIOS2, frames: [0, 2], audio: false },
-      { protocol: "kling", pattern: /^kling-3\.0-turbo$/, duration: [3, 15], resolutions: ["720p", "1080p"], resolution: "720p", ratios: KLING_RATIOS2, frames: [0, 1] }
-    ];
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-graph.ts
-var init_creative_graph2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-graph.ts"() {
-    "use strict";
-    init_creative2();
-    init_creative_video2();
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/image-artifacts.ts
-var init_image_artifacts2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/image-artifacts.ts"() {
-    "use strict";
-    init_creative_graph2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-auto.ts
-var init_creative_auto2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-auto.ts"() {
-    "use strict";
-    init_i18n2();
-    init_channel2();
-    init_creative2();
-    init_creative_video2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-layout.ts
-var VIDEO_RATIO2;
-var init_creative_layout2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/creative-layout.ts"() {
-    "use strict";
-    init_creative_graph2();
-    VIDEO_RATIO2 = 16 / 9;
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/voice-polish.ts
-var init_voice_polish2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/voice-polish.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/provider-error.ts
-var init_provider_error2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/provider-error.ts"() {
-    "use strict";
-    init_i18n2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/cola-goal.ts
-var COLA_TRIGGER_LIMITS2;
-var init_cola_goal2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/cola-goal.ts"() {
-    "use strict";
-    COLA_TRIGGER_LIMITS2 = {
-      quietMs: 2 * 6e4,
-      minIntervalMs: 30 * 6e4,
-      runsPerDay: 10,
-      pending: 50,
-      triggers: 5,
-      files: 5e3,
-      dir: 500,
-      pattern: 100,
-      pollDefault: 15,
-      pollMin: 5,
-      pollMax: 1440,
-      lines: 500,
-      line: 200,
-      args: 4e3,
-      name: 200,
-      keywords: 10,
-      keyword: 30,
-      chatId: 200
-    };
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/index.ts
-var init_utils2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/utils/index.ts"() {
-    "use strict";
-    init_capabilities_diff2();
-    init_mcp_failure2();
-    init_session_content2();
-    init_creative_naming2();
-    init_task_items2();
-    init_local_memory4();
-    init_enterprise_memory4();
-    init_workspace_knowledge4();
-    init_knowledge_scope2();
-    init_currency_safe_math2();
-    init_file_mentions2();
-    init_knowledge_mentions2();
-    init_session_title2();
-    init_session_mentions2();
-    init_assistant_content2();
-    init_deid2();
-    init_model_routing4();
-    init_subagent_model2();
-    init_computer_use4();
-    init_research_progress2();
-    init_memory_ref2();
-    init_creative_graph2();
-    init_image_artifacts2();
-    init_creative_video2();
-    init_creative_auto2();
-    init_creative_layout2();
-    init_voice_polish2();
-    init_provider_error2();
-    init_cola_goal2();
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/constants/permission-rules.ts
-var init_permission_rules2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/constants/permission-rules.ts"() {
-    "use strict";
-  }
-});
-
-// ../../../../../../../../../../Volumes/File/cortex/packages/shared/src/index.ts
-var init_src2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/packages/shared/src/index.ts"() {
-    "use strict";
-    init_types2();
-    init_config2();
-    init_utils2();
-    init_permission_rules2();
-    init_i18n2();
-  }
-});
-
 // ../../packages/core/src/providers/model-capabilities.ts
 function claudeThinkingBinding(provider, modelId, baseUrl) {
   if (provider !== "anthropic" || !/^claude-fable-5-1(?:-latest)?$/i.test(modelId) || !baseUrl) return void 0;
@@ -2524,7 +1504,7 @@ function getModelCapabilities(provider, modelId, protocol) {
 }
 function resolveModelThinking(capability, explicit, legacyEnabled) {
   if (explicit !== void 0) {
-    if (!capability.levels.includes(explicit)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6", "This model doesn\u2019t support that thinking effort"));
+    if (!capability.levels.includes(explicit)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6", "This model doesn\u2019t support that thinking effort"));
     return explicit;
   }
   if (legacyEnabled === false && capability.levels.includes("off")) return "off";
@@ -2554,7 +1534,7 @@ function modelThinkingPayload(capability, protocol, level) {
   }
 }
 function auxiliaryModelOptions(provider, modelId, protocol, requestedTokens) {
-  if (!Number.isSafeInteger(requestedTokens) || requestedTokens < 1) throw new Error(tr2("\u8F93\u51FA\u9884\u7B97\u5FC5\u987B\u4E3A\u6B63\u6574\u6570", "The output budget must be a positive integer"));
+  if (!Number.isSafeInteger(requestedTokens) || requestedTokens < 1) throw new Error(tr("\u8F93\u51FA\u9884\u7B97\u5FC5\u987B\u4E3A\u6B63\u6574\u6570", "The output budget must be a positive integer"));
   const capability = getModelCapabilities(provider, modelId, protocol);
   if (!capability) return { maxTokens: requestedTokens, parameters: {}, omitSampling: false };
   const level = capability.levels.includes("off") ? "off" : capability.levels[0];
@@ -2565,7 +1545,7 @@ var TITLE_MAX_TOKENS;
 var init_model_capabilities = __esm({
   "../../packages/core/src/providers/model-capabilities.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     TITLE_MAX_TOKENS = 1024;
   }
 });
@@ -2700,12 +1680,12 @@ function supportsResponseSchema(provider, baseUrl, modelId) {
   return !!protocol && getModelCapabilities(provider, modelId, protocol)?.structuredOutput === "json-schema";
 }
 function validateResponseSchema(value) {
-  if (!value || typeof value.name !== "string" || !/^[\w-]{1,64}$/.test(value.name) || !value.schema || Array.isArray(value.schema) || value.schema.type !== "object" || new TextEncoder().encode(JSON.stringify(value)).byteLength > 32e3) throw new Error(tr2("Schema \u9700\u4E3A object\uFF0C\u540D\u79F0\u9650 64 \u4E2A\u5B57\u6BCD\u3001\u6570\u5B57\u3001\u4E0B\u5212\u7EBF\u6216\u77ED\u6A2A\u7EBF\uFF0C\u5185\u5BB9\u4E0D\u8D85\u8FC7 32KB", "Schema must be an object \u2264 32 KB, named with up to 64 letters, digits, _ or -"));
+  if (!value || typeof value.name !== "string" || !/^[\w-]{1,64}$/.test(value.name) || !value.schema || Array.isArray(value.schema) || value.schema.type !== "object" || new TextEncoder().encode(JSON.stringify(value)).byteLength > 32e3) throw new Error(tr("Schema \u9700\u4E3A object\uFF0C\u540D\u79F0\u9650 64 \u4E2A\u5B57\u6BCD\u3001\u6570\u5B57\u3001\u4E0B\u5212\u7EBF\u6216\u77ED\u6A2A\u7EBF\uFF0C\u5185\u5BB9\u4E0D\u8D85\u8FC7 32KB", "Schema must be an object \u2264 32 KB, named with up to 64 letters, digits, _ or -"));
 }
 function applyResponseSchema(provider, baseUrl, modelId, body, schema) {
   if (!schema) return body;
   validateResponseSchema(schema);
-  if (!supportsResponseSchema(provider, baseUrl, modelId)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301\u4E25\u683C JSON Schema", "Strict JSON Schema isn\u2019t confirmed for this model and endpoint"));
+  if (!supportsResponseSchema(provider, baseUrl, modelId)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301\u4E25\u683C JSON Schema", "Strict JSON Schema isn\u2019t confirmed for this model and endpoint"));
   if (provider === "openai") body.text = { ...body.text, format: { type: "json_schema", ...schema, strict: true } };
   else if (provider === "anthropic") body.output_config = { ...body.output_config, format: { type: "json_schema", schema: schema.schema } };
   else if (provider === "google") body.generationConfig = { ...body.generationConfig, responseFormat: { text: { mimeType: "APPLICATION_JSON", schema: schema.schema } } };
@@ -2715,7 +1695,7 @@ function applyResponseSchema(provider, baseUrl, modelId, body, schema) {
 var init_response_schema = __esm({
   "../../packages/core/src/providers/response-schema.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     init_model_capabilities();
     init_url_utils();
   }
@@ -2767,47 +1747,47 @@ function supportsNativeAttachment(provider, baseUrl, modelId, mediaType) {
 function validateNativeRequestSize(provider, baseUrl, body) {
   const deepseek = isNativeDeepSeekCompletions(provider, baseUrl) || isNativeDeepSeekMessages(provider, baseUrl);
   const limit = isNativeAnthropicEndpoint(provider, baseUrl) ? 32e6 : deepseek ? 48 * 1024 * 1024 : isNativeGLMEndpoint(provider, baseUrl) ? 1e8 : void 0;
-  if (limit && new TextEncoder().encode(body).byteLength >= limit) throw new Error(isNativeAnthropicEndpoint(provider, baseUrl) ? tr2("Anthropic \u8BF7\u6C42\u8D85\u8FC7 32 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Anthropic request exceeds 32 MB. Remove some attachments or context.") : deepseek ? tr2("DeepSeek \u8BF7\u6C42\u8D85\u8FC7 48 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "DeepSeek request exceeds 48 MB. Remove some attachments or context.") : tr2("GLM \u8BF7\u6C42\u8D85\u8FC7 100 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "GLM request exceeds 100 MB. Remove some attachments or context."));
+  if (limit && new TextEncoder().encode(body).byteLength >= limit) throw new Error(isNativeAnthropicEndpoint(provider, baseUrl) ? tr("Anthropic \u8BF7\u6C42\u8D85\u8FC7 32 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Anthropic request exceeds 32 MB. Remove some attachments or context.") : deepseek ? tr("DeepSeek \u8BF7\u6C42\u8D85\u8FC7 48 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "DeepSeek request exceeds 48 MB. Remove some attachments or context.") : tr("GLM \u8BF7\u6C42\u8D85\u8FC7 100 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "GLM request exceeds 100 MB. Remove some attachments or context."));
 }
 function nativeAttachmentParts(provider, input, attachments) {
   return (input.readNativeAttachments?.(attachments) ?? []).map((file) => {
-    if (!supportsNativeAttachment(provider, input.baseUrl, input.modelId, file.mediaType)) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u4E0D\u652F\u6301\u6B64\u539F\u751F\u6587\u4EF6\u8F93\u5165", "This model and endpoint don\u2019t support this native file input"));
-    if (!file.filename || [file.data, file.fileId, file.fileUri].filter((value) => value !== void 0).length !== 1) throw new Error(tr2("\u539F\u751F\u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B\u552F\u4E00\u6709\u6548\u6765\u6E90", "A native file needs exactly one valid source"));
-    if (file.data !== void 0 && (!file.data || file.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.data))) throw new Error(tr2("\u539F\u751F\u6587\u4EF6 Base64 \u65E0\u6548", "Invalid Base64 in native file"));
+    if (!supportsNativeAttachment(provider, input.baseUrl, input.modelId, file.mediaType)) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u4E0D\u652F\u6301\u6B64\u539F\u751F\u6587\u4EF6\u8F93\u5165", "This model and endpoint don\u2019t support this native file input"));
+    if (!file.filename || [file.data, file.fileId, file.fileUri].filter((value) => value !== void 0).length !== 1) throw new Error(tr("\u539F\u751F\u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B\u552F\u4E00\u6709\u6548\u6765\u6E90", "A native file needs exactly one valid source"));
+    if (file.data !== void 0 && (!file.data || file.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.data))) throw new Error(tr("\u539F\u751F\u6587\u4EF6 Base64 \u65E0\u6548", "Invalid Base64 in native file"));
     if (isNativeDeepSeekCompletions(provider, input.baseUrl) || isNativeDeepSeekMessages(provider, input.baseUrl)) {
-      if (file.fileUri || file.fileId !== void 0 && !/^file-api-[\w-]+$/.test(file.fileId)) throw new Error(tr2("DeepSeek \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid DeepSeek file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file-api-[\w-]+$/.test(file.fileId)) throw new Error(tr("DeepSeek \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid DeepSeek file reference"));
       return isNativeDeepSeekMessages(provider, input.baseUrl) ? { type: "image", source: file.fileId ? { type: "file", file_id: file.fileId } : { type: "base64", media_type: file.mediaType, data: file.data } } : file.fileId ? { type: "file", file_id: file.fileId } : { type: "image_url", image_url: { url: `data:${file.mediaType};base64,${file.data}` } };
     }
     if (isNativeAnthropicEndpoint(provider, input.baseUrl)) {
-      if (file.fileUri || file.fileId !== void 0 && !/^file_[\w-]+$/.test(file.fileId)) throw new Error(tr2("Anthropic \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Anthropic file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file_[\w-]+$/.test(file.fileId)) throw new Error(tr("Anthropic \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Anthropic file reference"));
       return { type: "document", source: file.fileId ? { type: "file", file_id: file.fileId } : { type: "base64", media_type: file.mediaType, data: file.data } };
     }
     if (provider === "zhipu") {
-      if (!file.data) throw new Error(tr2("GLM \u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B Base64 \u5185\u5BB9", "GLM files need Base64 content"));
+      if (!file.data) throw new Error(tr("GLM \u6587\u4EF6\u5FC5\u987B\u63D0\u4F9B Base64 \u5185\u5BB9", "GLM files need Base64 content"));
       return { type: "file", file: { filename: file.filename, file_data: `data:${file.mediaType};base64,${file.data}` } };
     }
     if (provider === "moonshot") {
-      if (!file.fileId || !/^[\w-]{1,200}$/.test(file.fileId)) throw new Error(tr2("Kimi \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Kimi file reference"));
+      if (!file.fileId || !/^[\w-]{1,200}$/.test(file.fileId)) throw new Error(tr("Kimi \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Kimi file reference"));
       return { type: "video_url", video_url: { url: `ms://${file.fileId}` } };
     }
     if (provider === "minimax") {
-      if (file.fileId && !/^\d+$/.test(file.fileId)) throw new Error(tr2("MiniMax \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid MiniMax file reference"));
-      if (!file.data && !file.fileId) throw new Error(tr2("MiniMax \u89C6\u9891\u7F3A\u5C11\u5185\u5BB9", "MiniMax video has no content"));
+      if (file.fileId && !/^\d+$/.test(file.fileId)) throw new Error(tr("MiniMax \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid MiniMax file reference"));
+      if (!file.data && !file.fileId) throw new Error(tr("MiniMax \u89C6\u9891\u7F3A\u5C11\u5185\u5BB9", "MiniMax video has no content"));
       const mediaType = file.mediaType === "video/quicktime" ? "video/mov" : file.mediaType;
       return isNativeMiniMaxMessages(provider, input.baseUrl) ? { type: "video", source: file.fileId ? { type: "url", url: `mm_file://${file.fileId}` } : { type: "base64", media_type: mediaType, data: file.data } } : { type: "video_url", video_url: { url: file.fileId ? `mm_file://${file.fileId}` : `data:${mediaType};base64,${file.data}` } };
     }
     if (provider === "openai") {
-      if (file.fileUri || file.fileId !== void 0 && !/^file-[\w-]+$/.test(file.fileId)) throw new Error(tr2("OpenAI \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid OpenAI file reference"));
+      if (file.fileUri || file.fileId !== void 0 && !/^file-[\w-]+$/.test(file.fileId)) throw new Error(tr("OpenAI \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid OpenAI file reference"));
       return file.fileId ? { type: "input_file", file_id: file.fileId } : { type: "input_file", filename: file.filename, file_data: `data:${file.mediaType};base64,${file.data}` };
     }
-    if (file.fileId || file.fileUri !== void 0 && !/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/[\w-]+$/.test(file.fileUri)) throw new Error(tr2("Gemini \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Gemini file reference"));
+    if (file.fileId || file.fileUri !== void 0 && !/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/[\w-]+$/.test(file.fileUri)) throw new Error(tr("Gemini \u6587\u4EF6\u5F15\u7528\u65E0\u6548", "Invalid Gemini file reference"));
     return file.fileUri ? { file_data: { mime_type: file.mediaType, file_uri: file.fileUri } } : { inline_data: { mime_type: file.mediaType, data: file.data } };
   });
 }
 var init_native_attachments = __esm({
   "../../packages/core/src/providers/native-attachments.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     init_model_capabilities();
     init_url_utils();
   }
@@ -2945,7 +1925,7 @@ var init_anthropic_adapter = __esm({
   "../../packages/core/src/providers/anthropic-adapter.ts"() {
     "use strict";
     init_response_schema();
-    init_src2();
+    init_src();
     init_model_capabilities();
     init_protocol_history();
     init_native_attachments();
@@ -3032,7 +2012,7 @@ var init_anthropic_adapter = __esm({
         applyResponseSchema(this.providerType, input.baseUrl, input.modelId, body, input.jsonSchema);
         const requestBody = JSON.stringify(body);
         validateNativeRequestSize(this.providerType, input.baseUrl, requestBody);
-        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr2("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
+        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
         const procReq = globalThis.process;
         if (procReq?.env?.CORTEX_DEBUG_REQUEST) {
           console.log("[Request]", this.providerType, input.modelId, "\u2192", requestBody.slice(0, 4e3));
@@ -3046,12 +2026,12 @@ var init_anthropic_adapter = __esm({
       parseSSELine(jsonLine) {
         try {
           const event = JSON.parse(jsonLine);
-          if (event.type === "error") return [{ type: "error", error: event.error?.message || event.error?.type || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (event.type === "error") return [{ type: "error", error: event.error?.message || event.error?.type || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
           const events = [];
           if (event.type === "message_start" && event.message?.input_transformations !== void 0) {
             const transformations = event.message.input_transformations;
             if (!Array.isArray(transformations) || transformations.some((item) => !item || typeof item !== "object" || Array.isArray(item) || typeof item.type !== "string" || typeof item.path !== "string" || typeof item.reason !== "string")) {
-              return [{ type: "error", error: tr2("\u6A21\u578B\u8F93\u5165\u5904\u7406\u8BB0\u5F55\u683C\u5F0F\u65E0\u6548", "The model returned invalid input-processing records") }];
+              return [{ type: "error", error: tr("\u6A21\u578B\u8F93\u5165\u5904\u7406\u8BB0\u5F55\u683C\u5F0F\u65E0\u6548", "The model returned invalid input-processing records") }];
             }
             events.push({ type: "input_transformations", transformations });
           }
@@ -3106,7 +2086,7 @@ var init_anthropic_adapter = __esm({
           if (event.type === "message_stop") events.push({ type: "done" });
           return events;
         } catch {
-          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
@@ -3134,7 +2114,7 @@ var init_anthropic_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeAnthropicEndpoint(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "anthropic-messages")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
+        if (input.jsonSchema && (!isNativeAnthropicEndpoint(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "anthropic-messages")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
         const url = this.normalizeUrl(input.baseUrl);
         const capability = detectThinkingCapability(this.providerType, input.modelId);
         const known = getModelCapabilities(this.providerType, input.modelId, "anthropic-messages");
@@ -3251,6 +2231,9 @@ function appendContinuationMessages2(messages, continuationMessages, input, prov
     }
   }
 }
+function openAIAuthHeaders(provider, apiKey) {
+  return provider === "flock" ? { "x-litellm-api-key": apiKey } : { Authorization: `Bearer ${apiKey}` };
+}
 var OpenAIAdapter;
 var init_openai_adapter = __esm({
   "../../packages/core/src/providers/openai-adapter.ts"() {
@@ -3259,7 +2242,7 @@ var init_openai_adapter = __esm({
     init_protocol_history();
     init_native_attachments();
     init_url_utils();
-    init_src2();
+    init_src();
     init_model_capabilities();
     OpenAIAdapter = class {
       constructor(providerType = "openai") {
@@ -3272,7 +2255,7 @@ var init_openai_adapter = __esm({
       /** Kimi Coding Plan 校验 coding agent 的 User-Agent 白名单，只用 Bearer。 */
       buildHeaders(apiKey) {
         return {
-          "Authorization": `Bearer ${apiKey}`,
+          ...openAIAuthHeaders(this.providerType, apiKey),
           "content-type": "application/json",
           ...this.providerType === "kimi-coding" ? { "User-Agent": "KimiCLI/1.3" } : {}
         };
@@ -3303,7 +2286,7 @@ var init_openai_adapter = __esm({
         applyResponseSchema(this.providerType, input.baseUrl, input.modelId, bodyObj, input.jsonSchema);
         const requestBody = JSON.stringify(bodyObj);
         validateNativeRequestSize(this.providerType, input.baseUrl, requestBody);
-        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr2("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
+        if (this.providerType === "minimax" && new TextEncoder().encode(requestBody).byteLength >= 64e6) throw new Error(tr("MiniMax \u8BF7\u6C42\u8D85\u8FC7 64 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "MiniMax request exceeds 64 MB. Remove some attachments or context."));
         return {
           url: `${url}/chat/completions`,
           headers: this.buildHeaders(input.apiKey),
@@ -3313,8 +2296,8 @@ var init_openai_adapter = __esm({
       parseSSELine(jsonLine) {
         try {
           const chunk = JSON.parse(jsonLine);
-          if (chunk.base_resp?.status_code) return [{ type: "error", error: chunk.base_resp.status_msg || tr2(`MiniMax API \u9519\u8BEF\uFF08\u9519\u8BEF\u7801 ${chunk.base_resp.status_code}\uFF09`, `MiniMax API error (code ${chunk.base_resp.status_code})`) }];
-          if (chunk.error) return [{ type: "error", error: chunk.error.message || chunk.error.type || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (chunk.base_resp?.status_code) return [{ type: "error", error: chunk.base_resp.status_msg || tr(`MiniMax API \u9519\u8BEF\uFF08\u9519\u8BEF\u7801 ${chunk.base_resp.status_code}\uFF09`, `MiniMax API error (code ${chunk.base_resp.status_code})`) }];
+          if (chunk.error) return [{ type: "error", error: chunk.error.message || chunk.error.type || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
           const delta = chunk.choices?.[0]?.delta;
           const events = [];
           if (this.providerType === "minimax" && delta) events.push({ type: "minimax_message_snapshot", message: delta });
@@ -3352,7 +2335,7 @@ var init_openai_adapter = __esm({
           }
           return events;
         } catch {
-          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
@@ -3374,7 +2357,7 @@ var init_openai_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeKimiCompletions(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "openai-completions")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
+        if (input.jsonSchema && (!isNativeKimiCompletions(this.providerType, input.baseUrl) || getModelCapabilities(this.providerType, input.modelId, "openai-completions")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u4E0E\u7AEF\u70B9\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model and endpoint"));
         const url = this.normalizeUrl(input.baseUrl);
         const options = auxiliaryModelOptions(this.providerType, input.modelId, "openai-completions", input.maxTokens);
         const body = {
@@ -3484,7 +2467,7 @@ function appendContinuationMessages3(contents, continuationMessages, input, prov
     } else if (contMsg.role === "tool") {
       const parts = contMsg.results.map((r) => {
         const call = calls.get(r.toolCallId);
-        if (!call) throw new Error(tr2(`\u5DE5\u5177\u8C03\u7528\u4E0D\u5B58\u5728\uFF1A${r.toolCallId}`, `Tool call not found: ${r.toolCallId}`));
+        if (!call) throw new Error(tr(`\u5DE5\u5177\u8C03\u7528\u4E0D\u5B58\u5728\uFF1A${r.toolCallId}`, `Tool call not found: ${r.toolCallId}`));
         return { functionResponse: {
           name: call.name,
           ...call.metadata?.googleCallId ? { id: call.metadata.googleCallId } : {},
@@ -3504,7 +2487,7 @@ var GoogleAdapter;
 var init_google_adapter = __esm({
   "../../packages/core/src/providers/google-adapter.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     init_response_schema();
     init_protocol_history();
     init_native_attachments();
@@ -3548,7 +2531,7 @@ var init_google_adapter = __esm({
         }
         applyResponseSchema("google", input.baseUrl, input.modelId, body, input.jsonSchema);
         const serialized = JSON.stringify(body);
-        if (input.readNativeAttachments && new TextEncoder().encode(serialized).byteLength >= 2e7) throw new Error(tr2("Gemini \u8BF7\u6C42\u8D85\u8FC7 20 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Gemini request exceeds 20 MB. Remove some attachments or context."));
+        if (input.readNativeAttachments && new TextEncoder().encode(serialized).byteLength >= 2e7) throw new Error(tr("Gemini \u8BF7\u6C42\u8D85\u8FC7 20 MB\uFF0C\u8BF7\u51CF\u5C11\u9644\u4EF6\u6216\u4E0A\u4E0B\u6587", "Gemini request exceeds 20 MB. Remove some attachments or context."));
         const native = isNativeGoogleEndpoint(input.baseUrl);
         return {
           url: `${url}/models/${encodeURIComponent(input.modelId)}:streamGenerateContent?alt=sse${native ? "" : `&key=${encodeURIComponent(input.apiKey)}`}`,
@@ -3562,8 +2545,8 @@ var init_google_adapter = __esm({
       parseSSELine(jsonLine) {
         try {
           const parsed = JSON.parse(jsonLine);
-          if (parsed.error) return [{ type: "error", error: parsed.error.message || parsed.error.status || tr2("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
-          if (parsed.promptFeedback?.blockReason) return [{ type: "error", error: tr2(`\u8BF7\u6C42\u88AB\u4F9B\u5E94\u5546\u62E6\u622A\uFF1A${parsed.promptFeedback.blockReason}`, `The provider blocked this request: ${parsed.promptFeedback.blockReason}`) }];
+          if (parsed.error) return [{ type: "error", error: parsed.error.message || parsed.error.status || tr("\u6A21\u578B\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5", "The model returned an error. Try again.") }];
+          if (parsed.promptFeedback?.blockReason) return [{ type: "error", error: tr(`\u8BF7\u6C42\u88AB\u4F9B\u5E94\u5546\u62E6\u622A\uFF1A${parsed.promptFeedback.blockReason}`, `The provider blocked this request: ${parsed.promptFeedback.blockReason}`) }];
           const parts = parsed.candidates?.[0]?.content?.parts ?? [];
           const events = [];
           if (parts.length) events.push({ type: "google_parts", parts });
@@ -3595,7 +2578,7 @@ var init_google_adapter = __esm({
           if (reason) events.push({ type: "done", stopReason: reason === "STOP" ? "end_turn" : reason });
           return events;
         } catch {
-          return [{ type: "error", error: tr2("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
+          return [{ type: "error", error: tr("\u6A21\u578B\u54CD\u5E94\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5", "Couldn\u2019t read the model\u2019s response. Try again.") }];
         }
       }
       buildTitleRequest(input) {
@@ -3617,7 +2600,7 @@ var init_google_adapter = __esm({
         return this.parseCompletionResponse(responseBody);
       }
       buildCompletionRequest(input) {
-        if (input.jsonSchema && (!isNativeGoogleEndpoint(input.baseUrl) || getModelCapabilities("google", input.modelId, "google-generative-ai")?.structuredOutput !== "json-schema")) throw new Error(tr2("\u5F53\u524D\u6A21\u578B\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model"));
+        if (input.jsonSchema && (!isNativeGoogleEndpoint(input.baseUrl) || getModelCapabilities("google", input.modelId, "google-generative-ai")?.structuredOutput !== "json-schema")) throw new Error(tr("\u5F53\u524D\u6A21\u578B\u5C1A\u672A\u786E\u8BA4\u652F\u6301 JSON Schema", "JSON Schema support isn\u2019t confirmed for this model"));
         const url = normalizeGoogleBaseUrl(input.baseUrl);
         const options = auxiliaryModelOptions("google", input.modelId, "google-generative-ai", input.maxTokens);
         return {
@@ -3647,7 +2630,7 @@ var init_google_adapter = __esm({
 });
 
 // ../../packages/core/src/providers/types.ts
-var init_types3 = __esm({
+var init_types2 = __esm({
   "../../packages/core/src/providers/types.ts"() {
     "use strict";
   }
@@ -3681,7 +2664,7 @@ async function readResponseText(response, signal, maxBytes = 4e6) {
       const next = await abortable(reader.read(), signal);
       if (next.done) return result + decoder.decode();
       bytes += next.value.byteLength;
-      if (bytes > maxBytes) throw new Error(tr2("\u6A21\u578B\u54CD\u5E94\u8D85\u8FC7\u8BFB\u53D6\u4E0A\u9650", "The model response exceeds the read limit"));
+      if (bytes > maxBytes) throw new Error(tr("\u6A21\u578B\u54CD\u5E94\u8D85\u8FC7\u8BFB\u53D6\u4E0A\u9650", "The model response exceeds the read limit"));
       result += decoder.decode(next.value, { stream: true });
     }
   } finally {
@@ -3719,7 +2702,7 @@ async function fetchAuxiliary(url, init, fetchFn = fetch) {
 var init_http_request = __esm({
   "../../packages/core/src/providers/http-request.ts"() {
     "use strict";
-    init_src2();
+    init_src();
   }
 });
 
@@ -3739,10 +2722,10 @@ async function streamSSE(options) {
       errorSignal.throwIfAborted();
       return String(error);
     });
-    throw new Error(tr2(`${adapter.providerType} API \u9519\u8BEF (${response.status}): ${text2.slice(0, 300)}`, `${adapter.providerType} API error (${response.status}): ${text2.slice(0, 300)}`));
+    throw new Error(tr(`${adapter.providerType} API \u9519\u8BEF (${response.status}): ${text2.slice(0, 300)}`, `${adapter.providerType} API error (${response.status}): ${text2.slice(0, 300)}`));
   }
   if (!response.body) {
-    throw new Error(tr2("\u54CD\u5E94\u4F53\u4E3A\u7A7A", "The response body is empty"));
+    throw new Error(tr("\u54CD\u5E94\u4F53\u4E3A\u7A7A", "The response body is empty"));
   }
   let content = "";
   let reasoning = "";
@@ -3794,35 +2777,35 @@ async function streamSSE(options) {
         const events = adapter.parseSSELine(data);
         for (const event of events) {
           if (event.type === "input_transformations") {
-            if (inputTransformations !== void 0) throw new Error(tr2("\u6A21\u578B\u91CD\u590D\u8FD4\u56DE\u8F93\u5165\u5904\u7406\u8BB0\u5F55", "The model returned input-processing records twice"));
+            if (inputTransformations !== void 0) throw new Error(tr("\u6A21\u578B\u91CD\u590D\u8FD4\u56DE\u8F93\u5165\u5904\u7406\u8BB0\u5F55", "The model returned input-processing records twice"));
             inputTransformations = event.transformations;
             onEvent(event);
             continue;
           }
           if (event.type === "openai_message_delta") {
             const { tool_calls, ...delta } = event.message;
-            if (delta.role !== void 0 && delta.role !== "assistant") throw new Error(tr2("OpenAI \u517C\u5BB9\u6D41\u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "The OpenAI-compatible stream returned an invalid message role"));
+            if (delta.role !== void 0 && delta.role !== "assistant") throw new Error(tr("OpenAI \u517C\u5BB9\u6D41\u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "The OpenAI-compatible stream returned an invalid message role"));
             openaiMessage ??= { role: "assistant", content: null };
             for (const [key, value2] of Object.entries(delta)) {
               if (["content", "reasoning_content", "refusal"].includes(key)) {
                 if (value2 === null || value2 === void 0) continue;
-                if (typeof value2 !== "string") throw new Error(tr2(`OpenAI \u6D88\u606F ${key} \u5FC5\u987B\u662F\u6587\u672C`, `OpenAI message ${key} must be text`));
+                if (typeof value2 !== "string") throw new Error(tr(`OpenAI \u6D88\u606F ${key} \u5FC5\u987B\u662F\u6587\u672C`, `OpenAI message ${key} must be text`));
                 openaiMessage = { ...openaiMessage, [key]: String(openaiMessage[key] ?? "") + value2 };
               } else {
                 openaiMessage = { ...openaiMessage, [key]: value2 };
               }
             }
-            if (tool_calls !== void 0 && !Array.isArray(tool_calls)) throw new Error(tr2("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
+            if (tool_calls !== void 0 && !Array.isArray(tool_calls)) throw new Error(tr("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
             for (const tool of tool_calls ?? []) {
-              if (!tool || typeof tool !== "object" || Array.isArray(tool)) throw new Error(tr2("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
+              if (!tool || typeof tool !== "object" || Array.isArray(tool)) throw new Error(tr("OpenAI \u5DE5\u5177\u8C03\u7528\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool call format"));
               const { index = 0, function: fn, id, type, ...fields } = tool;
-              if (!Number.isSafeInteger(index) || index < 0) throw new Error(tr2("OpenAI \u5DE5\u5177\u7D22\u5F15\u65E0\u6548", "Invalid OpenAI tool index"));
+              if (!Number.isSafeInteger(index) || index < 0) throw new Error(tr("OpenAI \u5DE5\u5177\u7D22\u5F15\u65E0\u6548", "Invalid OpenAI tool index"));
               const previous = openaiTools.get(index) ?? {};
-              if (id && previous.id && id !== previous.id) throw new Error(tr2("OpenAI \u5DE5\u5177\u7D22\u5F15\u5BF9\u5E94\u7684 ID \u6539\u53D8", "The ID for an OpenAI tool index changed"));
-              if (type && type !== "function") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${type}`, `Unsupported tool call type: ${type}`));
+              if (id && previous.id && id !== previous.id) throw new Error(tr("OpenAI \u5DE5\u5177\u7D22\u5F15\u5BF9\u5E94\u7684 ID \u6539\u53D8", "The ID for an OpenAI tool index changed"));
+              if (type && type !== "function") throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${type}`, `Unsupported tool call type: ${type}`));
               const previousFunction = previous.function;
-              if (fn !== void 0 && (!fn || typeof fn !== "object" || Array.isArray(fn))) throw new Error(tr2("OpenAI \u5DE5\u5177\u51FD\u6570\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool function format"));
-              if (fn?.arguments !== void 0 && typeof fn.arguments !== "string") throw new Error(tr2("OpenAI \u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F JSON \u5B57\u7B26\u4E32", "OpenAI tool arguments must be a JSON string"));
+              if (fn !== void 0 && (!fn || typeof fn !== "object" || Array.isArray(fn))) throw new Error(tr("OpenAI \u5DE5\u5177\u51FD\u6570\u683C\u5F0F\u65E0\u6548", "Invalid OpenAI tool function format"));
+              if (fn?.arguments !== void 0 && typeof fn.arguments !== "string") throw new Error(tr("OpenAI \u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F JSON \u5B57\u7B26\u4E32", "OpenAI tool arguments must be a JSON string"));
               openaiTools.set(index, { ...previous, ...fields, ...id ? { id } : {}, ...type ? { type } : {}, ...fn ? { function: {
                 ...previousFunction,
                 ...fn,
@@ -3833,20 +2816,20 @@ async function streamSSE(options) {
             continue;
           }
           if (event.type === "minimax_message_snapshot") {
-            if (!event.message || typeof event.message !== "object" || Array.isArray(event.message)) throw new Error(tr2("MiniMax \u6D88\u606F\u683C\u5F0F\u65E0\u6548", "Invalid MiniMax message format"));
+            if (!event.message || typeof event.message !== "object" || Array.isArray(event.message)) throw new Error(tr("MiniMax \u6D88\u606F\u683C\u5F0F\u65E0\u6548", "Invalid MiniMax message format"));
             const { tool_calls: _tools, ...snapshot } = event.message;
             openaiMessage ??= { role: "assistant", content: null };
-            if (snapshot.role !== void 0 && snapshot.role !== "assistant") throw new Error(tr2("MiniMax \u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "MiniMax returned an invalid message role"));
+            if (snapshot.role !== void 0 && snapshot.role !== "assistant") throw new Error(tr("MiniMax \u8FD4\u56DE\u4E86\u65E0\u6548\u6D88\u606F\u89D2\u8272", "MiniMax returned an invalid message role"));
             for (const [key, value2] of Object.entries(snapshot)) {
               if (["content", "reasoning_content"].includes(key) && (value2 === null || value2 === "")) continue;
               if (key === "reasoning_details" && Array.isArray(value2) && !value2.length) continue;
               openaiMessage = { ...openaiMessage, [key]: value2 };
             }
             const details = openaiMessage.reasoning_details;
-            if (details !== void 0 && (!Array.isArray(details) || details.some((detail) => !detail || typeof detail !== "object" || Array.isArray(detail)))) throw new Error(tr2("MiniMax reasoning_details \u683C\u5F0F\u65E0\u6548", "Invalid MiniMax reasoning_details format"));
+            if (details !== void 0 && (!Array.isArray(details) || details.some((detail) => !detail || typeof detail !== "object" || Array.isArray(detail)))) throw new Error(tr("MiniMax reasoning_details \u683C\u5F0F\u65E0\u6548", "Invalid MiniMax reasoning_details format"));
             const nextReasoning = Array.isArray(details) && details.some((detail) => typeof detail.text === "string") ? details.map((detail) => typeof detail.text === "string" ? detail.text : "").join("") : openaiMessage.reasoning_content ?? "";
             const nextContent = openaiMessage.content ?? "";
-            if (typeof nextContent !== "string" || typeof nextReasoning !== "string" || !nextContent.startsWith(content) || !nextReasoning.startsWith(reasoning)) throw new Error(tr2("MiniMax \u7D2F\u8BA1\u6587\u672C\u4E0E\u5DF2\u63A5\u6536\u5185\u5BB9\u4E0D\u4E00\u81F4", "MiniMax\u2019s accumulated text doesn\u2019t match what was received"));
+            if (typeof nextContent !== "string" || typeof nextReasoning !== "string" || !nextContent.startsWith(content) || !nextReasoning.startsWith(reasoning)) throw new Error(tr("MiniMax \u7D2F\u8BA1\u6587\u672C\u4E0E\u5DF2\u63A5\u6536\u5185\u5BB9\u4E0D\u4E00\u81F4", "MiniMax\u2019s accumulated text doesn\u2019t match what was received"));
             if (nextContent.length > content.length) onEvent({ type: "chunk", delta: nextContent.slice(content.length) });
             if (nextReasoning.length > reasoning.length) onEvent({ type: "reasoning", delta: nextReasoning.slice(reasoning.length) });
             content = nextContent;
@@ -3854,20 +2837,20 @@ async function streamSSE(options) {
             continue;
           }
           if (event.type === "anthropic_block_start") {
-            if (!Number.isSafeInteger(event.index) || event.index < 0 || anthropicBlocks.has(event.index)) throw new Error(tr2("Anthropic \u5185\u5BB9\u5757\u7D22\u5F15\u65E0\u6548", "Invalid Anthropic content block index"));
+            if (!Number.isSafeInteger(event.index) || event.index < 0 || anthropicBlocks.has(event.index)) throw new Error(tr("Anthropic \u5185\u5BB9\u5757\u7D22\u5F15\u65E0\u6548", "Invalid Anthropic content block index"));
             anthropicBlocks.set(event.index, { ...event.block });
             continue;
           }
           if (event.type === "anthropic_block_delta") {
             const block = anthropicBlocks.get(event.index);
-            if (!block) throw new Error(tr2("Anthropic \u5185\u5BB9\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u5757", "Anthropic content delta has no matching block"));
+            if (!block) throw new Error(tr("Anthropic \u5185\u5BB9\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u5757", "Anthropic content delta has no matching block"));
             const delta = event.delta;
             if (delta.type === "input_json_delta") {
             } else if (delta.type === "citations_delta" && delta.citation) {
               block.citations = [...Array.isArray(block.citations) ? block.citations : [], delta.citation];
             } else {
               const field = delta.type === "text_delta" ? "text" : delta.type === "thinking_delta" ? "thinking" : delta.type === "signature_delta" ? "signature" : void 0;
-              if (!field || typeof delta[field] !== "string") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684 Anthropic \u5185\u5BB9\u589E\u91CF\uFF1A${delta.type}`, `Unsupported Anthropic content delta: ${delta.type}`));
+              if (!field || typeof delta[field] !== "string") throw new Error(tr(`\u4E0D\u652F\u6301\u7684 Anthropic \u5185\u5BB9\u589E\u91CF\uFF1A${delta.type}`, `Unsupported Anthropic content delta: ${delta.type}`));
               block[field] = String(block[field] ?? "") + delta[field];
             }
             continue;
@@ -3903,7 +2886,7 @@ async function streamSSE(options) {
             const id = event.toolCallId || `local-tool-${crypto.randomUUID()}`;
             currentToolCallId = id;
             if (event.toolCallIndex !== void 0) toolIdsByIndex.set(event.toolCallIndex, id);
-            if (pendingToolCalls.has(id)) throw new Error(tr2(`\u91CD\u590D\u7684\u5DE5\u5177\u8C03\u7528 ID\uFF1A${id}`, `Duplicate tool call ID: ${id}`));
+            if (pendingToolCalls.has(id)) throw new Error(tr(`\u91CD\u590D\u7684\u5DE5\u5177\u8C03\u7528 ID\uFF1A${id}`, `Duplicate tool call ID: ${id}`));
             pendingToolCalls.set(id, {
               id,
               name: event.toolName,
@@ -3915,7 +2898,7 @@ async function streamSSE(options) {
           } else if (event.type === "tool_call_delta") {
             const tcId = event.toolCallId || (event.toolCallIndex !== void 0 ? toolIdsByIndex.get(event.toolCallIndex) : currentToolCallId);
             const pending = tcId ? pendingToolCalls.get(tcId) : void 0;
-            if (!pending) throw new Error(tr2("\u5DE5\u5177\u53C2\u6570\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u8C03\u7528", "Tool argument delta has no matching call"));
+            if (!pending) throw new Error(tr("\u5DE5\u5177\u53C2\u6570\u589E\u91CF\u7F3A\u5C11\u5BF9\u5E94\u8C03\u7528", "Tool argument delta has no matching call"));
             pending.args += event.argumentsDelta;
             onEvent({ ...event, toolCallId: pending.id });
             continue;
@@ -3938,16 +2921,16 @@ async function streamSSE(options) {
     });
     reader.releaseLock();
   }
-  if (!terminalReceived) throw new Error(tr2("\u6A21\u578B\u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230\u7ED3\u675F\u4E8B\u4EF6", "The model response was cut off: no end event received"));
-  if (adapter.providerType === "moonshot" && !doneSentinelReceived) throw new Error(tr2("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230 [DONE]", "The Kimi response was cut off: no [DONE] received"));
-  if (adapter.providerType === "moonshot" && !stopReason) throw new Error(tr2("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u7F3A\u5C11 finish_reason", "The Kimi response was cut off: missing finish_reason"));
-  if (["length", "max_tokens", "MAX_TOKENS"].includes(stopReason ?? "")) throw new Error(IPC_ERRORS2.outputLimit());
-  if (stopReason && !["stop", "end_turn", "tool_use", "stop_sequence"].includes(stopReason)) throw new Error(tr2(`\u6A21\u578B\u54CD\u5E94\u672A\u5B8C\u6210\uFF1A${stopReason}`, `The model response didn\u2019t finish: ${stopReason}`));
+  if (!terminalReceived) throw new Error(tr("\u6A21\u578B\u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230\u7ED3\u675F\u4E8B\u4EF6", "The model response was cut off: no end event received"));
+  if (adapter.providerType === "moonshot" && !doneSentinelReceived) throw new Error(tr("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u672A\u6536\u5230 [DONE]", "The Kimi response was cut off: no [DONE] received"));
+  if (adapter.providerType === "moonshot" && !stopReason) throw new Error(tr("Kimi \u54CD\u5E94\u4E2D\u65AD\uFF1A\u7F3A\u5C11 finish_reason", "The Kimi response was cut off: missing finish_reason"));
+  if (["length", "max_tokens", "MAX_TOKENS"].includes(stopReason ?? "")) throw new Error(IPC_ERRORS.outputLimit());
+  if (stopReason && !["stop", "end_turn", "tool_use", "stop_sequence"].includes(stopReason)) throw new Error(tr(`\u6A21\u578B\u54CD\u5E94\u672A\u5B8C\u6210\uFF1A${stopReason}`, `The model response didn\u2019t finish: ${stopReason}`));
   const toolCalls = [];
   for (const [, pending] of pendingToolCalls) {
     try {
       const args = pending.args ? JSON.parse(pending.args) : {};
-      if (!args || typeof args !== "object" || Array.isArray(args)) throw new Error(tr2("\u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61", "Tool arguments must be an object"));
+      if (!args || typeof args !== "object" || Array.isArray(args)) throw new Error(tr("\u5DE5\u5177\u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61", "Tool arguments must be an object"));
       toolCalls.push({
         id: pending.id,
         name: pending.name,
@@ -3955,26 +2938,26 @@ async function streamSSE(options) {
         metadata: pending.metadata
       });
     } catch {
-      throw new Error(tr2(`\u5DE5\u5177 ${pending.name} \u7684\u53C2\u6570 JSON \u65E0\u6548`, `Invalid argument JSON for tool ${pending.name}`));
+      throw new Error(tr(`\u5DE5\u5177 ${pending.name} \u7684\u53C2\u6570 JSON \u65E0\u6548`, `Invalid argument JSON for tool ${pending.name}`));
     }
   }
   for (const [index, raw] of openaiTools) {
     const call = pendingToolCalls.get(String(raw.id ?? toolIdsByIndex.get(index) ?? `tc_${index}`));
     const fn = raw.function;
-    if (!call || fn?.name !== call.name || fn.arguments !== call.args) throw new Error(tr2("OpenAI \u5DE5\u5177\u539F\u59CB\u6D88\u606F\u4E0E\u6267\u884C\u53C2\u6570\u4E0D\u4E00\u81F4", "The OpenAI tool\u2019s raw message doesn\u2019t match its arguments"));
+    if (!call || fn?.name !== call.name || fn.arguments !== call.args) throw new Error(tr("OpenAI \u5DE5\u5177\u539F\u59CB\u6D88\u606F\u4E0E\u6267\u884C\u53C2\u6570\u4E0D\u4E00\u81F4", "The OpenAI tool\u2019s raw message doesn\u2019t match its arguments"));
   }
   if (openaiMessage && toolCalls.length) {
     openaiMessage.tool_calls = toolCalls.map((call) => {
       const raw = [...openaiTools.values()].find((tool) => tool.id === call.id);
       const fn = raw?.function;
-      if (raw?.type !== void 0 && raw.type !== "function") throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${raw.type}`, `Unsupported tool call type: ${raw.type}`));
+      if (raw?.type !== void 0 && raw.type !== "function") throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u5DE5\u5177\u8C03\u7528\u7C7B\u578B\uFF1A${raw.type}`, `Unsupported tool call type: ${raw.type}`));
       return { ...raw, id: call.id, type: "function", function: { ...fn, name: call.name, arguments: pendingToolCalls.get(call.id).args || "{}" } };
     });
   }
   for (const block of anthropicBlocks.values()) {
     if (block.type === "tool_use") {
       const call = toolCalls.find((tool) => tool.id === block.id);
-      if (!call) throw new Error(tr2("Anthropic \u5DE5\u5177\u5757\u7F3A\u5C11\u5DF2\u9A8C\u8BC1\u53C2\u6570", "The Anthropic tool block has no validated arguments"));
+      if (!call) throw new Error(tr("Anthropic \u5DE5\u5177\u5757\u7F3A\u5C11\u5DF2\u9A8C\u8BC1\u53C2\u6570", "The Anthropic tool block has no validated arguments"));
       block.input = call.arguments;
     }
   }
@@ -4009,7 +2992,7 @@ async function fetchTitle(request, adapter, fetchFn = fetch, requestSignal) {
 var init_sse_reader = __esm({
   "../../packages/core/src/providers/sse-reader.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     init_http_request();
   }
 });
@@ -4066,7 +3049,7 @@ function getAdapter(provider, baseUrl) {
   if (isNativeMiniMaxMessages(provider, baseUrl)) return miniMaxMessagesAdapter;
   const adapter = adapterRegistry.get(provider);
   if (!adapter) {
-    throw new Error(tr2(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${provider}\u3002\u8BF7\u5728\u300C\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u300D\u91CC\u6539\u7528\u53D7\u652F\u6301\u7684\u4F9B\u5E94\u5546\u7C7B\u578B\u3002`, `Unsupported provider: ${provider}. Choose a supported provider type in Models & providers.`));
+    throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${provider}\u3002\u8BF7\u5728\u300C\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u300D\u91CC\u6539\u7528\u53D7\u652F\u6301\u7684\u4F9B\u5E94\u5546\u7C7B\u578B\u3002`, `Unsupported provider: ${provider}. Choose a supported provider type in Models & providers.`));
   }
   return adapter;
 }
@@ -4074,12 +3057,12 @@ var adapterRegistry, miniMaxMessagesAdapter, deepSeekCompletionsAdapter;
 var init_providers = __esm({
   "../../packages/core/src/providers/index.ts"() {
     "use strict";
-    init_src2();
+    init_src();
     init_anthropic_adapter();
     init_openai_adapter();
     init_google_adapter();
     init_url_utils();
-    init_types3();
+    init_types2();
     init_sse_reader();
     init_http_request();
     init_url_utils();
@@ -4106,6 +3089,9 @@ var init_providers = __esm({
       ["minimax", new OpenAIAdapter("minimax")],
       ["doubao", new OpenAIAdapter("doubao")],
       ["qwen", new OpenAIAdapter("qwen")],
+      ["flock", new OpenAIAdapter("flock")],
+      ["xai", new OpenAIAdapter("xai")],
+      ["openrouter", new OpenAIAdapter("openrouter")],
       ["custom", new OpenAIAdapter("custom")],
       ["google", new GoogleAdapter()]
     ]);
@@ -4130,7 +3116,7 @@ var init_highlight = __esm({
 });
 
 // ../../packages/core/src/index.ts
-var init_src3 = __esm({
+var init_src2 = __esm({
   "../../packages/core/src/index.ts"() {
     "use strict";
     init_providers();
@@ -4339,7 +3325,7 @@ function getConfigDirName() {
   return _configDirName;
 }
 function getConfigDir() {
-  return ensureCortexDirectory(configuredDirectory ?? (0, import_node_path10.join)((0, import_node_os5.homedir)(), getConfigDirName()));
+  return ensureCortexDirectory(configuredDirectory ?? (0, import_node_path10.join)((0, import_node_os4.homedir)(), getConfigDirName()));
 }
 function getChannelsPath() {
   return (0, import_node_path10.join)(getConfigDir(), "channels.json");
@@ -4414,13 +3400,13 @@ function assertSafeConfigPathSegment(value, label = "\u8DEF\u5F84\u6BB5") {
     throw new Error(`${label} \u5305\u542B\u975E\u6CD5\u8DEF\u5F84\u5B57\u7B26`);
   }
 }
-var import_node_path10, import_node_fs10, import_node_os5, _configDirName, configuredDirectory;
+var import_node_path10, import_node_fs10, import_node_os4, _configDirName, configuredDirectory;
 var init_config_paths = __esm({
   "../electron/src/main/lib/config-paths.ts"() {
     "use strict";
     import_node_path10 = require("node:path");
     import_node_fs10 = require("node:fs");
-    import_node_os5 = require("node:os");
+    import_node_os4 = require("node:os");
     init_storage_paths();
     init_bundled_skills();
     init_src();
@@ -4428,9 +3414,9 @@ var init_config_paths = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js
 var require_symbols = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kClose: Symbol("close"),
@@ -4507,9 +3493,9 @@ var require_symbols = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js
 var require_timers = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/timers.js"(exports2, module2) {
     "use strict";
     var fastNow = 0;
     var RESOLUTION_MS = 1e3;
@@ -4736,9 +3722,9 @@ var require_timers = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js
 var require_errors = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/errors.js"(exports2, module2) {
     "use strict";
     var kUndiciError = Symbol.for("undici.error.UND_ERR");
     var UndiciError = class extends Error {
@@ -5120,9 +4106,9 @@ var require_errors = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js
 var require_constants = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/constants.js"(exports2, module2) {
     "use strict";
     var wellknownHeaderNames = (
       /** @type {const} */
@@ -5248,9 +4234,9 @@ var require_constants = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js
 var require_tree = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/tree.js"(exports2, module2) {
     "use strict";
     var {
       wellknownHeaderNames,
@@ -5390,9 +4376,9 @@ var require_tree = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js
 var require_util = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kDestroyed, kBodyUsed, kListeners, kBody } = require_symbols();
@@ -6195,9 +5181,9 @@ var require_util = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js
 var require_stats = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/stats.js"(exports2, module2) {
     "use strict";
     var {
       kConnected,
@@ -6229,9 +5215,9 @@ var require_stats = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js
 var require_diagnostics = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require("node:util");
@@ -6444,9 +5430,9 @@ var require_diagnostics = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js
 var require_request = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/request.js"(exports2, module2) {
     "use strict";
     var {
       InvalidArgumentError,
@@ -6783,9 +5769,9 @@ var require_request = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js
 var require_wrap_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     module2.exports = class WrapHandler {
@@ -6860,9 +5846,9 @@ var require_wrap_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js
 var require_dispatcher = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
     "use strict";
     var EventEmitter2 = require("node:events");
     var WrapHandler = require_wrap_handler();
@@ -6902,9 +5888,9 @@ var require_dispatcher = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js
 var require_unwrap_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
     "use strict";
     var { parseHeaders } = require_util();
     var { InvalidArgumentError } = require_errors();
@@ -6982,9 +5968,9 @@ var require_unwrap_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js
 var require_dispatcher_base = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var UnwrapHandler = require_unwrap_handler();
@@ -7116,9 +6102,9 @@ var require_dispatcher_base = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js
 var require_connect = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/core/connect.js"(exports2, module2) {
     "use strict";
     var net = require("node:net");
     var assert = require("node:assert");
@@ -7228,9 +6214,9 @@ var require_connect = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js
 var require_utils = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.enumToMap = enumToMap;
@@ -7244,9 +6230,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js
 var require_constants2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/constants.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SPECIAL_HEADERS = exports2.MINOR = exports2.MAJOR = exports2.HTAB_SP_VCHAR_OBS_TEXT = exports2.QUOTED_STRING = exports2.CONNECTION_TOKEN_CHARS = exports2.HEADER_CHARS = exports2.TOKEN = exports2.HEX = exports2.URL_CHAR = exports2.USERINFO_CHARS = exports2.MARK = exports2.ALPHANUM = exports2.NUM = exports2.HEX_MAP = exports2.NUM_MAP = exports2.ALPHA = exports2.STATUSES_HTTP = exports2.H_METHOD_MAP = exports2.METHOD_MAP = exports2.METHODS_RTSP = exports2.METHODS_ICE = exports2.METHODS_HTTP = exports2.HEADER_STATE = exports2.FINISH = exports2.STATUSES = exports2.METHODS = exports2.LENIENT_FLAGS = exports2.FLAGS = exports2.TYPE = exports2.ERROR = void 0;
@@ -7867,9 +6853,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js
 var require_llhttp_wasm = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRw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AXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgL5YUCAgd/A34gASACaiEEAkAgACIDKAIMIgANACADKAIEBEAgAyABNgIECyMAQRBrIgkkAAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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C0HjAQwHC0HXAQwGC0HYAQwFC0HZAQwEC0HaAQwDC0HbAQwCC0HdAQwBC0HcAQshAgNAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQCADAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJ/AkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAg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ogKiAqICogKiAqICogKiAqICogKiAqICogIAogILIAQgAUEBaiIBRw0AC0HJACECDOwCCyABQQFqIQEgA0Evai0AAEEBcQ2lAiADQQA2AhwgAyABNgIUIANBlxA2AhAgA0EKNgIMQQAhAgzrAgsgASAERwRAA0AgAS0AAEEgRw0VIAQgAUEBaiIBRw0AC0H4ACECDOsCC0H4ACECDOoCCyADQQI6ACgMOAtBACECIANBADYCHCADQb8LNgIQIANBAjYCDCADIAFBAWo2AhQM6AILQQAhAgzOAgtBDSECDM0CC0ETIQIMzAILQRUhAgzLAgtBFiECDMoCC0EYIQIMyQILQRkhAgzIAgtBGiECDMcCC0EbIQIMxgILQRwhAgzFAgtBHSECDMQCC0EeIQIMwwILQR8hAgzCAgtBICECDMECC0EiIQIMwAILQSMhAgy/AgtBJSECDL4CC0HlACECDL0CCyADQT02AhwgAyABNgIUIAMgADYCDEEAIQIM1QILIANBGzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDNQCCyADQSA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzTAgsgA0ETNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0gILIANBCzYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNECCyADQRA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzQAgsgA0EgNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzwILIANBCzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM4CCyADQQw2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzNAgtBACECIANBADYCHCADIAE2AhQgA0HdDjYCECADQRI2AgwMzAILAkADQAJAIAEtAABBCmsOBAACAgACCyAEIAFBAWoiAUcNAAtB/QEhAgzMAgsCQAJAIAMtADZBAUcNAEEAIQACQCADKAI4IgJFDQAgAigCYCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUcNASADQfwBNgIcIAMgATYCFCADQdwZNgIQIANBFTYCDEEAIQIMzQILQdwBIQIMswILIANBADYCHCADIAE2AhQgA0H5CzYCECADQR82AgxBACECDMsCCwJAAkAgAy0AKEEBaw4CBAEAC0HbASECDLICC0HUASECDLECCyADQQI6ADFBACEAAkAgAygCOCICRQ0AIAIoAgAiAkUNACADIAIRAAAhAAsgAEUEQEHdASECDLECCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQbQMNgIQIANBEDYCDEEAIQIMygILIANB+wE2AhwgAyABNgIUIANBgRo2AhAgA0EVNgIMQQAhAgzJAgsgASAERgRAQfoBIQIMyQILIAEtAABByABGDQEgA0EBOgAoC0HAASECDK4CC0HaASECDK0CCyABIARHBEAgA0EMNgIIIAMgATYCBEHZASECDK0CC0H5ASECDMUCCyABIARGBEBB+AEhAgzFAgsgAS0AAEHIAEcNBCABQQFqIQFB2AEhAgyrAgsgASAERgRAQfcBIQIMxAILAkACQCABLQAAQcUAaw4QAAUFBQUFBQUFBQUFBQUFAQULIAFBAWohAUHWASECDKsCCyABQQFqIQFB1wEhAgyqAgtB9gEhAiABIARGDcICIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbrVAGotAABHDQMgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMMCCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIARQRAQeMBIQIMqgILIANB9QE2AhwgAyABNgIUIAMgADYCDEEAIQIMwgILQfQBIQIgASAERg3BAiADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEG41QBqLQAARw0CIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzCAgsgA0GBBDsBKCADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIADQMMAgsgA0EANgIAC0EAIQIgA0EANgIcIAMgATYCFCADQeUfNgIQIANBCDYCDAy/AgtB1QEhAgylAgsgA0HzATYCHCADIAE2AhQgAyAANgIMQQAhAgy9AgtBACEAAkAgAygCOCICRQ0AIAIoAkAiAkUNACADIAIRAAAhAAsgAEUNbiAAQRVHBEAgA0EANgIcIAMgATYCFCADQYIPNgIQIANBIDYCDEEAIQIMvQILIANBjwE2AhwgAyABNgIUIANB7Bs2AhAgA0EVNgIMQQAhAgy8AgsgASAERwRAIANBDTYCCCADIAE2AgRB0wEhAgyjAgtB8gEhAgy7AgsgASAERgRAQfEBIQIMuwILAkACQAJAIAEtAABByABrDgsAAQgICAgICAgIAggLIAFBAWohAUHQASECDKMCCyABQQFqIQFB0QEhAgyiAgsgAUEBaiEBQdIBIQIMoQILQfABIQIgASAERg25AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBtdUAai0AAEcNBCAAQQJGDQMgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuQILQe8BIQIgASAERg24AiADKAIAIgAgBCABa2ohBiABIABrQQFqIQUDQCABLQAAIABBs9UAai0AAEcNAyAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuAILQe4BIQIgASAERg23AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMtwILIAMoAgQhACADQgA3AwAgAyAAIAVBAWoiARArIgBFDQIgA0HsATYCHCADIAE2AhQgAyAANgIMQQAhAgy2AgsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNnAIgA0HtATYCHCADIAE2AhQgAyAANgIMQQAhAgy0AgtBzwEhAgyaAgtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDLQCC0HOASECDJoCCyADQesBNgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMsgILIAEgBEYEQEHrASECDLICCyABLQAAQS9GBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GyODYCECADQQg2AgxBACECDLECC0HNASECDJcCCyABIARHBEAgA0EONgIIIAMgATYCBEHMASECDJcCC0HqASECDK8CCyABIARGBEBB6QEhAgyvAgsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFBywEhAgyWAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZcCIANB6AE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAEgBEYEQEHnASECDK4CCwJAIAEtAABBLkYEQCABQQFqIQEMAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5gE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILQcoBIQIMlAILIAEgBEYEQEHlASECDK0CC0EAIQBBASEFQQEhB0EAIQICQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQCABLQAAQTBrDgoKCQABAgMEBQYICwtBAgwGC0EDDAULQQQMBAtBBQwDC0EGDAILQQcMAQtBCAshAkEAIQVBACEHDAILQQkhAkEBIQBBACEFQQAhBwwBC0EAIQVBASECCyADIAI6ACsgAUEBaiEBAkACQCADLQAuQRBxDQACQAJAAkAgAy0AKg4DAQACBAsgB0UNAwwCCyAADQEMAgsgBUUNAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDQIgA0HiATYCHCADIAE2AhQgAyAANgIMQQAhAgyvAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZoCIANB4wE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ2YAiADQeQBNgIcIAMgATYCFCADIAA2AgwMrQILQckBIQIMkwILQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANBpA02AhAgA0EhNgIMQQAhAgytAgtByAEhAgyTAgsgA0HhATYCHCADIAE2AhQgA0HQGjYCECADQRU2AgxBACECDKsCCyABIARGBEBB4QEhAgyrAgsCQCABLQAAQSBGBEAgA0EAOwE0IAFBAWohAQwBCyADQQA2AhwgAyABNgIUIANBmRE2AhAgA0EJNgIMQQAhAgyrAgtBxwEhAgyRAgsgASAERgRAQeABIQIMqgILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyrAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqgILQcYBIQIMkAILIAEgBEYEQEHfASECDKkCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqgILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKkCC0HFASECDI8CCyABIARGBEBB3gEhAgyoAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKkCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyoAgtBxAEhAgyOAgsgASAERgRAQd0BIQIMpwILAkACQAJAAkAgAS0AAEEKaw4XAgMDAAMDAwMDAwMDAwMDAwMDAwMDAwEDCyABQQFqDAULIAFBAWohAUHDASECDI8CCyABQQFqIQEgA0Evai0AAEEBcQ0IIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKcCCyADQQA2AhwgAyABNgIUIANBjQs2AhAgA0ENNgIMQQAhAgymAgsgASAERwRAIANBDzYCCCADIAE2AgRBASECDI0CC0HcASECDKUCCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtB2wEhAgymAgsgAygCBCEAIANBADYCBCADIAAgARAtIgBFBEAgAUEBaiEBDAQLIANB2gE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMpQILIAMoAgQhACADQQA2AgQgAyAAIAEQLSIADQEgAUEBagshAUHBASECDIoCCyADQdkBNgIcIAMgADYCDCADIAFBAWo2AhRBACECDKICC0HCASECDIgCCyADQS9qLQAAQQFxDQEgA0EANgIcIAMgATYCFCADQeQcNgIQIANBGTYCDEEAIQIMoAILIAEgBEYEQEHZASEC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IAFBAWohAUGeASECDOQBCyABQQFqIQFBnwEhAgzjAQtBtwEhAiABIARGDfsBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQezUAGotAABHDSggAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPwBCyADQQA2AgAgBkEBaiEBQQ0MKAtBtgEhAiABIARGDfoBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDScgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPsBCyADQQA2AgAgBkEBaiEBQQwMJwtBtQEhAiABIARGDfkBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQerUAGotAABHDSYgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPoBCyADQQA2AgAgBkEBaiEBQQMMJgtBtAEhAiABIARGDfgBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQejUAGotAABHDSUgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPkBCyADQQA2AgAgBkEBaiEBQSYMJQsgASAERgRAQbMBIQIM+AELAkACQCABLQAAQdQAaw4CAAEnCyABQQFqIQFBmQEhAgzfAQsgAUEBaiEBQZoBIQIM3gELQbIBIQIgASAERg32ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHm1ABqLQAARw0jIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz3AQsgA0EANgIAIAZBAWohAUEnDCMLQbEBIQIgASAERg31ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHk1ABqLQAARw0iIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz2AQsgA0EANgIAIAZBAWohAUEcDCILQbABIQIgASAERg30ASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHe1ABqLQAARw0hIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz1AQsgA0EANgIAIAZBAWohAUEGDCELQa8BIQIgASAERg3zASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEHZ1ABqLQAARw0gIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz0AQsgA0EANgIAIAZBAWohAUEZDCALIAEgBEYEQEGuASECDPMBCwJAAkACQAJAIAEtAABBLWsOIwAkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJAEkJCQkJAIkJCQDJAsgAUEBaiEBQY4BIQIM3AELIAFBAWohAUGPASECDNsBCyABQQFqIQFBlAEhAgzaAQsgAUEBaiEBQZUBIQIM2QELQa0BIQIgASAERg3xASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHX1ABqLQAARw0eIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzyAQsgA0EANgIAIAZBAWohAUELDB4LIAEgBEYEQEGsASECDPEBCwJAAkAgAS0AAEHBAGsOAwAgASALIAFBAWohAUGQASECDNgBCyABQQFqIQFBkwEhAgzXAQsgASAERgRAQasBIQIM8AELAkACQCABLQAAQcEAaw4PAB8fHx8fHx8fHx8fHx8BHwsgAUEBaiEBQZEBIQIM1wELIAFBAWohAUGSASECDNYBCyABIARGBEBBqgEhAgzvAQsgAS0AAEHMAEcNHCABQQFqIQFBCgwbC0GpASECIAEgBEYN7QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABB0dQAai0AAEcNGiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7gELIANBADYCACAGQQFqIQFBHgwaC0GoASECIAEgBEYN7AEgAygCACIAIAQgAWtqIQUgASAAa0EGaiEGAkADQCABLQAAIABBytQAai0AAEcNGSAAQQZGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7QELIANBADYCACAGQQFqIQFBFQwZC0GnASECIAEgBEYN6wEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBx9QAai0AAEcNGCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7AELIANBADYCACAGQQFqIQFBFwwYC0GmASECIAEgBEYN6gEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBwdQAai0AAEcNFyAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6wELIANBADYCACAGQQFqIQFBGAwXCyABIARGBEBBpQEhAgzqAQsCQAJAIAEtAABByQBrDgcAGRkZGRkBGQsgAUEBaiEBQYsBIQIM0QELIAFBAWohAUGMASECDNABC0GkASECIAEgBEYN6AEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBptUAai0AAEcNFSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6QELIANBADYCACAGQQFqIQFBCQwVC0GjASECIAEgBEYN5wEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBpNUAai0AAEcNFCAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6AELIANBADYCACAGQQFqIQFBHwwUC0GiASECIAEgBEYN5gEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBvtQAai0AAEcNEyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5wELIANBADYCACAGQQFqIQFBAgwTC0GhASECIAEgBEYN5QEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGA0AgAS0AACAAQbzUAGotAABHDREgAEEBRg0CIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADOUBCyABIARGBEBBoAEhAgzlAQtBASABLQAAQd8ARw0RGiABQQFqIQFBhwEhAgzLAQsgA0EANgIAIAZBAWohAUGIASECDMoBC0GfASECIAEgBEYN4gEgAygCACIAIAQgAWtqIQUgASAAa0EIaiEGAkADQCABLQAAIABBhNUAai0AAEcNDyAAQQhGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4wELIANBADYCACAGQQFqIQFBKQwPC0GeASECIAEgBEYN4QEgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBuNQAai0AAEcNDiAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4gELIANBADYCACAGQQFqIQFBLQwOCyABIARGBEBBnQEhAgzhAQsgAS0AAEHFAEcNDiABQQFqIQFBhAEhAgzHAQsgASAERgRAQZwBIQIM4AELAkACQCABLQAAQcwAaw4IAA8PDw8PDwEPCyABQQFqIQFBggEhAgzHAQsgAUEBaiEBQYMBIQIMxgELQZsBIQIgASAERg3eASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEGz1ABqLQAARw0LIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzfAQsgA0EANgIAIAZBAWohAUEjDAsLQZoBIQIgASAERg3dASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGw1ABqLQAARw0KIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzeAQsgA0EANgIAIAZBAWohAUEADAoLIAEgBEYEQEGZASECDN0BCwJAAkAgAS0AAEHIAGsOCAAMDAwMDAwBDAsgAUEBaiEBQf0AIQIMxAELIAFBAWohAUGAASECDMMBCyABIARGBEBBmAEhAgzcAQsCQAJAIAEtAABBzgBrDgMACwELCyABQQFqIQFB/gAhAgzDAQsgAUEBaiEBQf8AIQIMwgELIAEgBEYEQEGXASECDNsBCyABLQAAQdkARw0IIAFBAWohAUEIDAcLQZYBIQIgASAERg3ZASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEGs1ABqLQAARw0GIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzaAQsgA0EANgIAIAZBAWohAUEFDAYLQZUBIQIgASAERg3YASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEGm1ABqLQAARw0FIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzZAQsgA0EANgIAIAZBAWohAUEWDAULQZQBIQIgASAERg3XASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGh1QBqLQAARw0EIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzYAQsgA0EANgIAIAZBAWohAUEQDAQLIAEgBEYEQEGTASECDNcBCwJAAkAgAS0AAEHDAGsODAAGBgYGBgYGBgYGAQYLIAFBAWohAUH5ACECDL4BCyABQQFqIQFB+gAhAgy9AQtBkgEhAiABIARGDdUBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQaDUAGotAABHDQIgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNYBCyADQQA2AgAgBkEBaiEBQSQMAgsgA0EANgIADAILIAEgBEYEQEGRASECDNQBCyABLQAAQcwARw0BIAFBAWohAUETCzoAKSADKAIEIQAgA0EANgIEIAMgACABEC4iAA0CDAELQQAhAiADQQA2AhwgAyABNgIUIANB/h82AhAgA0EGNgIMDNEBC0H4ACECDLcBCyADQZABNgIcIAMgATYCFCADIAA2AgxBACECDM8BC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUYNASADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgzOAQtB9wAhAgy0AQsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDMwBCyABIARGBEBBjwEhAgzMAQsCQCABLQAAQSBGBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GbHzYCECADQQY2AgxBACECDMwBC0ECIQIMsgELA0AgAS0AAEEgRw0CIAQgAUEBaiIBRw0AC0GOASECDMoBCyABIARGBEBBjQEhAgzKAQsCQCABLQAAQQlrDgRKAABKAAtB9QAhAgywAQsgAy0AKUEFRgRAQfYAIQIMsAELQfQAIQIMrwELIAEgBEYEQEGMASECDMgBCyADQRA2AgggAyABNgIEDAoLIAEgBEYEQEGLASECDMcBCwJAIAEtAABBCWsOBEcAAEcAC0HzACECDK0BCyABIARHBEAgA0EQNgIIIAMgATYCBEHxACECDK0BC0GKASECDMUBCwJAIAEgBEcEQANAIAEtAABBoNAAai0AACIAQQNHBEACQCAAQQFrDgJJAAQLQfAAIQIMrwELIAQgAUEBaiIBRw0AC0GIASEC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BCABQQFqIgFHDQALQfsAIQIMpwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMpgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMpQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMpAELIANBADYCHCADIAE2AhQgA0G8CjYCECADQQc2AgxBACECDKMBC0HPACECDIkBC0HRACECDIgBC0HnACECDIcBCyABIARGBEBB+gAhAgygAQsCQCABLQAAQQlrDgQgAAAgAAsgAUEBaiEBQeYAIQIMhgELIAEgBEYEQEH5ACECDJ8BCwJAIAEtAABBCWsOBB8AAB8AC0EAIQACQCADKAI4IgJFDQAgAigCOCICRQ0AIAMgAhEAACEACyAARQRAQeIBIQIMhgELIABBFUcEQCADQQA2AhwgAyABNgIUIANByQ02AhAgA0EaNgIMQQAhAgyfAQsgA0H4ADYCHCADIAE2AhQgA0HqGjYCECADQRU2AgxBACECDJ4BCyABIARHBEAgA0ENNgIIIAMgATYCBEHkACECDIUBC0H3ACECDJ0BCyABIARGBEBB9gAhAgydAQsCQAJAAkAgAS0AAEHIAGsOCwABCwsLCwsLCwsCCwsgAUEBaiEBQd0AIQIMhQELIAFBAWohAUHgACECDIQBCyABQQFqIQFB4wAhAgyDAQtB9QAhAiABIARGDZsBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbXVAGotAABHDQggAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJwBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIABEAgA0H0ADYCHCADIAE2AhQgAyAANgIMQQAhAgycAQtB4gAhAgyCAQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJwBC0HhACECDIIBCyADQfMANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMmgELIAMtACkiAEEja0ELSQ0JAkAgAEEGSw0AQQEgAHRBygBxRQ0ADAoLQQAhAiADQQA2AhwgAyABNgIUIANB7Qk2AhAgA0EINgIMDJkBC0HyACECIAEgBEYNmAEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBs9UAai0AAEcNBSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMmQELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfEANgIcIAMgATYCFCADIAA2AgxBACECDJkBC0HfACECDH8LQQAhAAJAIAMoAjgiAkUNACACKAI0IgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANB6g02AhAgA0EmNgIMQQAhAgyZAQtB3gAhAgx/CyADQfAANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMlwELIAMtAClBIUYNBiADQQA2AhwgAyABNgIUIANBkQo2AhAgA0EINgIMQQAhAgyWAQtB7wAhAiABIARGDZUBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDVAGotAABHDQIgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJYBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIARQ0CIANB7QA2AhwgAyABNgIUIAMgADYCDEEAIQIMlQELIANBADYCAAsgAygCBCEAIANBADYCBCADIAAgARArIgBFDYABIANB7gA2AhwgAyABNgIUIAMgADYCDEEAIQIMkwELQdwAIQIMeQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJMBC0HbACECDHkLIANB7AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyRAQsgAy0AKSIAQSNJDQAgAEEuRg0AIANBADYCHCADIAE2AhQgA0HJCTYCECADQQg2AgxBACECDJABC0HaACECDHYLIAEgBEYEQEHrACECDI8BCwJAIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMjwELQdkAIQIMdQsgASAERwRAIANBDjYCCCADIAE2AgRB2AAhAgx1C0HqACECDI0BCyABIARGBEBB6QAhAgyNAQsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFB1wAhAgx0CyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeiADQegANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyABIARGBEBB5wAhAgyMAQsCQCABLQAAQS5GBEAgAUEBaiEBDAELIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ17IANB5gA2AhwgAyABNgIUIAMgADYCDEEAIQIMjAELQdYAIQIMcgsgASAERgRAQeUAIQIMiwELQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIANgIcIAMgATYCFCADIAA2AgxBACECDI0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNfSADQeMANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeyADQeQANgIcIAMgATYCFCADIAA2AgwMiwELQdQAIQIMcQsgAy0AKUEiRg2GAUHTACECDHALQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALIABFBEBB1QAhAgxwCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQaQNNgIQIANBITYCDEEAIQIMiQELIANB4QA2AhwgAyABNgIUIANB0Bo2AhAgA0EVNgIMQQAhAgyIAQsgASAERgRAQeAAIQIMiAELAkACQAJAAkACQCABLQAAQQprDgQBBAQABAsgAUEBaiEBDAELIAFBAWohASADQS9qLQAAQQFxRQ0BC0HSACECDHALIANBADYCHCADIAE2AhQgA0G2ETYCECADQQk2AgxBACECDIgBCyADQQA2AhwgAyABNgIUIANBthE2AhAgA0EJNgIMQQAhAgyHAQsgASAERgRAQd8AIQIMhwELIAEtAABBCkYEQCABQQFqIQEMCQsgAy0ALkHAAHENCCADQQA2AhwgAyABNgIUIANBthE2AhAgA0ECNgIMQQAhAgyGAQsgASAERgRAQd0AIQIMhgELIAEtAAAiAkENRgRAIAFBAWohAUHQACECDG0LIAEhACACQQlrDgQFAQEFAQsgBCABIgBGBEBB3AAhAgyFAQsgAC0AAEEKRw0AIABBAWoMAgtBACECIANBADYCHCADIAA2AhQgA0HKLTYCECADQQc2AgwMgwELIAEgBEYEQEHbACECDIMBCwJAIAEtAABBCWsOBAMAAAMACyABQQFqCyEBQc4AIQIMaAsgASAERgRAQdoAIQIMgQELIAEtAABBCWsOBAABAQABC0EAIQIgA0EANgIcIANBmhI2AhAgA0EHNgIMIAMgAUEBajYCFAx/CyADQYASOwEqQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB2QA2AhwgAyABNgIUIANB6ho2AhAgA0EVNgIMQQAhAgx+C0HNACECDGQLIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDHwLIAEgBEYEQEHZACECDHwLIAEtAABBIEcNPSABQQFqIQEgAy0ALkEBcQ09IANBADYCHCADIAE2AhQgA0HCHDYCECADQR42AgxBACECDHsLIAEgBEYEQEHYACECDHsLAkACQAJAAkACQCABLQAAIgBBCmsOBAIDAwABCyABQQFqIQFBLCECDGULIABBOkcNASADQQA2AhwgAyABNgIUIANB5xE2AhAgA0EKNgIMQQAhAgx9CyABQQFqIQEgA0Evai0AAEEBcUUNcyADLQAyQYABcUUEQCADQTJqIQIgAxA1QQAhAAJAIAMoAjgiBkUNACAGKAIoIgZFDQAgAyAGEQAAIQALAkACQCAADhZNTEsBAQEBAQEBAQEBAQEBAQEBAQEAAQsgA0EpNgIcIAMgATYCFCADQawZNgIQIANBFTYCDEEAIQIMfgsg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c3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -7882,9 +6868,9 @@ var require_llhttp_wasm = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
 var require_llhttp_simd_wasm = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRw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AXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgLhocCAwd/A34BeyABIAJqIQQCQCAAIgMoAgwiAA0AIAMoAgQEQCADIAE2AgQLIwBBEGsiCSQAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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DAgLQeMBDAcLQdcBDAYLQdgBDAULQdkBDAQLQdoBDAMLQdsBDAILQd0BDAELQdwBCyECA0ACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAn8CQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAgAwJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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A0EXNgIcIAMgADYCDCADIAFBAWo2AhQM+AILIABBFUYNI0EAIQIgA0EANgIcIAMgATYCFCADQdYMNgIQIANBIzYCDAz3AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQwdCyADQRk2AhwgAyAANgIMIAMgAUEBajYCFAz2AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQzvAgsgA0EaNgIcIAMgADYCDCADIAFBAWo2AhQM9QILIABBFUYNH0EAIQIgA0EANgIcIAMgATYCFCADQdAPNgIQIANBIjYCDAz0AgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDBsLIANBHDYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgzzAgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDOsCCyADQR02AhwgAyAANgIMIAMgAUEBajYCFEEAIQIM8gILIABBO0cNASABQQFqIQELQSYhAgzXAgtBACECIANBADYCHCADIAE2AhQgA0GfFTYCECADQQw2AgwM7wILIAEgBEcEQANAIAEtAABBIEcNhAIgBCABQQFqIgFHDQALQSwhAgzvAgtBLCECDO4CCyABIARGBEBBNCECDO4CCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtBNCECDO8CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUNnwIgA0EyNgIcIAMgATYCFCADIAA2AgxBACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUEQCABQQFqIQEMnwILIANBMjYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgztAgsgASAERwRAAkADQCABLQAAQTBrIgBB/wFxQQpPBEBBOiECDNcCCyADKQMgIgtCmbPmzJmz5swZVg0BIAMgC0IKfiIKNwMgIAogAK1C/wGDIgtCf4VWDQEgAyAKIAt8NwMgIAQgAUEBaiIBRw0AC0HAACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABQQFqIgEQMSIADRcM4gILQcAAIQIM7AILIAEgBEYEQEHJACECDOwCCwJAA0ACQCABLQAAQQlrDhgAAqICogKpAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAgCiAgsgBCABQQFqIgFHDQALQckAIQIM7AILIAFBAWohASADQS9qLQAAQQFxDaUCIANBADYCHCADIAE2AhQgA0GXEDYCECADQQo2AgxBACECDOsCCyABIARHBEADQCABLQAAQSBHDRUgBCABQQFqIgFHDQALQfgAIQIM6wILQfgAIQIM6gILIANBAjoAKAw4C0EAIQIgA0EANgIcIANBvws2AhAgA0ECNgIMIAMgAUEBajYCFAzoAgtBACECDM4CC0ENIQIMzQILQRMhAgzMAgtBFSECDMsCC0EWIQIMygILQRghAgzJAgtBGSECDMgCC0EaIQIMxwILQRshAgzGAgtBHCECDMUCC0EdIQIMxAILQR4hAgzDAgtBHyECDMICC0EgIQIMwQILQSIhAgzAAgtBIyECDL8CC0ElIQIMvgILQeUAIQIMvQILIANBPTYCHCADIAE2AhQgAyAANgIMQQAhAgzVAgsgA0EbNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIM1AILIANBIDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNMCCyADQRM2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzSAgsgA0ELNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0QILIANBEDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNACCyADQSA2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzPAgsgA0ELNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzgILIANBDDYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM0CC0EAIQIgA0EANgIcIAMgATYCFCADQd0ONgIQIANBEjYCDAzMAgsCQANAAkAgAS0AAEEKaw4EAAICAAILIAQgAUEBaiIBRw0AC0H9ASECDMwCCwJAAkAgAy0ANkEBRw0AQQAhAAJAIAMoAjgiAkUNACACKAJgIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB/AE2AhwgAyABNgIUIANB3Bk2AhAgA0EVNgIMQQAhAgzNAgtB3AEhAgyzAgsgA0EANgIcIAMgATYCFCADQfkLNgIQIANBHzYCDEEAIQIMywILAkACQCADLQAoQQFrDgIEAQALQdsBIQIMsgILQdQBIQIMsQILIANBAjoAMUEAIQACQCADKAI4IgJFDQAgAigCACICRQ0AIAMgAhEAACEACyAARQRAQd0BIQIMsQILIABBFUcEQCADQQA2AhwgAyABNgIUIANBtAw2AhAgA0EQNgIMQQAhAgzKAgsgA0H7ATYCHCADIAE2AhQgA0GBGjYCECADQRU2AgxBACECDMkCCyABIARGBEBB+gEhAgzJAgsgAS0AAEHIAEYNASADQQE6ACgLQcABIQIMrgILQdoBIQIMrQILIAEgBEcEQCADQQw2AgggAyABNgIEQdkBIQIMrQILQfkBIQIMxQILIAEgBEYEQEH4ASECDMUCCyABLQAAQcgARw0EIAFBAWohAUHYASECDKsCCyABIARGBEBB9wEhAgzEAgsCQAJAIAEtAABBxQBrDhAABQUFBQUFBQUFBQUFBQUBBQsgAUEBaiEBQdYBIQIMqwILIAFBAWohAUHXASECDKoCC0H2ASECIAEgBEYNwgIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABButUAai0AAEcNAyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMwwILIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgBFBEBB4wEhAgyqAgsgA0H1ATYCHCADIAE2AhQgAyAANgIMQQAhAgzCAgtB9AEhAiABIARGDcECIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQbjVAGotAABHDQIgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMICCyADQYEEOwEoIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgANAwwCCyADQQA2AgALQQAhAiADQQA2AhwgAyABNgIUIANB5R82AhAgA0EINgIMDL8CC0HVASECDKUCCyADQfMBNgIcIAMgATYCFCADIAA2AgxBACECDL0CC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ1uIABBFUcEQCADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgy9AgsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDLwCCyABIARHBEAgA0ENNgIIIAMgATYCBEHTASECDKMCC0HyASECDLsCCyABIARGBEBB8QEhAgy7AgsCQAJAAkAgAS0AAEHIAGsOCwABCAgICAgICAgCCAsgAUEBaiEBQdABIQIMowILIAFBAWohAUHRASECDKICCyABQQFqIQFB0gEhAgyhAgtB8AEhAiABIARGDbkCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEG11QBqLQAARw0EIABBAkYNAyAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy5AgtB7wEhAiABIARGDbgCIAMoAgAiACAEIAFraiEGIAEgAGtBAWohBQNAIAEtAAAgAEGz1QBqLQAARw0DIABBAUYNAiAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy4AgtB7gEhAiABIARGDbcCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEGw1QBqLQAARw0CIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy3AgsgAygCBCEAIANCADcDACADIAAgBUEBaiIBECsiAEUNAiADQewBNgIcIAMgATYCFCADIAA2AgxBACECDLYCCyADQQA2AgALIAMoAgQhACADQQA2AgQgAyAAIAEQKyIARQ2cAiADQe0BNgIcIAMgATYCFCADIAA2AgxBACECDLQCC0HPASECDJoCC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMtAILQc4BIQIMmgILIANB6wE2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyyAgsgASAERgRAQesBIQIMsgILIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMsQILQc0BIQIMlwILIAEgBEcEQCADQQ42AgggAyABNgIEQcwBIQIMlwILQeoBIQIMrwILIAEgBEYEQEHpASECDK8CCyABLQAAQTBrIgBB/wFxQQpJBEAgAyAAOgAqIAFBAWohAUHLASECDJYCCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNlwIgA0HoATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgASAERgRAQecBIQIMrgILAkAgAS0AAEEuRgRAIAFBAWohAQwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmAIgA0HmATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgtBygEhAgyUAgsgASAERgRAQeUBIQIMrQILQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIBNgIcIAMgATYCFCADIAA2AgxBACECDK8CCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmgIgA0HjATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5AE2AhwgAyABNgIUIAMgADYCDAytAgtByQEhAgyTAgtBACEAAkAgAygCOCICRQ0AIAIoAkQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GkDTYCECADQSE2AgxBACECDK0CC0HIASECDJMCCyADQeEBNgIcIAMgATYCFCADQdAaNgIQIANBFTYCDEEAIQIMqwILIAEgBEYEQEHhASECDKsCCwJAIAEtAABBIEYEQCADQQA7ATQgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GZETYCECADQQk2AgxBACECDKsCC0HHASECDJECCyABIARGBEBB4AEhAgyqAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKsCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyqAgtBxgEhAgyQAgsgASAERgRAQd8BIQIMqQILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyqAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqQILQcUBIQIMjwILIAEgBEYEQEHeASECDKgCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqQILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKgCC0HEASECDI4CCyABIARGBEBB3QEhAgynAgsCQAJAAkACQCABLQAAQQprDhcCAwMAAwMDAwMDAwMDAwMDAwMDAwMDAQMLIAFBAWoMBQsgAUEBaiEBQcMBIQIMjwILIAFBAWohASADQS9qLQAAQQFxDQggA0EANgIcIAMgATYCFCADQY0LNgIQIANBDTYCDEEAIQIMpwILIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKYCCyABIARHBEAgA0EPNgIIIAMgATYCBEEBIQIMjQILQdwBIQIMpQILAkACQANAAkAgAS0AAEEKaw4EAgAAAwALIAQgAUEBaiIBRw0AC0HbASECDKYCCyADKAIEIQAgA0EANgIEIAMgACABEC0iAEUEQCABQQFqIQEMBAsgA0HaATYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgylAgsgAygCBCEAIANBADYCBCADIAAgARAtIgANASABQQFqCyEBQcEBIQIMigILIANB2QE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMogILQcIBIQIMiAILIANBL2otAABBAXENASADQQA2AhwgAyABNgIUIANB5Bw2AhAgA0EZNgIMQQAhAgygAgsgASAERgRAQdkB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CyADIAU2AgAMkAILIANBADYCACAGQQFqIQFBGgw8C0HKASECIAEgBEYNjgIgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBjdUAai0AAEcNOyAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMjwILIANBADYCACAGQQFqIQFBIQw7CyABIARGBEBByQEhAgyOAgsCQAJAIAEtAABBwQBrDhQAPT09PT09PT09PT09PT09PT09AT0LIAFBAWohAUGtASECDPUBCyABQQFqIQFBsAEhAgz0AQsgASAERgRAQcgBIQIMjQILAkACQCABLQAAQdUAaw4LADw8PDw8PDw8PAE8CyABQQFqIQFBrgEhAgz0AQsgAUEBaiEBQa8BIQIM8wELQccBIQIgASAERg2LAiADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw04IABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyMAgsgA0EANgIAIAZBAWohAUEqDDgLIAEgBEYEQEHGASECDIsCCyABLQAAQdAARw04IAFBAWohAUElDDcLQcUBIQIgASAERg2JAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGB1QBqLQAARw02IABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyKAgsgA0EANgIAIAZBAWohAUEODDYLIAEgBEYEQEHEASECDIkCCyABLQAAQcUARw02IAFBAWohAUGrASECDO8BCyABIARGBEBBwwEhAgyIAgsCQAJAAkACQCABLQAAQcIAaw4PAAECOTk5OTk5OTk5OTkDOQsgAUEBaiEBQacBIQIM8QELIAFBAWohAUGoASECDPABCyABQQFqIQFBqQEhAgzvAQsgAUEBaiEBQaoBIQIM7gELQcIBIQIgASAERg2GAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEH+1ABqLQAARw0zIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyHAgsgA0EANgIAIAZBAWohAUEUDDMLQcEBIQIgASAERg2FAiADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANA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BTYCAAzsAQsgA0EANgIAIAZBAWohAUEXDBgLQaYBIQIgASAERg3qASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHB1ABqLQAARw0XIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzrAQsgA0EANgIAIAZBAWohAUEYDBcLIAEgBEYEQEGlASECDOoBCwJAAkAgAS0AAEHJAGsOBwAZGRkZGQEZCyABQQFqIQFBiwEhAgzRAQsgAUEBaiEBQYwBIQIM0AELQaQBIQIgASAERg3oASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGm1QBqLQAARw0VIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzpAQsgA0EANgIAIAZBAWohAUEJDBULQaMBIQIgASAERg3nASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGk1QBqLQAARw0UIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzoAQsgA0EANgIAIAZBAWohAUEfDBQLQaIBIQIgASAERg3mASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEG+1ABqLQAARw0TIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAznAQsgA0EANgIAIAZBAWohAUECDBMLQaEBIQIgASAERg3lASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYDQCABLQAAIABBvNQAai0AAEcNESAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5QELIAEgBEYEQEGgASECDOUBC0EBIAEtAABB3wBHDREaIAFBAWohAUGHASECDMsBCyADQQA2AgAgBkEBaiEBQYgBIQIMygELQZ8BIQIgASAERg3iASADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw0PIABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzjAQsgA0EANgIAIAZBAWohAUEpDA8LQZ4BIQIgASAERg3hASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEG41ABqLQAARw0OIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAziAQsgA0EANgIAIAZBAWohAUEtDA4LIAEgBEYEQEGdASECDOEBCyABLQAAQcUARw0OIAFBAWohAUGEASECDMcBCyABIARGBEBBnAEhAgzgAQsCQAJAIAEtAABBzABrDggADw8PDw8PAQ8LIAFBAWohAUGCASECDMcBCyABQQFqIQFBgwEhAgzGAQtBmwEhAiABIARGDd4BIAMoAgAiACAEIAFraiEFIAEgAGtBBGohBgJAA0AgAS0AACAAQbPUAGotAABHDQsgAEEERg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN8BCyADQQA2AgAgBkEBaiEBQSMMCwtBmgEhAiABIARGDd0BIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDUAGotAABHDQogAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN4BCyADQQA2AgAgBkEBaiEBQQAMCgsgASAERgRAQZkBIQIM3QELAkACQCABLQAAQcgAaw4IAAwMDAwMDAEMCyABQQFqIQFB/QAhAgzEAQsgAUEBaiEBQYABIQIMwwELIAEgBEYEQEGYASECDNwBCwJAAkAgAS0AAEHOAGsOAwALAQsLIAFBAWohAUH+ACECDMMBCyABQQFqIQFB/wAhAgzCAQsgASAERgRAQZcBIQIM2wELIAEtAABB2QBHDQggAUEBaiEBQQgMBwtBlgEhAiABIARGDdkBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQazUAGotAABHDQYgAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNoBCyADQQA2AgAgBkEBaiEBQQUMBgtBlQEhAiABIARGDdgBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQabUAGotAABHDQUgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNkBCyADQQA2AgAgBkEBaiEBQRYMBQtBlAEhAiABIARGDdcBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDQQgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNgBCyADQQA2AgAgBkEBaiEBQRAMBAsgASAERgRAQZMBIQIM1wELAkACQCABLQAAQcMAaw4MAAYGBgYGBgYGBgYBBgsgAUEBaiEBQfkAIQIMvgELIAFBAWohAUH6ACECDL0BC0GSASECIAEgBEYN1QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBoNQAai0AAEcNAiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM1gELIANBADYCACAGQQFqIQFBJAwCCyADQQA2AgAMAgsgASAERgRAQZEBIQIM1AELIAEtAABBzABHDQEgAUEBaiEBQRMLOgApIAMoAgQhACADQQA2AgQgAyAAIAEQLiIADQIMAQtBACECIANBADYCHCADIAE2AhQgA0H+HzYCECADQQY2AgwM0QELQfgAIQIMtwELIANBkAE2AhwgAyABNgIUIAMgADYCDEEAIQIMzwELQQAhAAJAIAMoAjgiAkUNACACKAJAIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GCDzYCECADQSA2AgxBACECDM4BC0H3ACECDLQBCyADQY8BNgIcIAMgATYCFCADQewbNgIQIANBFTYCDEEAIQIMzAELIAEgBEYEQEGPASECDMwBCwJAIAEtAABBIEYEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQZsfNgIQIANBBjYCDEEAIQIMzAELQQIhAgyyAQsDQCABLQAAQSBHDQIgBCABQQFqIgFHDQALQY4BIQIMygELIAEgBEYEQEGNASECDMoBCwJAIAEtAABBCWsOBEoAAEoAC0H1ACECDLABCyADLQApQQVGBEBB9gAhAgywAQtB9AAhAgyvAQsgASAERgRAQYwBIQIMyAELIANBEDYCCCADIAE2AgQMCgsgASAERgRAQYsBIQIMxwELAkAgAS0AAEEJaw4ERwAARwALQfMAIQIMrQELIAEgBEcEQCADQRA2AgggAyABNgIEQfEAIQIMrQELQYoBIQIMxQELAkAgASAERwRAA0AgAS0AAEGg0ABqLQAAIgBBA0cEQAJAIABBAWsOAkkABAtB8AAhAgyvAQsgBCABQQFqIgFHDQALQYgBIQIMxgELQYgBIQIMxQELIANBADYCHCADIAE2AhQgA0HbIDYCECADQQc2AgxBACECDMQBCyABIARGBEBBiQEhAgzEAQsCQAJAAkAgAS0AAEGg0gBqLQAAQQFrDgNGAgABC0HyACECDKwBCyADQQA2AhwgAyABNgIUIANBtBI2AhAgA0EHNgIMQQAhAgzEAQtB6gAhAgyqAQsgASAERwRAIAFBAWohAUHvACECDKoBC0GHASECDMIBCyAEIAEiAEYEQEGGASECDMIBCyAALQAAIgFBL0YEQCAAQQFqIQFB7gAhAgypAQsgAUEJayICQRdLDQEgACEBQQEgAnRBm4CABHENQQwBCyAEIAEiAEYEQEGFASECDMEBCyAALQAAQS9HDQAgAEEBaiEBDAMLQQAhAiADQQA2AhwgAyAANgIUIANB2yA2AhAgA0EHNgIMDL8BCwJAAkACQAJAAkADQCABLQAAQaDOAGotAAAiAEEFRwRAAkACQCAAQQFrDghHBQYHCAAEAQgLQesAIQIMrQELIAFBAWohAUHtACECDKwBCyAEIAFBAWoiAUcNAAtBhAEhAgzDAQsgAUEBagwUCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDMEBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDMABCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDL8BCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy+AQsgASAERgRAQYMBIQIMvgELAkAgAS0AAEGgzgBqLQAAQQFrDgg+BAUGAAgCAwcLIAFBAWohAQtBAyECDKMBCyABQQFqDA0LQQAhAiADQQA2AhwgA0HREjYCECADQQc2AgwgAyABQQFqNgIUDLoBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDLkBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDLgBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDLcBCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy2AQtB7AAhAgycAQsgASAERgRAQYIBIQIMtQELIAFBAWoMAgsgASAERgRAQYEBIQIMtAELIAFBAWoMAQsgASAERg0BIAFBAWoLIQFBBCECDJgBC0GAASECDLABCwNAIAEtAABBoMwAai0AACIAQQJHBEAgAEEBRwRAQekAIQIMmQELDDELIAQgAUEBaiIBRw0AC0H/ACECDK8BCyABIARGBEBB/gAhAgyvAQsCQCABLQAAQQlrDjcvAwYvBAYGBgYGBgYGBgYGBgYGBgYGBgUGBgIGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYABgsgAUEBagshAUEFIQIMlAELIAFBAWoMBgsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgyrAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgyqAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgypAQsgA0EANgIcIAMgATYCFCADQY0UNgIQIANBBzYCDEEAIQIMqAELAkACQAJAAkADQCABLQAAQaDKAGotAAAiAEEFRwRAAkAgAEEBaw4GLgMEBQYABgtB6AAhAgyUAQsgBCABQQFqIgFHDQALQf0AIQIMqwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMqgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMqQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMqAELIANBADYCHCADIAE2AhQgA0HkCDYCECADQQc2AgxBACECDKcBCyABIARGDQEgAUEBagshAUEGIQIMjAELQfwAIQIMpAELAkACQAJAAkADQCABLQAAQaDIAGotAAAiAEEFRwRAIABBAWsOBCkCAwQFCyAEIAFBAWoiAUcNAAtB+wAhAgynAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgymAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgylAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgykAQsgA0EANgIcIAMgATYCFCADQbwKNgIQIANBBzYCDEEAIQIMowELQc8AIQIMiQELQdEAIQIMiAELQecAIQIMhwELIAEgBEYEQEH6ACECDKABCwJAIAEtAABBCWsOBCAAACAACyABQQFqIQFB5gAhAgyGAQsgASAERgRAQfkAIQIMnwELAkAgAS0AAEEJaw4EHwAAHwALQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFBEBB4gEhAgyGAQsgAEEVRwRAIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDJ8BCyADQfgANgIcIAMgATYCFCADQeoaNgIQIANBFTYCDEEAIQIMngELIAEgBEcEQCADQQ02AgggAyABNgIEQeQAIQIMhQELQfcAIQIMnQELIAEgBEYEQEH2ACECDJ0BCwJAAkACQCABLQAAQcgAaw4LAAELCwsLCwsLCwILCyABQQFqIQFB3QAhAgyFAQsgAUEBaiEBQeAAIQIMhAELIAFBAWohAUHjACECDIMBC0H1ACECIAEgBEYNmwEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBtdUAai0AAEcNCCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMnAELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfQANgIcIAMgATYCFCADIAA2AgxBACECDJwBC0HiACECDIIBC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMnAELQeEAIQIMggELIANB8wA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyaAQsgAy0AKSIAQSNrQQtJDQkCQCAAQQZLDQBBASAAdEHKAHFFDQAMCgtBACECIANBADYCHCADIAE2AhQgA0HtCTYCECADQQg2AgwMmQELQfIAIQIgASAERg2YASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGz1QBqLQAARw0FIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyZAQsgAygCBCEAIANCADcDACADIAAgBkEBaiIBECsiAARAIANB8QA2AhwgAyABNgIUIAMgADYCDEEAIQIMmQELQd8AIQIMfwtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJkBC0HeACECDH8LIANB8AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyXAQsgAy0AKUEhRg0GIANBADYCHCADIAE2AhQgA0GRCjYCECADQQg2AgxBACECDJYBC0HvACECIAEgBEYNlQEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMlgELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgBFDQIgA0HtADYCHCADIAE2AhQgAyAANgIMQQAhAgyVAQsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNgAEgA0HuADYCHCADIAE2AhQgAyAANgIMQQAhAgyTAQtB3AAhAgx5C0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMkwELQdsAIQIMeQsgA0HsADYCHCADIAE2AhQgA0GAGzYCECADQRU2AgxBACECDJEBCyADLQApIgBBI0kNACAAQS5GDQAgA0EANgIcIAMgATYCFCADQckJNgIQIANBCDYCDEEAIQIMkAELQdoAIQIMdgsgASAERgRAQesAIQIMjwELAkAgAS0AAEEvRgRAIAFBAWohAQwBCyAD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ciBIVFRQL3gueCByZXF1ZXN0AEludmFsaWQgbWV0aG9kIGZvciBSVFNQL3gueCByZXF1ZXN0AEV4cGVjdGVkIFNPVVJDRSBtZXRob2QgZm9yIElDRS94LnggcmVxdWVzdABJbnZhbGlkIGNoYXIgaW4gdXJsIGZyYWdtZW50IHN0YXJ0AEV4cGVjdGVkIGRvdABTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3N0YXR1cwBJbnZhbGlkIHJlc3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -7897,9 +6883,9 @@ var require_llhttp_simd_wasm = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js
 var require_constants3 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
     "use strict";
     var corsSafeListedMethods = (
       /** @type {const} */
@@ -8121,9 +7107,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js
 var require_global = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
     "use strict";
     var globalOrigin = Symbol.for("undici.globalOrigin.1");
     function getGlobalOrigin() {
@@ -8157,9 +7143,9 @@ var require_global = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js
 var require_encoding = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/encoding/index.js"(exports2, module2) {
     "use strict";
     var textDecoder = new TextDecoder();
     function utf8DecodeBytes(buffer) {
@@ -8178,9 +7164,9 @@ var require_encoding = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js
 var require_infra = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { utf8DecodeBytes } = require_encoding();
@@ -8291,9 +7277,9 @@ var require_infra = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js
 var require_data_url = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { forgivingBase64, collectASequenceOfCodePoints, collectASequenceOfCodePointsFast, isomorphicDecode, removeASCIIWhitespace, removeChars } = require_infra();
@@ -8570,9 +7556,9 @@ var require_data_url = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js
 var require_runtime_features = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
     "use strict";
     var lazyLoaders = {
       __proto__: null,
@@ -8672,9 +7658,9 @@ var require_runtime_features = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js
 var require_webidl = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { types, inspect } = require("node:util");
@@ -8698,8 +7684,8 @@ var require_webidl = __commonJS({
       return new TypeError(`${message.header}: ${message.message}`);
     };
     webidl.errors.conversionFailed = function(opts) {
-      const plural3 = opts.types.length === 1 ? "" : " one of";
-      const message = `${opts.argument} could not be converted to${plural3}: ${opts.types.join(", ")}.`;
+      const plural2 = opts.types.length === 1 ? "" : " one of";
+      const message = `${opts.argument} could not be converted to${plural2}: ${opts.types.join(", ")}.`;
       return webidl.errors.exception({
         header: opts.prefix,
         message
@@ -9273,9 +8259,9 @@ var require_webidl = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js
 var require_util2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var zlib = require("node:zlib");
@@ -10040,9 +9026,9 @@ var require_util2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js
 var require_formdata = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
     "use strict";
     var { iteratorMixin } = require_util2();
     var { kEnumerableProperty } = require_util();
@@ -10202,9 +9188,9 @@ var require_formdata = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js
 var require_formdata_parser = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
     "use strict";
     var { bufferToLowerCasedHeaderName } = require_util();
     var { HTTP_TOKEN_CODEPOINTS } = require_data_url();
@@ -10526,9 +9512,9 @@ var require_formdata_parser = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js
 var require_promise = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/promise.js"(exports2, module2) {
     "use strict";
     function createDeferredPromise() {
       let res;
@@ -10545,9 +9531,9 @@ var require_promise = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js
 var require_body = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -10828,9 +9814,9 @@ Content-Type: ${value.type || "application/octet-stream"}\r
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js
 var require_client_h1 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var util = require_util();
@@ -11991,9 +10977,9 @@ ${len.toString(16)}\r
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js
 var require_client_h2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { pipeline } = require("node:stream");
@@ -12714,9 +11700,9 @@ var require_client_h2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js
 var require_client = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var net = require("node:net");
@@ -13225,9 +12211,9 @@ var require_client = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js
 var require_fixed_queue = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
     "use strict";
     var kSize = 2048;
     var kMask = kSize - 1;
@@ -13296,9 +12282,9 @@ var require_fixed_queue = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js
 var require_pool_base = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
     "use strict";
     var { PoolStats } = require_stats();
     var DispatcherBase = require_dispatcher_base();
@@ -13472,9 +12458,9 @@ var require_pool_base = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js
 var require_pool = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -13574,9 +12560,9 @@ var require_pool = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js
 var require_balanced_pool = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
     "use strict";
     var {
       BalancedPoolMissingUpstreamError,
@@ -13604,9 +12590,9 @@ var require_balanced_pool = __commonJS({
     function getGreatestCommonDivisor(a, b) {
       if (a === 0) return b;
       while (b !== 0) {
-        const t3 = b;
+        const t2 = b;
         b = a % b;
-        a = t3;
+        a = t2;
       }
       return a;
     }
@@ -13721,9 +12707,9 @@ var require_balanced_pool = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js
 var require_round_robin_pool = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -13838,9 +12824,9 @@ var require_round_robin_pool = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js
 var require_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, MaxOriginsReachedError } = require_errors();
     var { kClients, kRunning, kClose, kDestroy, kDispatch, kUrl } = require_symbols();
@@ -13971,9 +12957,9 @@ var require_agent = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js
 var require_proxy_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
     "use strict";
     var { kProxy, kClose, kDestroy, kDispatch } = require_symbols();
     var Agent2 = require_agent();
@@ -14206,9 +13192,9 @@ var require_proxy_agent = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
 var require_env_http_proxy_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
     "use strict";
     var DispatcherBase = require_dispatcher_base();
     var { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = require_symbols();
@@ -14331,9 +13317,9 @@ var require_env_http_proxy_agent = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js
 var require_retry_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kRetryHandlerDefaultRetry } = require_symbols();
@@ -14640,9 +13626,9 @@ var require_retry_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js
 var require_retry_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var RetryHandler = require_retry_handler();
@@ -14675,9 +13661,9 @@ var require_retry_agent = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js
 var require_h2c_client = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var Client = require_client();
@@ -14718,9 +13704,9 @@ var require_h2c_client = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js
 var require_readable = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/readable.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -15120,9 +14106,9 @@ var require_readable = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js
 var require_api_request = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-request.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -15298,9 +14284,9 @@ var require_api_request = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js
 var require_abort_signal = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
     "use strict";
     var { addAbortListener } = require_util();
     var { RequestAbortedError } = require_errors();
@@ -15350,9 +14336,9 @@ var require_abort_signal = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js
 var require_api_stream = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { finished } = require("node:stream");
@@ -15511,9 +14497,9 @@ var require_api_stream = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js
 var require_api_pipeline = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
     "use strict";
     var {
       Readable,
@@ -15712,9 +14698,9 @@ var require_api_pipeline = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js
 var require_api_upgrade = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, SocketError } = require_errors();
     var { AsyncResource } = require("node:async_hooks");
@@ -15806,9 +14792,9 @@ var require_api_upgrade = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js
 var require_api_connect = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -15897,9 +14883,9 @@ var require_api_connect = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js
 var require_api = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/api/index.js"(exports2, module2) {
     "use strict";
     module2.exports.request = require_api_request();
     module2.exports.stream = require_api_stream();
@@ -15909,9 +14895,9 @@ var require_api = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js
 var require_mock_errors = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
     "use strict";
     var { UndiciError } = require_errors();
     var kMockNotMatchedError = Symbol.for("undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED");
@@ -15935,9 +14921,9 @@ var require_mock_errors = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js
 var require_mock_symbols = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kAgent: Symbol("agent"),
@@ -15971,9 +14957,9 @@ var require_mock_symbols = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js
 var require_mock_utils = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
     "use strict";
     var { MockNotMatchedError } = require_mock_errors();
     var {
@@ -16343,9 +15329,9 @@ var require_mock_utils = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js
 var require_mock_interceptor = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
     "use strict";
     var { getResponseData, buildKey, addMockDispatch } = require_mock_utils();
     var {
@@ -16507,9 +15493,9 @@ var require_mock_interceptor = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js
 var require_mock_client = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
     "use strict";
     var { promisify: promisify3 } = require("node:util");
     var Client = require_client();
@@ -16568,9 +15554,9 @@ var require_mock_client = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js
 var require_mock_call_history = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
     "use strict";
     var { kMockCallHistoryAddLog } = require_mock_symbols();
     var { InvalidArgumentError } = require_errors();
@@ -16768,9 +15754,9 @@ var require_mock_call_history = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js
 var require_mock_pool = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
     "use strict";
     var { promisify: promisify3 } = require("node:util");
     var Pool = require_pool();
@@ -16829,9 +15815,9 @@ var require_mock_pool = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js
 var require_pending_interceptors_formatter = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { Console } = require("node:console");
@@ -16870,9 +15856,9 @@ var require_pending_interceptors_formatter = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js
 var require_mock_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
     "use strict";
     var { kClients } = require_symbols();
     var Agent2 = require_agent();
@@ -17054,9 +16040,9 @@ ${pendingInterceptorsFormatter.format(pending)}`.trim()
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js
 var require_snapshot_utils = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var { runtimeFeatures } = require_runtime_features();
@@ -17140,9 +16126,9 @@ var require_snapshot_utils = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js
 var require_snapshot_recorder = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
     "use strict";
     var { writeFile, readFile, mkdir } = require("node:fs/promises");
     var { dirname: dirname5, resolve: resolve7 } = require("node:path");
@@ -17516,9 +16502,9 @@ var require_snapshot_recorder = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js
 var require_snapshot_agent = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
     "use strict";
     var Agent2 = require_agent();
     var MockAgent = require_mock_agent();
@@ -17803,9 +16789,9 @@ var require_snapshot_agent = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js
 var require_global2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/global.js"(exports2, module2) {
     "use strict";
     var globalDispatcher = Symbol.for("undici.globalDispatcher.1");
     var { InvalidArgumentError } = require_errors();
@@ -17850,9 +16836,9 @@ var require_global2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js
 var require_decorator_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var WrapHandler = require_wrap_handler();
@@ -17906,9 +16892,9 @@ var require_decorator_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js
 var require_redirect_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var { kBodyUsed } = require_symbols();
@@ -18066,9 +17052,9 @@ var require_redirect_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js
 var require_redirect = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
     "use strict";
     var RedirectHandler = require_redirect_handler();
     function createRedirectInterceptor({ maxRedirections: defaultMaxRedirections } = {}) {
@@ -18088,9 +17074,9 @@ var require_redirect = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js
 var require_response_error = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
     "use strict";
     var DecoratorHandler = require_decorator_handler();
     var { ResponseError } = require_errors();
@@ -18170,9 +17156,9 @@ var require_response_error = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js
 var require_retry = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
     "use strict";
     var RetryHandler = require_retry_handler();
     module2.exports = (globalOpts) => {
@@ -18194,9 +17180,9 @@ var require_retry = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js
 var require_dump = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, RequestAbortedError } = require_errors();
     var DecoratorHandler = require_decorator_handler();
@@ -18280,9 +17266,9 @@ var require_dump = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js
 var require_dns = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
     "use strict";
     var { isIP: isIP2 } = require("node:net");
     var { lookup } = require("node:dns");
@@ -18642,9 +17628,9 @@ var require_dns = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js
 var require_cache = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/cache.js"(exports2, module2) {
     "use strict";
     var {
       safeHTTPMethods,
@@ -18910,9 +17896,9 @@ var require_cache = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js
 var require_date = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/util/date.js"(exports2, module2) {
     "use strict";
     function parseHttpDate(date) {
       switch (date[3]) {
@@ -19406,9 +18392,9 @@ var require_date = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js
 var require_cache_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -19751,9 +18737,9 @@ var require_cache_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js
 var require_memory_cache_store = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { EventEmitter: EventEmitter2 } = require("node:events");
@@ -19928,9 +18914,9 @@ var require_memory_cache_store = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js
 var require_cache_revalidation_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var CacheRevalidationHandler = class {
@@ -20015,9 +19001,9 @@ var require_cache_revalidation_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js
 var require_cache2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -20349,9 +19335,9 @@ var require_cache2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js
 var require_decompress = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
     "use strict";
     var { createInflate, createGunzip, createBrotliDecompress, createZstdDecompress } = require("node:zlib");
     var { pipeline } = require("node:stream");
@@ -20563,9 +19549,9 @@ var require_decompress = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js
 var require_deduplication_handler = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
     "use strict";
     var DeduplicationHandler = class {
       /**
@@ -20759,9 +19745,9 @@ var require_deduplication_handler = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js
 var require_deduplicate = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require_util();
@@ -20838,9 +19824,9 @@ var require_deduplicate = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js
 var require_sqlite_cache_store = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { assertCacheKey, assertCacheValue } = require_cache();
@@ -21197,9 +20183,9 @@ var require_sqlite_cache_store = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js
 var require_headers = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
     "use strict";
     var { kConstruct } = require_symbols();
     var { kEnumerableProperty } = require_util();
@@ -21658,9 +20644,9 @@ var require_headers = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js
 var require_response = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
     "use strict";
     var { Headers: Headers2, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = require_headers();
     var { extractBody, cloneBody, mixinBody, streamRegistry, bodyUnusable } = require_body();
@@ -22080,9 +21066,9 @@ var require_response = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js
 var require_request2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
     "use strict";
     var { extractBody, mixinBody, cloneBody, bodyUnusable } = require_body();
     var { Headers: Headers2, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = require_headers();
@@ -22836,9 +21822,9 @@ var require_request2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
 var require_subresource_integrity = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
@@ -22975,9 +21961,9 @@ var require_subresource_integrity = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js
 var require_fetch = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
     "use strict";
     var {
       makeNetworkError,
@@ -24068,9 +23054,9 @@ var require_fetch = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js
 var require_util3 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { URLSerializer } = require_data_url();
@@ -24098,9 +23084,9 @@ var require_util3 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js
 var require_cache3 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kConstruct } = require_symbols();
@@ -24647,9 +23633,9 @@ var require_cache3 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js
 var require_cachestorage = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
     "use strict";
     var { Cache } = require_cache3();
     var { webidl } = require_webidl();
@@ -24757,9 +23743,9 @@ var require_cachestorage = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js
 var require_constants4 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
     "use strict";
     var maxAttributeValueSize = 1024;
     var maxNameValuePairSize = 4096;
@@ -24770,9 +23756,9 @@ var require_constants4 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js
 var require_util4 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
     "use strict";
     function isCTLExcludingHtab(value) {
       for (let i = 0; i < value.length; ++i) {
@@ -24940,9 +23926,9 @@ var require_util4 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js
 var require_parse = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
     "use strict";
     var { collectASequenceOfCodePointsFast } = require_infra();
     var { maxNameValuePairSize, maxAttributeValueSize } = require_constants4();
@@ -25081,9 +24067,9 @@ var require_parse = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js
 var require_cookies = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
     "use strict";
     var { parseSetCookie } = require_parse();
     var { stringify } = require_util4();
@@ -25216,9 +24202,9 @@ var require_cookies = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js
 var require_events = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { kEnumerableProperty } = require_util();
@@ -25484,9 +24470,9 @@ var require_events = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js
 var require_constants5 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
     "use strict";
     var uid2 = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     var staticPropertyDescriptors = {
@@ -25540,9 +24526,9 @@ var require_constants5 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js
 var require_util5 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
     "use strict";
     var { states, opcodes } = require_constants5();
     var { isUtf8 } = require("node:buffer");
@@ -25713,9 +24699,9 @@ var require_util5 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js
 var require_frame = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { runtimeFeatures } = require_runtime_features();
     var { maxUnsigned16Bit, opcodes } = require_constants5();
@@ -25818,9 +24804,9 @@ var require_frame = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js
 var require_connection = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
     "use strict";
     var { uid: uid2, states, sentCloseFrameState, emptyBuffer, opcodes } = require_constants5();
     var { parseExtensions, isClosed, isClosing, isEstablished, isConnecting, validateCloseCodeAndReason } = require_util5();
@@ -25974,9 +24960,9 @@ var require_connection = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
     "use strict";
     var { createInflateRaw, Z_DEFAULT_WINDOWBITS } = require("node:zlib");
     var { isValidClientWindowBits } = require_util5();
@@ -26029,9 +25015,9 @@ var require_permessage_deflate = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js
 var require_receiver = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var assert = require("node:assert");
@@ -26341,9 +25327,9 @@ var require_receiver = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js
 var require_sender = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
     "use strict";
     var { WebsocketFrameSend } = require_frame();
     var { opcodes, sendHints } = require_constants5();
@@ -26428,9 +25414,9 @@ var require_sender = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js
 var require_websocket = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
     "use strict";
     var { isArrayBuffer } = require("node:util/types");
     var { webidl } = require_webidl();
@@ -26903,9 +25889,9 @@ var require_websocket = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js
 var require_websocketerror = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { validateCloseCodeAndReason } = require_util5();
@@ -26983,9 +25969,9 @@ var require_websocketerror = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js
 var require_websocketstream = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
     "use strict";
     var { createDeferredPromise } = require_promise();
     var { environmentSettingsObject } = require_util2();
@@ -27295,9 +26281,9 @@ var require_websocketstream = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js
 var require_util6 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
     "use strict";
     function isValidLastEventId(value) {
       return value.indexOf("\0") === -1;
@@ -27316,9 +26302,9 @@ var require_util6 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js
 var require_eventsource_stream = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { isASCIINumber, isValidLastEventId } = require_util6();
@@ -27547,9 +26533,9 @@ ${value}`;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js
 var require_eventsource = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
     "use strict";
     var { pipeline } = require("node:stream");
     var { fetching } = require_fetch();
@@ -27864,9 +26850,9 @@ var require_eventsource = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/undici/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/undici/index.js
 var require_undici = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/undici/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/undici/index.js"(exports2, module2) {
     "use strict";
     var Client = require_client();
     var Dispatcher = require_dispatcher();
@@ -28534,7 +27520,7 @@ var UNSUPPORTED_RETRY_MS;
 var init_native_web_search = __esm({
   "../electron/src/main/lib/native-web-search.ts"() {
     "use strict";
-    init_src3();
+    init_src2();
     UNSUPPORTED_RETRY_MS = 30 * 24 * 36e5;
   }
 });
@@ -28571,7 +27557,7 @@ var init_agent_tool_token_estimator = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs
 function IsBetween(value, min, max) {
   return value >= min && value <= max;
 }
@@ -28677,11 +27663,11 @@ function IsMaxLengthFast(value, maxLength) {
   return true;
 }
 var init_string = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/string.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs
 var guard_exports = {};
 __export(guard_exports, {
   Entries: () => Entries,
@@ -28873,19 +27859,19 @@ function IsDeepEqual(left, right) {
   return IsArray(left) ? DeepEqualArray(left, right) : IsObject(left) ? DeepEqualObject(left, right) : IsEqual(left, right);
 }
 var init_guard = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/guard.mjs"() {
     init_string();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs
 var init_emit = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/emit.mjs"() {
     init_guard();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs
 var globals_exports = {};
 __export(globals_exports, {
   IsBigInt64Array: () => IsBigInt64Array,
@@ -28966,20 +27952,20 @@ function IsMap(value) {
   return value instanceof globalThis.Map;
 }
 var init_globals = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/globals.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs
 var init_native = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/native.mjs"() {
     init_guard();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs
 var init_guard2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/guard/index.mjs"() {
     init_emit();
     init_globals();
     init_native();
@@ -28988,7 +27974,7 @@ var init_guard2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs
 function IsGuardInterface(value) {
   return guard_exports.IsObject(value) && guard_exports.HasPropertyKey(value, "check") && guard_exports.HasPropertyKey(value, "errors") && guard_exports.IsFunction(value.check) && guard_exports.IsFunction(value.errors);
 }
@@ -28996,22 +27982,22 @@ function IsGuard(value) {
   return guard_exports.HasPropertyKey(value, "~guard") && IsGuardInterface(value["~guard"]);
 }
 var init_guard3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_guard.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs
 function IsRefine(value) {
   return guard_exports.HasPropertyKey(value, "~refine") && guard_exports.IsArray(value["~refine"]) && guard_exports.Every(value["~refine"], 0, (value2) => guard_exports.IsObject(value2) && guard_exports.HasPropertyKey(value2, "check") && guard_exports.HasPropertyKey(value2, "error") && guard_exports.IsFunction(value2.check) && guard_exports.IsFunction(value2.error));
 }
 var init_refine = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/_refine.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs
 function IsSchemaObject(value) {
   return guard_exports.IsObject(value) && !guard_exports.IsArray(value);
 }
@@ -29022,240 +28008,240 @@ function IsSchema(value) {
   return IsSchemaObject(value) || IsBooleanSchema(value);
 }
 var init_schema = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/schema.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs
 function IsAdditionalItems(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalItems") && IsSchema(schema.additionalItems);
 }
 var init_additionalItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs
 function IsAdditionalProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalProperties") && IsSchema(schema.additionalProperties);
 }
 var init_additionalProperties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs
 function IsAllOf(schema) {
   return guard_exports.HasPropertyKey(schema, "allOf") && guard_exports.IsArray(schema.allOf) && schema.allOf.every((value) => IsSchema(value));
 }
 var init_allOf = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/allOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs
 function IsAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$anchor") && guard_exports.IsString(schema.$anchor);
 }
 var init_anchor = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs
 function IsAnyOf(schema) {
   return guard_exports.HasPropertyKey(schema, "anyOf") && guard_exports.IsArray(schema.anyOf) && schema.anyOf.every((value) => IsSchema(value));
 }
 var init_anyOf = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/anyOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs
 function IsConst(value) {
   return guard_exports.HasPropertyKey(value, "const");
 }
 var init_const = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/const.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs
 function IsContains(schema) {
   return guard_exports.HasPropertyKey(schema, "contains") && IsSchema(schema.contains);
 }
 var init_contains = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contains.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs
 var init_contentEncoding = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs
 var init_contentMediaType = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs
 var init_default = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/default.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs
 var init_defs = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/defs.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs
 function IsDependencies(schema) {
   return guard_exports.HasPropertyKey(schema, "dependencies") && guard_exports.IsObject(schema.dependencies) && Object.values(schema.dependencies).every((value) => IsSchema(value) || guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependencies = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependencies.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs
 function IsDependentRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentRequired") && guard_exports.IsObject(schema.dependentRequired) && Object.values(schema.dependentRequired).every((value) => guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependentRequired = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs
 function IsDependentSchemas(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentSchemas") && guard_exports.IsObject(schema.dependentSchemas) && Object.values(schema.dependentSchemas).every((value) => IsSchema(value));
 }
 var init_dependentSchemas = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs
 function IsDynamicAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicAnchor") && guard_exports.IsString(schema.$dynamicAnchor);
 }
 var init_dynamicAnchor = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs
 function IsDynamicRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicRef") && guard_exports.IsString(schema.$dynamicRef);
 }
 var init_dynamicRef = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs
 function IsElse(schema) {
   return guard_exports.HasPropertyKey(schema, "else") && IsSchema(schema.else);
 }
 var init_else = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/else.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs
 function IsEnum(schema) {
   return guard_exports.HasPropertyKey(schema, "enum") && guard_exports.IsArray(schema.enum);
 }
 var init_enum = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/enum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
 function IsExclusiveMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMaximum") && (guard_exports.IsNumber(schema.exclusiveMaximum) || guard_exports.IsBigInt(schema.exclusiveMaximum));
 }
 var init_exclusiveMaximum = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
 function IsExclusiveMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMinimum") && (guard_exports.IsNumber(schema.exclusiveMinimum) || guard_exports.IsBigInt(schema.exclusiveMinimum));
 }
 var init_exclusiveMinimum = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs
 function IsFormat(schema) {
   return guard_exports.HasPropertyKey(schema, "format") && guard_exports.IsString(schema.format);
 }
 var init_format = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/format.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs
 function IsId(schema) {
   return guard_exports.HasPropertyKey(schema, "$id") && guard_exports.IsString(schema.$id);
 }
 var init_id = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/id.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs
 function IsIf(schema) {
   return guard_exports.HasPropertyKey(schema, "if") && IsSchema(schema.if);
 }
 var init_if = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/if.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs
 function IsItems(schema) {
   return guard_exports.HasPropertyKey(schema, "items") && (IsSchema(schema.items) || guard_exports.IsArray(schema.items) && schema.items.every((value) => {
     return IsSchema(value);
@@ -29265,199 +28251,199 @@ function IsItemsSized(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
 var init_items = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/items.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs
 function IsMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "maximum") && (guard_exports.IsNumber(schema.maximum) || guard_exports.IsBigInt(schema.maximum));
 }
 var init_maximum = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs
 function IsMaxContains(schema) {
   return guard_exports.HasPropertyKey(schema, "maxContains") && guard_exports.IsNumber(schema.maxContains);
 }
 var init_maxContains = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs
 function IsMaxItems(schema) {
   return guard_exports.HasPropertyKey(schema, "maxItems") && guard_exports.IsNumber(schema.maxItems);
 }
 var init_maxItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs
 function IsMaxLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "maxLength") && guard_exports.IsNumber(schema.maxLength);
 }
 var init_maxLength = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs
 function IsMaxProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "maxProperties") && guard_exports.IsNumber(schema.maxProperties);
 }
 var init_maxProperties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs
 function IsMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "minimum") && (guard_exports.IsNumber(schema.minimum) || guard_exports.IsBigInt(schema.minimum));
 }
 var init_minimum = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs
 function IsMinContains(schema) {
   return guard_exports.HasPropertyKey(schema, "minContains") && guard_exports.IsNumber(schema.minContains);
 }
 var init_minContains = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs
 function IsMinItems(schema) {
   return guard_exports.HasPropertyKey(schema, "minItems") && guard_exports.IsNumber(schema.minItems);
 }
 var init_minItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs
 function IsMinLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "minLength") && guard_exports.IsNumber(schema.minLength);
 }
 var init_minLength = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs
 function IsMinProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "minProperties") && guard_exports.IsNumber(schema.minProperties);
 }
 var init_minProperties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs
 function IsMultipleOf2(schema) {
   return guard_exports.HasPropertyKey(schema, "multipleOf") && (guard_exports.IsNumber(schema.multipleOf) || guard_exports.IsBigInt(schema.multipleOf));
 }
 var init_multipleOf = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs
 function IsNot(schema) {
   return guard_exports.HasPropertyKey(schema, "not") && IsSchema(schema.not);
 }
 var init_not = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/not.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs
 function IsOneOf(schema) {
   return guard_exports.HasPropertyKey(schema, "oneOf") && guard_exports.IsArray(schema.oneOf) && schema.oneOf.every((value) => IsSchema(value));
 }
 var init_oneOf = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/oneOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs
 function IsPattern(schema) {
   return guard_exports.HasPropertyKey(schema, "pattern") && (guard_exports.IsString(schema.pattern) || schema.pattern instanceof RegExp);
 }
 var init_pattern = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/pattern.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs
 function IsPatternProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "patternProperties") && guard_exports.IsObject(schema.patternProperties) && Object.values(schema.patternProperties).every((value) => IsSchema(value));
 }
 var init_patternProperties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/patternProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs
 function IsPrefixItems(schema) {
   return guard_exports.HasPropertyKey(schema, "prefixItems") && guard_exports.IsArray(schema.prefixItems) && schema.prefixItems.every((schema2) => IsSchema(schema2));
 }
 var init_prefixItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/prefixItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs
 function IsProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "properties") && guard_exports.IsObject(schema.properties) && Object.values(schema.properties).every((value) => IsSchema(value));
 }
 var init_properties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/properties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs
 function IsPropertyNames(schema) {
   return guard_exports.HasPropertyKey(schema, "propertyNames") && (guard_exports.IsObject(schema.propertyNames) || IsSchema(schema.propertyNames));
 }
 var init_propertyNames = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/propertyNames.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs
 function IsRecursiveAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveAnchor") && guard_exports.IsBoolean(schema.$recursiveAnchor);
 }
@@ -29465,97 +28451,97 @@ function IsRecursiveAnchorTrue(schema) {
   return IsRecursiveAnchor(schema) && guard_exports.IsEqual(schema.$recursiveAnchor, true);
 }
 var init_recursiveAnchor = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs
 function IsRecursiveRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveRef") && guard_exports.IsString(schema.$recursiveRef);
 }
 var init_recursiveRef = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs
 function IsRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$ref") && guard_exports.IsString(schema.$ref);
 }
 var init_ref = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/ref.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs
 function IsRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "required") && guard_exports.IsArray(schema.required) && schema.required.every((value) => guard_exports.IsString(value));
 }
 var init_required = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs
 function IsThen(schema) {
   return guard_exports.HasPropertyKey(schema, "then") && IsSchema(schema.then);
 }
 var init_then = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/then.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs
 function IsType(schema) {
   return guard_exports.HasPropertyKey(schema, "type") && (guard_exports.IsString(schema.type) || guard_exports.IsArray(schema.type) && schema.type.every((value) => guard_exports.IsString(value)));
 }
 var init_type = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs
 function IsUniqueItems(schema) {
   return guard_exports.HasPropertyKey(schema, "uniqueItems") && guard_exports.IsBoolean(schema.uniqueItems);
 }
 var init_uniqueItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs
 function IsUnevaluatedItems(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedItems") && IsSchema(schema.unevaluatedItems);
 }
 var init_unevaluatedItems = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
 function IsUnevaluatedProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedProperties") && IsSchema(schema.unevaluatedProperties);
 }
 var init_unevaluatedProperties = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs
-var init_types4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs"() {
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs
+var init_types3 = __esm({
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/types/index.mjs"() {
     init_guard3();
     init_refine();
     init_additionalItems();
@@ -29613,11 +28599,11 @@ var init_types4 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs
 var CheckContext;
 var init_context = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_context.mjs"() {
+    init_types3();
     init_guard2();
     CheckContext = class {
       constructor() {
@@ -29668,40 +28654,40 @@ var init_context = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs
 var init_externals = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_externals.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs
 function CheckGuard(_stack, _context, schema, value) {
   return schema["~guard"].check(value);
 }
 var init_guard4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_guard.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs
 function Unreachable() {
   throw new Error("Unreachable");
 }
 var init_unreachable = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs
 var init_unreachable2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/unreachable/index.mjs"() {
     init_unreachable();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs
 var hash_exports = {};
 __export(hash_exports, {
   Hash: () => Hash,
@@ -29709,13 +28695,13 @@ __export(hash_exports, {
 });
 function InstanceKeys(value) {
   const propertyKeys = /* @__PURE__ */ new Set();
-  let current3 = value;
-  while (current3 && current3 !== Object.prototype) {
-    for (const key of Reflect.ownKeys(current3)) {
+  let current2 = value;
+  while (current2 && current2 !== Object.prototype) {
+    for (const key of Reflect.ownKeys(current2)) {
       if (key !== "constructor" && typeof key !== "symbol")
         propertyKeys.add(key);
     }
-    current3 = Object.getPrototypeOf(current3);
+    current2 = Object.getPrototypeOf(current2);
   }
   return [...propertyKeys];
 }
@@ -29814,7 +28800,7 @@ function Hash(value) {
 }
 var ByteMarker, Accumulator, Prime, Size, Bytes, F64, F64In, F64Out, encoder;
 var init_hash = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/hash.mjs"() {
     init_unreachable2();
     init_guard2();
     (function(ByteMarker2) {
@@ -29846,31 +28832,31 @@ var init_hash = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs
 var init_hashing = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/hashing/index.mjs"() {
     init_hash();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs
 function CheckRefine(_stack, _context, schema, value) {
   return guard_exports.Every(schema["~refine"], 0, (refinement, _) => refinement.check(value));
 }
 var init_refine2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_refine.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs
 var init_unique = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_unique.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs
 function IsValid(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
@@ -29883,15 +28869,15 @@ function CheckAdditionalItems(stack, context, schema, value) {
   return isAdditionalItems;
 }
 var init_additionalItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
+    init_types3();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs
 function GetPropertyKeyAsPattern(key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return `^${escaped}$`;
@@ -29912,8 +28898,8 @@ function CheckAdditionalProperties(stack, context, schema, value) {
   return isAdditionalProperties;
 }
 var init_additionalProperties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
+    init_types3();
     init_externals();
     init_unique();
     init_context();
@@ -29922,15 +28908,15 @@ var init_additionalProperties2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs
 var init_reducer = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_reducer.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs
 function CheckAllOf(stack, context, schema, value) {
   const results = schema.allOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -29939,7 +28925,7 @@ function CheckAllOf(stack, context, schema, value) {
   return guard_exports.IsEqual(results.length, schema.allOf.length) && context.Merge(results);
 }
 var init_allOf2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/allOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -29947,7 +28933,7 @@ var init_allOf2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs
 function CheckAnyOf(stack, context, schema, value) {
   const results = schema.anyOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -29956,7 +28942,7 @@ function CheckAnyOf(stack, context, schema, value) {
   return guard_exports.IsGreaterThan(results.length, 0) && context.Merge(results);
 }
 var init_anyOf2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/anyOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -29964,28 +28950,28 @@ var init_anyOf2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs
 function CheckBooleanSchema(_stack, _context, schema, _value) {
   return schema;
 }
 var init_boolean = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/boolean.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs
 function CheckConst(_stack, _context, schema, value) {
   return guard_exports.IsValueLike(schema.const) ? guard_exports.IsEqual(value, schema.const) : guard_exports.IsDeepEqual(value, schema.const);
 }
 var init_const2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/const.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs
 function IsValid2(schema) {
   return !(IsMinContains(schema) && guard_exports.IsEqual(schema.minContains, 0));
 }
@@ -29995,15 +28981,15 @@ function CheckContains(stack, context, schema, value) {
   return !guard_exports.IsEqual(value.length, 0) && value.some((item) => CheckSchema(stack, context, schema.contains, item));
 }
 var init_contains2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/contains.mjs"() {
+    init_types3();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs
 function CheckDependencies(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependencies), 0, ([key, schema2]) => {
@@ -30012,13 +28998,13 @@ function CheckDependencies(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependencies2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependencies.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs
 function CheckDependentRequired(_stack, _context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentRequired), 0, ([key, keys]) => {
@@ -30027,12 +29013,12 @@ function CheckDependentRequired(_stack, _context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentRequired2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs
 function CheckDependentSchemas(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentSchemas), 0, ([key, schema2]) => {
@@ -30041,57 +29027,57 @@ function CheckDependentSchemas(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentSchemas2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs
 function CheckDynamicRef(stack, context, schema, value) {
   const target = stack.DynamicRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_dynamicRef2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
     init_functions();
-    init_types4();
+    init_types3();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs
 function CheckEnum(_stack, _context, schema, value) {
   return schema.enum.some((option) => guard_exports.IsValueLike(option) ? guard_exports.IsEqual(value, option) : guard_exports.IsDeepEqual(value, option));
 }
 var init_enum2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/enum.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
 function CheckExclusiveMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessThan(value, schema.exclusiveMaximum);
 }
 var init_exclusiveMaximum2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
 function CheckExclusiveMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterThan(value, schema.exclusiveMinimum);
 }
 var init_exclusiveMinimum2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs
 function IsLeapYear(year) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
@@ -30106,13 +29092,13 @@ function IsDate2(value) {
 }
 var DAYS, DATE;
 var init_date = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date.mjs"() {
     DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs
 function IsTime(value, strictTimeZone = true) {
   const matches2 = TIME.exec(value);
   if (!matches2)
@@ -30136,46 +29122,46 @@ function IsTime(value, strictTimeZone = true) {
 }
 var TIME;
 var init_time = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/time.mjs"() {
     TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs
 function IsDateTime(value, strictTimeZone = true) {
   const dateTime = value.split(/T/i);
   return dateTime.length === 2 && IsDate2(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
 }
 var init_date_time = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/date_time.mjs"() {
     init_date();
     init_time();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs
 function IsDuration(value) {
   return Duration.test(value);
 }
 var Duration;
 var init_duration = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/duration.mjs"() {
     Duration = /^P((\d+Y(\d+M(\d+D)?)?|\d+M(\d+D)?|\d+D)(T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S))?|T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S)|\d+W)$/;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs
 function IsEmail(value) {
   return Email.test(value);
 }
 var Email;
 var init_email = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/email.mjs"() {
     Email = /^(?!.*\.\.)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs
 function Adapt(delta, numPoints, firstTime) {
   delta = firstTime ? Math.floor(delta / PUNYCODE_DAMP) : delta >> 1;
   delta += Math.floor(delta / numPoints);
@@ -30219,10 +29205,10 @@ function Decode(value) {
       else
         throw new Error("Invalid punycode: bad digit character");
       i += digit * w;
-      const t3 = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
-      if (digit < t3)
+      const t2 = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
+      if (digit < t2)
         break;
-      w *= PUNYCODE_BASE - t3;
+      w *= PUNYCODE_BASE - t2;
       k += PUNYCODE_BASE;
     }
     const outLen = output.length + 1;
@@ -30236,7 +29222,7 @@ function Decode(value) {
 }
 var PUNYCODE_BASE, PUNYCODE_TMIN, PUNYCODE_TMAX, PUNYCODE_SKEW, PUNYCODE_DAMP, PUNYCODE_INITIAL_BIAS, PUNYCODE_INITIAL_N;
 var init_puny = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_puny.mjs"() {
     PUNYCODE_BASE = 36;
     PUNYCODE_TMIN = 1;
     PUNYCODE_TMAX = 26;
@@ -30247,7 +29233,7 @@ var init_puny = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs
 function IsNonspacingMark(cp) {
   return new RegExp("\\p{Mn}", "u").test(String.fromCodePoint(cp));
 }
@@ -30378,7 +29364,7 @@ function IsLabel(value) {
 }
 var RFC5892_DISALLOWED, VIRAMA_CPS;
 var init_idna = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_idna.mjs"() {
     init_puny();
     RFC5892_DISALLOWED = /* @__PURE__ */ new Set([
       1600,
@@ -30439,7 +29425,7 @@ var init_idna = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs
 function IsHostname(value) {
   if (value.length === 0 || value.length > 253)
     return false;
@@ -30452,23 +29438,23 @@ function IsHostname(value) {
   return true;
 }
 var init_hostname = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs
 function IsIdnEmail(value) {
   return IdnEmail.test(value);
 }
 var IdnEmail;
 var init_idn_email = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_email.mjs"() {
     IdnEmail = /^(?!.*\.\.)[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+)*@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs
 function IsIdnHostname(value) {
   if (value.length === 0 || value.includes(" "))
     return false;
@@ -30482,12 +29468,12 @@ function IsIdnHostname(value) {
   return true;
 }
 var init_idn_hostname = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/idn_hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs
 function IsIPv4Internal(value, start, end) {
   let dots = 0;
   let num = 0;
@@ -30517,11 +29503,11 @@ function IsIPv4(value) {
   return IsIPv4Internal(value, 0, value.length);
 }
 var init_ipv4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv4.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs
 function InRange(ch) {
   return ch >= 48 && ch <= 57 || // 0-9
   ch >= 65 && ch <= 70 || // A-F
@@ -30579,12 +29565,12 @@ function IsIPv6(value) {
   return compressed ? groups <= 7 : groups === 8;
 }
 var init_ipv6 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/ipv6.mjs"() {
     init_ipv4();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs
 function TryUrl(value) {
   try {
     new URL(value, "http://example.com");
@@ -30623,11 +29609,11 @@ function IsIriReference(value) {
   }
 }
 var init_iri_reference = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri_reference.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs
 function IsIri(value) {
   try {
     new URL(value);
@@ -30637,33 +29623,33 @@ function IsIri(value) {
   }
 }
 var init_iri = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/iri.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
 function IsJsonPointerUriFragment(value) {
   return JsonPointerUriFragment.test(value);
 }
 var JsonPointerUriFragment;
 var init_json_pointer_uri_fragment = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
     JsonPointerUriFragment = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs
 function IsJsonPointer(value) {
   return JsonPointer.test(value);
 }
 var JsonPointer;
 var init_json_pointer = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/json_pointer.mjs"() {
     JsonPointer = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs
 function IsRegex(value) {
   if (value.length === 0) {
     return false;
@@ -30676,44 +29662,44 @@ function IsRegex(value) {
   }
 }
 var init_regex = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/regex.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs
 function IsRelativeJsonPointer(value) {
   return RelativeJsonPointer.test(value);
 }
 var RelativeJsonPointer;
 var init_relative_json_pointer = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/relative_json_pointer.mjs"() {
     RelativeJsonPointer = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs
 function IsUriReference(value) {
   return UriReference.test(value);
 }
 var UriReference;
 var init_uri_reference = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_reference.mjs"() {
     UriReference = /^(?!.*[^\x00-\x7F])(?!.*\\)(?:(?:[a-z][a-z0-9+\-.]*:)?(?:\/\/[^\s[\]{}<>^`|]*)?|[^\s[\]{}<>^`|]*)(?:\?[^\s[\]{}<>^`|]*)?(?:#[^\s[\]{}<>^`|]*)?$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs
 function IsUriTemplate(value) {
   return UriTemplate.test(value);
 }
 var UriTemplate;
 var init_uri_template = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri_template.mjs"() {
     UriTemplate = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs
 function IsAlpha(ch) {
   return ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
 }
@@ -30828,33 +29814,33 @@ function IsUri(value) {
   return true;
 }
 var init_uri = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uri.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs
 function IsUrl(value) {
   return Url.test(value);
 }
 var Url;
 var init_url = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/url.mjs"() {
     Url = /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs
 function IsUuid(value) {
   return Uuid.test(value);
 }
 var Uuid;
 var init_uuid = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/uuid.mjs"() {
     Uuid = /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs
 function Clear() {
   formats.clear();
 }
@@ -30899,7 +29885,7 @@ function Reset() {
 }
 var formats;
 var init_registry = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/_registry.mjs"() {
     init_date_time();
     init_date();
     init_duration();
@@ -30926,7 +29912,7 @@ var init_registry = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs
 var format_exports = {};
 __export(format_exports, {
   Clear: () => Clear,
@@ -30959,7 +29945,7 @@ __export(format_exports, {
   Test: () => Test
 });
 var init_format2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/format.mjs"() {
     init_registry();
     init_date_time();
     init_date();
@@ -30985,42 +29971,42 @@ var init_format2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs
 var init_format3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/format/index.mjs"() {
     init_format2();
     init_format2();
     init_format2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs
 function CheckFormat(_stack, _context, schema, value) {
   return format_exports.Test(schema.format, value);
 }
 var init_format4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/format.mjs"() {
     init_format3();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs
 function CheckIf(stack, context, schema, value) {
   const thenSchema = IsThen(schema) ? schema.then : true;
   const elseSchema = IsElse(schema) ? schema.else : true;
   return CheckSchema(stack, context, schema.if, value) ? CheckSchema(stack, context, thenSchema, value) : CheckSchema(stack, context, elseSchema, value);
 }
 var init_if2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/if.mjs"() {
+    init_types3();
     init_context();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs
 function CheckItemsSized(stack, context, schema, value) {
   return guard_exports.Every(schema.items, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
@@ -31036,14 +30022,14 @@ function CheckItems(stack, context, schema, value) {
   return IsItemsSized(schema) ? CheckItemsSized(stack, context, schema, value) : CheckItemsUnsized(stack, context, schema, value);
 }
 var init_items2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/items.mjs"() {
+    init_types3();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs
 function IsValid3(schema) {
   return IsContains(schema);
 }
@@ -31054,55 +30040,55 @@ function CheckMaxContains(stack, context, schema, value) {
   return guard_exports.IsLessEqualThan(count, schema.maxContains);
 }
 var init_maxContains2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxContains.mjs"() {
+    init_types3();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs
 function CheckMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value, schema.maximum);
 }
 var init_maximum2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs
 function CheckMaxItems(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value.length, schema.maxItems);
 }
 var init_maxItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs
 function CheckMaxLength(_stack, _context, schema, value) {
   return guard_exports.IsMaxLength(value, schema.maxLength);
 }
 var init_maxLength2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs
 function CheckMaxProperties(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(guard_exports.Keys(value).length, schema.maxProperties);
 }
 var init_maxProperties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs
 function IsValid4(schema) {
   return IsContains(schema);
 }
@@ -31113,65 +30099,65 @@ function CheckMinContains(stack, context, schema, value) {
   return guard_exports.IsGreaterEqualThan(count, schema.minContains);
 }
 var init_minContains2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minContains.mjs"() {
+    init_types3();
     init_unique();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs
 function CheckMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value, schema.minimum);
 }
 var init_minimum2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs
 function CheckMinItems(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value.length, schema.minItems);
 }
 var init_minItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs
 function CheckMinLength(_stack, _context, schema, value) {
   return guard_exports.IsMinLength(value, schema.minLength);
 }
 var init_minLength2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs
 function CheckMinProperties(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(guard_exports.Keys(value).length, schema.minProperties);
 }
 var init_minProperties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs
 function CheckMultipleOf(_stack, _context, schema, value) {
   return guard_exports.IsMultipleOf(value, schema.multipleOf);
 }
 var init_multipleOf2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs
 function CheckNot(stack, context, schema, value) {
   const nextContext = new CheckContext();
   const isSchema = !CheckSchema(stack, nextContext, schema.not, value);
@@ -31179,7 +30165,7 @@ function CheckNot(stack, context, schema, value) {
   return isNot;
 }
 var init_not2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/not.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -31187,7 +30173,7 @@ var init_not2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs
 function CheckOneOf(stack, context, schema, value) {
   const passedContexts = schema.oneOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -31196,7 +30182,7 @@ function CheckOneOf(stack, context, schema, value) {
   return guard_exports.IsEqual(passedContexts.length, 1) && context.Merge(passedContexts);
 }
 var init_oneOf2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/oneOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -31204,19 +30190,19 @@ var init_oneOf2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs
 function CheckPattern(_stack, _context, schema, value) {
   const regexp = guard_exports.IsString(schema.pattern) ? new RegExp(schema.pattern, "u") : schema.pattern;
   return regexp.test(value);
 }
 var init_pattern2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/pattern.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs
 function CheckPatternProperties(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Entries(schema.patternProperties), 0, ([pattern, schema2]) => {
     const regexp = new RegExp(pattern, "u");
@@ -31226,7 +30212,7 @@ function CheckPatternProperties(stack, context, schema, value) {
   });
 }
 var init_patternProperties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
     init_externals();
     init_unique();
     init_guard2();
@@ -31234,20 +30220,20 @@ var init_patternProperties2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs
 function CheckPrefixItems(stack, context, schema, value) {
   return guard_exports.IsEqual(value.length, 0) || guard_exports.Every(schema.prefixItems, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
   });
 }
 var init_prefixItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs
 var settings_exports = {};
 __export(settings_exports, {
   Get: () => Get2,
@@ -31275,7 +30261,7 @@ function Get2() {
 }
 var settings;
 var init_settings = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/settings.mjs"() {
     init_guard2();
     settings = {
       immutableTypes: false,
@@ -31288,14 +30274,14 @@ var init_settings = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs
 var init_settings2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/settings/index.mjs"() {
     init_settings();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs
 function IsExactOptional(required, key) {
   return required.includes(key) || settings_exports.Get().exactOptionalPropertyTypes;
 }
@@ -31303,13 +30289,13 @@ function InexactOptionalCheck(value, key) {
   return guard_exports.IsUndefined(value[key]);
 }
 var init_exact_optional = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs
 function CheckProperties(stack, context, schema, value) {
   const required = IsRequired(schema) ? schema.required : [];
   const isProperties = guard_exports.Every(guard_exports.Entries(schema.properties), 0, ([key, schema2]) => {
@@ -31319,20 +30305,20 @@ function CheckProperties(stack, context, schema, value) {
   return isProperties;
 }
 var init_properties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/properties.mjs"() {
+    init_types3();
     init_guard2();
     init_schema2();
     init_exact_optional();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs
 function CheckPropertyNames(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Keys(value), 0, (key, _index) => CheckSchema(stack, context, schema.propertyNames, key));
 }
 var init_propertyNames2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -31340,20 +30326,20 @@ var init_propertyNames2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs
 function CheckRecursiveRef(stack, context, schema, value) {
   const target = stack.RecursiveRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_recursiveRef2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
     init_functions();
-    init_types4();
+    init_types3();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs
 function CheckRef(stack, context, schema, value) {
   const target = stack.Ref(schema) ?? false;
   const nextContext = new CheckContext();
@@ -31363,26 +30349,26 @@ function CheckRef(stack, context, schema, value) {
   return result;
 }
 var init_ref2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/ref.mjs"() {
     init_functions();
-    init_types4();
+    init_types3();
     init_context();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs
 function CheckRequired(_stack, _context, schema, value) {
   return guard_exports.Every(schema.required, 0, (key) => guard_exports.HasPropertyKey(value, key));
 }
 var init_required2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs
 function CheckTypeName(_stack, _context, type, _schema, value) {
   return (
     // jsonschema
@@ -31399,12 +30385,12 @@ function CheckType(stack, context, schema, value) {
   return guard_exports.IsArray(schema.type) ? CheckTypeNames(stack, context, schema.type, schema, value) : CheckTypeName(stack, context, schema.type, schema, value);
 }
 var init_type2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
 function CheckUnevaluatedItems(stack, context, schema, value) {
   const indices = context.GetIndices();
   return guard_exports.Every(value, 0, (item, index) => {
@@ -31412,7 +30398,7 @@ function CheckUnevaluatedItems(stack, context, schema, value) {
   });
 }
 var init_unevaluatedItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -31420,7 +30406,7 @@ var init_unevaluatedItems2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
 function CheckUnevaluatedProperties(stack, context, schema, value) {
   const keys = context.GetKeys();
   return guard_exports.Every(guard_exports.Entries(value), 0, ([key, prop]) => {
@@ -31428,7 +30414,7 @@ function CheckUnevaluatedProperties(stack, context, schema, value) {
   });
 }
 var init_unevaluatedProperties2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -31436,7 +30422,7 @@ var init_unevaluatedProperties2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs
 function IsValid5(schema) {
   return !guard_exports.IsEqual(schema.uniqueItems, false);
 }
@@ -31448,13 +30434,13 @@ function CheckUniqueItems(_stack, _context, schema, value) {
   return guard_exports.IsEqual(set, isLength);
 }
 var init_uniqueItems2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
     init_hashing();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs
 function CheckSchemaPushStack(stack, context, schema, value) {
   return context.Push() && CheckSchema(stack, context, schema, value) && context.Pop();
 }
@@ -31465,8 +30451,8 @@ function CheckSchema(stack, context, schema, value) {
   return result;
 }
 var init_schema2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/schema.mjs"() {
+    init_types3();
     init_refine2();
     init_guard4();
     init_guard2();
@@ -31515,23 +30501,23 @@ var init_schema2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs
 var init_functions = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_functions.mjs"() {
+    init_types3();
     init_hashing();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs
 var init_pointer_get = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs
 var pointer_exports = {};
 __export(pointer_exports, {
   Delete: () => Delete,
@@ -31581,11 +30567,11 @@ function Indices(pointer) {
   return indices.length > 0 && indices[0] === "" ? indices.slice(1) : indices;
 }
 function Has2(value, pointer) {
-  let current3 = value;
+  let current2 = value;
   return Indices(pointer).every((index) => {
-    if (!HasIndex(index, current3))
+    if (!HasIndex(index, current2))
       return false;
-    current3 = current3[index];
+    current2 = current2[index];
     return true;
   });
 }
@@ -31618,20 +30604,20 @@ function Delete(value, pointer) {
   return value;
 }
 var init_pointer = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/pointer.mjs"() {
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs
 var init_pointer2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/pointer/index.mjs"() {
     init_pointer_get();
     init_pointer();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs
 function MatchId(schema, base, ref) {
   if (schema.$id === ref.hash)
     return schema;
@@ -31724,37 +30710,37 @@ function DynamicRef(root, base, dynamicRef, dynamicAnchors) {
   return anchorTarget ?? fragmentTarget;
 }
 var init_ref3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/ref.mjs"() {
     init_guard2();
     init_pointer2();
-    init_types4();
+    init_types3();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs
 var resolve_exports = {};
 __export(resolve_exports, {
   DynamicRef: () => DynamicRef,
   Ref: () => Ref
 });
 var init_resolve = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/resolve.mjs"() {
     init_ref3();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs
 var init_resolve2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/resolve/index.mjs"() {
     init_resolve();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs
 var __classPrivateFieldGet, _Stack_instances, _Stack_PushResourceAnchors, _Stack_PopResourceAnchors, _Stack_FromContext, _Stack_FromRef, Stack;
 var init_stack = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs"() {
-    init_types4();
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/_stack.mjs"() {
+    init_types3();
     init_guard2();
     init_resolve2();
     __classPrivateFieldGet = function(receiver, state, kind, f) {
@@ -31832,23 +30818,23 @@ var init_stack = __esm({
     _Stack_instances = /* @__PURE__ */ new WeakSet(), _Stack_PushResourceAnchors = function _Stack_PushResourceAnchors2(schema, isRoot = true) {
       if (!IsSchemaObject(schema))
         return;
-      const current3 = schema;
-      if (!isRoot && IsId(current3))
+      const current2 = schema;
+      if (!isRoot && IsId(current2))
         return;
-      if (!isRoot && IsDynamicAnchor(current3))
-        this.dynamicAnchors.push(current3);
-      for (const key of guard_exports.Keys(current3))
-        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PushResourceAnchors2).call(this, current3[key], false);
+      if (!isRoot && IsDynamicAnchor(current2))
+        this.dynamicAnchors.push(current2);
+      for (const key of guard_exports.Keys(current2))
+        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PushResourceAnchors2).call(this, current2[key], false);
     }, _Stack_PopResourceAnchors = function _Stack_PopResourceAnchors2(schema, isRoot = true) {
       if (!IsSchemaObject(schema))
         return;
-      const current3 = schema;
-      if (!isRoot && IsId(current3))
+      const current2 = schema;
+      if (!isRoot && IsId(current2))
         return;
-      if (!isRoot && IsDynamicAnchor(current3))
+      if (!isRoot && IsDynamicAnchor(current2))
         this.dynamicAnchors.pop();
-      for (const key of guard_exports.Keys(current3))
-        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PopResourceAnchors2).call(this, current3[key], false);
+      for (const key of guard_exports.Keys(current2))
+        __classPrivateFieldGet(this, _Stack_instances, "m", _Stack_PopResourceAnchors2).call(this, current2[key], false);
     }, _Stack_FromContext = function _Stack_FromContext2(ref) {
       return guard_exports.HasPropertyKey(this.context, ref.$ref) ? this.context[ref.$ref] : void 0;
     }, _Stack_FromRef = function _Stack_FromRef2(ref) {
@@ -31858,9 +30844,9 @@ var init_stack = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs
 var init_engine = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/engine/index.mjs"() {
     init_context();
     init_externals();
     init_guard4();
@@ -31913,13 +30899,13 @@ var init_engine = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs
 var init_static = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/static/index.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs
 var arguments_exports = {};
 __export(arguments_exports, {
   Match: () => Match2
@@ -31930,44 +30916,44 @@ function Match2(args, match) {
   })();
 }
 var init_arguments = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/arguments.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs
 var init_arguments2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/arguments/index.mjs"() {
     init_arguments();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs
 var init_evaluate = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/evaluate.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs
-var init_environment3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs"() {
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs
+var init_environment2 = __esm({
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/environment.mjs"() {
     init_evaluate();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs
-var init_environment4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs"() {
-    init_environment3();
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs
+var init_environment3 = __esm({
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/environment/index.mjs"() {
+    init_environment2();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs
 var init_build = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/build.mjs"() {
     init_arguments2();
-    init_environment4();
+    init_environment3();
     init_hashing();
     init_guard2();
     init_format3();
@@ -31975,31 +30961,31 @@ var init_build = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs
 var init_en_US = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/en_US.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs
-var init_config3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs"() {
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs
+var init_config2 = __esm({
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/system/locale/_config.mjs"() {
     init_en_US();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs
 var init_errors = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/errors.mjs"() {
     init_arguments2();
     init_settings2();
-    init_config3();
+    init_config2();
     init_guard2();
     init_engine();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs
 function Check(...args) {
   const [context, schema, value] = arguments_exports.Match(args, {
     3: (context2, schema2, value2) => [context2, schema2, value2],
@@ -32010,24 +30996,24 @@ function Check(...args) {
   return CheckSchema(stack, checkContext, schema, value);
 }
 var init_check = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/check.mjs"() {
     init_arguments2();
     init_engine();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs
 var init_parse = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/parse.mjs"() {
     init_arguments2();
     init_check();
     init_errors();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs
 var init_compile = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/compile.mjs"() {
     init_arguments2();
     init_build();
     init_errors();
@@ -32035,14 +31021,14 @@ var init_compile = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs
 var init_schema3 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/schema.mjs"() {
     init_engine();
     init_pointer2();
     init_resolve2();
     init_static();
-    init_types4();
+    init_types3();
     init_build();
     init_compile();
     init_check();
@@ -32051,9 +31037,9 @@ var init_schema3 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs
 var init_schema4 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/typebox/build/schema/index.mjs"() {
     init_schema3();
     init_schema3();
   }
@@ -32264,6 +31250,7 @@ function normalizePiBaseUrl(baseUrl, provider) {
 function buildPiRequestHeaders(provider, apiKey) {
   if (provider === "kimi-coding") return { "User-Agent": "Cortex/0.9.32" };
   if (provider === "kimi-api") return { Authorization: `Bearer ${apiKey}` };
+  if (provider === "flock") return openAIAuthHeaders(provider, apiKey);
   return void 0;
 }
 async function buildModel(sdk, input) {
@@ -32313,7 +31300,7 @@ var init_pi_model_registry = __esm({
   "../electron/src/main/lib/adapters/pi-model-registry.ts"() {
     "use strict";
     init_src();
-    init_src3();
+    init_src2();
     init_official_model_prices();
     ZERO_MODEL_COST = {
       input: 0,
@@ -32468,13 +31455,13 @@ function savePiCompletionsHistory(assistant, raw, model, provider, channelId) {
 function restorePiCompletionsHistory(payload, context, model, provider, channelId) {
   const body = payload;
   const resultsByAssistant = /* @__PURE__ */ new Map();
-  let current3;
+  let current2;
   for (const message of context.messages) {
     if (message.role === "assistant") {
-      current3 = message;
+      current2 = message;
       resultsByAssistant.set(message, /* @__PURE__ */ new Set());
-    } else if (message.role === "user") current3 = void 0;
-    else if (current3 && message.role === "toolResult") resultsByAssistant.get(current3).add(message.toolCallId);
+    } else if (message.role === "user") current2 = void 0;
+    else if (current2 && message.role === "toolResult") resultsByAssistant.get(current2).add(message.toolCallId);
   }
   const assistants = context.messages.filter((message) => message.role === "assistant" && !["error", "aborted"].includes(message.stopReason) && message.content.some((block) => block.type === "toolCall" || block.type === "text" && block.text.trim()));
   const saved = assistants.map((assistant) => {
@@ -32505,7 +31492,7 @@ var init_pi_completions_history = __esm({
     "use strict";
     import_node_crypto5 = require("node:crypto");
     import_node_util3 = require("node:util");
-    init_src3();
+    init_src2();
   }
 });
 
@@ -32792,12 +31779,12 @@ var init_pi_stream_validation = __esm({
     "use strict";
     init_src();
     import_node_util4 = require("node:util");
-    init_src3();
+    init_src2();
     init_pi_completions_history();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
   if (kind === "m")
     throw new TypeError("Private method is not writable");
@@ -32815,11 +31802,11 @@ function __classPrivateFieldGet2(receiver, state, kind, f) {
   return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 var init_tslib = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/tslib.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs
 function isAbortError(err) {
   return typeof err === "object" && err !== null && // Spec-compliant fetch implementations
   ("name" in err && err.name === "AbortError" || // Expo fetch
@@ -32827,7 +31814,7 @@ function isAbortError(err) {
 }
 var castToError;
 var init_errors2 = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/errors.mjs"() {
     castToError = (err) => {
       if (err instanceof Error)
         return err;
@@ -32855,10 +31842,10 @@ var init_errors2 = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs
 var OpenAIError, APIError, APIConnectionError, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, ConflictError, UnprocessableEntityError, RateLimitError, InternalServerError;
 var init_error = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/core/error.mjs"() {
     init_errors2();
     OpenAIError = class extends Error {
     };
@@ -32945,7 +31932,7 @@ var init_error = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs
 function makeReadableStream(...args) {
   const ReadableStream2 = globalThis.ReadableStream;
   if (typeof ReadableStream2 === "undefined") {
@@ -32981,11 +31968,11 @@ function ReadableStreamToAsyncIterable(stream) {
   };
 }
 var init_shims = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/shims.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs
 function concatBytes(buffers) {
   let length = 0;
   for (const buffer of buffers) {
@@ -33009,11 +31996,11 @@ function decodeUTF8(bytes) {
 }
 var encodeUTF8_, decodeUTF8_;
 var init_bytes = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/bytes.mjs"() {
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs
 function findNewlineIndex(buffer, startIndex) {
   const newline = 10;
   const carriage = 13;
@@ -33045,7 +32032,7 @@ function findDoubleNewlineIndex(buffer) {
 }
 var _LineDecoder_buffer, _LineDecoder_carriageReturnIndex, LineDecoder;
 var init_line = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/decoders/line.mjs"() {
     init_tslib();
     init_bytes();
     LineDecoder = class {
@@ -33095,14 +32082,14 @@ var init_line = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs
 var init_values = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/values.mjs"() {
     init_error();
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs
 function noop() {
 }
 function makeLogFn(fnLevel, logger, logLevel) {
@@ -33133,7 +32120,7 @@ function loggerFor(client) {
 }
 var levelNumbers, noopLogger, cachedLoggers;
 var init_log = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/internal/utils/log.mjs"() {
     init_values();
     levelNumbers = {
       off: 0,
@@ -33152,7 +32139,7 @@ var init_log = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs
 var streaming_exports = {};
 __export(streaming_exports, {
   Stream: () => Stream,
@@ -33212,7 +32199,7 @@ function partition(str, delimiter2) {
 }
 var _Stream_client, Stream, SSEDecoder;
 var init_streaming = __esm({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs"() {
+  "../../../../../../Volumes/File/cortex/node_modules/openai/core/streaming.mjs"() {
     init_tslib();
     init_error();
     init_shims();
@@ -33694,9 +32681,9 @@ var init_model_transport = __esm({
     "use strict";
     init_agent_tool_token_estimator();
     init_structured_output();
-    init_src3();
+    init_src2();
     init_src();
-    init_src3();
+    init_src2();
     init_pi_model_registry();
     init_pi_context_budget();
     init_pi_stream_validation();
@@ -33934,10 +32921,10 @@ function recordNativeSearchVerification(snapshot, modelId, supported) {
     const protocol = nativeSearchProtocol(snapshot);
     if (!protocol) return false;
     const config = readConfig();
-    const current3 = config.channels.find((item) => item.id === snapshot.id);
-    const model = current3?.models.find((item) => item.id === modelId);
-    if (!current3 || !model || current3.provider !== snapshot.provider || current3.baseUrl !== snapshot.baseUrl || current3.apiKey !== snapshot.apiKey) return false;
-    model.nativeSearch = { provider: current3.provider, baseUrl: current3.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    const current2 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current2?.models.find((item) => item.id === modelId);
+    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return false;
+    model.nativeSearch = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, protocol, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
     writeConfig(config);
     return true;
   });
@@ -33945,10 +32932,10 @@ function recordNativeSearchVerification(snapshot, modelId, supported) {
 function recordImageInputCheck(snapshot, modelId, supported) {
   return withChannelsLock(() => {
     const config = readConfig();
-    const current3 = config.channels.find((item) => item.id === snapshot.id);
-    const model = current3?.models.find((item) => item.id === modelId);
-    if (!current3 || !model || current3.provider !== snapshot.provider || current3.baseUrl !== snapshot.baseUrl || current3.apiKey !== snapshot.apiKey) return void 0;
-    model.imageInputCheck = { provider: current3.provider, baseUrl: current3.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    const current2 = config.channels.find((item) => item.id === snapshot.id);
+    const model = current2?.models.find((item) => item.id === modelId);
+    if (!current2 || !model || current2.provider !== snapshot.provider || current2.baseUrl !== snapshot.baseUrl || current2.apiKey !== snapshot.apiKey) return void 0;
+    model.imageInputCheck = { provider: current2.provider, baseUrl: current2.baseUrl, modelId, supported, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
     writeConfig(config);
     return model.imageInputCheck;
   });
@@ -34145,9 +33132,9 @@ async function fetchGoogleModels(baseUrl, apiKey, proxyUrl, signal) {
   };
 }
 async function refreshChannelDiscovery(channel2, apiKey, modelId) {
-  const current3 = channel2.models.find((model) => model.id === modelId);
-  const discovered = matchingModelDiscovery(current3?.discovery, channel2.provider, channel2.baseUrl, modelId);
-  const age = Date.now() - Date.parse(current3?.discovery?.checkedAt ?? "");
+  const current2 = channel2.models.find((model) => model.id === modelId);
+  const discovered = matchingModelDiscovery(current2?.discovery, channel2.provider, channel2.baseUrl, modelId);
+  const age = Date.now() - Date.parse(current2?.discovery?.checkedAt ?? "");
   if (discovered && age >= 0 && age < 864e5) return;
   const endpoint3 = JSON.stringify([channel2.provider, channel2.baseUrl]);
   let cached = discoveryRefreshes.get(channel2.id);
@@ -34183,7 +33170,7 @@ var init_channel_manager = __esm({
   "../electron/src/main/lib/channel-manager.ts"() {
     "use strict";
     init_src();
-    init_src3();
+    init_src2();
     import_node_fs13 = require("node:fs");
     init_desktop_host();
     import_node_crypto6 = require("node:crypto");
@@ -34193,7 +33180,7 @@ var init_channel_manager = __esm({
     init_proxy_fetch();
     init_proxy_settings_service();
     init_chat_tool_config();
-    init_src3();
+    init_src2();
     init_native_web_search();
     CONFIG_VERSION = 1;
     LOCAL_KEY_PLACEHOLDER = "local";
@@ -34369,11 +33356,11 @@ function getManagedSkills(workspace, dependencyRoots = [workspace], english = ge
     const en = english ? englishManifest(item) : void 0;
     return item.manifest.skills.map((skill) => {
       const error = loadError || skill.requires?.map(dependencyError).filter(Boolean).join(" ") || void 0;
-      const t3 = en?.skills.find((s) => s.id === skill.id);
+      const t2 = en?.skills.find((s) => s.id === skill.id);
       return {
         slug: `${item.id}--${skill.id}`,
-        name: t3?.nameEn || skill.name,
-        description: t3?.descriptionEn || skill.description,
+        name: t2?.nameEn || skill.name,
+        description: t2?.descriptionEn || skill.description,
         version: item.manifest.version,
         installationId: item.id,
         installationEnabled: item.enabled,
@@ -34381,10 +33368,10 @@ function getManagedSkills(workspace, dependencyRoots = [workspace], english = ge
         packageId: item.manifest.kind === "package" ? item.id : void 0,
         packageName: item.manifest.kind === "package" ? en?.nameEn || item.manifest.name : void 0,
         requires: skill.requires,
-        input: t3?.inputEn || skill.input,
-        output: t3?.outputEn || skill.output,
-        example: t3?.exampleEn || skill.example,
-        limitation: t3?.limitationEn || skill.limitation,
+        input: t2?.inputEn || skill.input,
+        output: t2?.outputEn || skill.output,
+        example: t2?.exampleEn || skill.example,
+        limitation: t2?.limitationEn || skill.limitation,
         directory: (0, import_node_path18.dirname)(inside(root, skill.path)),
         loadError: error,
         enabled: !error && item.enabled && !item.disabled.includes(skill.id)
@@ -34507,8 +33494,8 @@ function manageSkillPackage(workspace, id, action) {
   if (action === "rollback") {
     if (!item.previous) throw new Error(tr("\u6CA1\u6709\u53EF\u6062\u590D\u7684\u4E0A\u4E00\u7248\u672C\u3002", "No previous version to restore."));
     if (hashSkillDirectory(snapshotPath(workspace, item)) !== item.hash || hashSkillDirectory(snapshotPath(workspace, item.previous)) !== item.previous.hash) throw new Error(tr("\u672C\u5730\u7248\u672C\u5DF2\u4FEE\u6539\uFF0C\u672A\u6062\u590D\u4E0A\u4E00\u7248\u672C\u3002", "The local version was modified, so it wasn\u2019t restored."));
-    const current3 = { directory: item.directory, hash: item.hash, manifest: item.manifest, disabled: item.disabled };
-    Object.assign(item, item.previous, { previous: current3 });
+    const current2 = { directory: item.directory, hash: item.hash, manifest: item.manifest, disabled: item.disabled };
+    Object.assign(item, item.previous, { previous: current2 });
   } else if (action === "enable" || action === "disable") item.enabled = action === "enable";
   else if (action === "remove") registry.installations = registry.installations.filter((i) => i.id !== id);
   else throw new Error(tr("\u4E0D\u652F\u6301\u7684\u6280\u80FD\u5305\u64CD\u4F5C\u3002", "Unsupported skill pack action."));
@@ -34679,7 +33666,7 @@ var SPEC, CACHE_TTL_MS;
 var init_skill_dependencies = __esm({
   "../electron/src/main/lib/skill-dependencies.ts"() {
     "use strict";
-    init_src3();
+    init_src2();
     init_agent_runtime_env();
     init_shell_executor();
     SPEC = /^([a-zA-Z0-9_][a-zA-Z0-9_.+-]*)\s*(?:>=\s*(\d+(?:\.\d+)*))?$/;
@@ -35135,7 +34122,7 @@ var init_mcp_catalog = __esm({
 });
 
 // ../electron/src/main/lib/mcp-secrets.ts
-function mcpSecretBinding3(entry) {
+function mcpSecretBinding2(entry) {
   return mcpSecretBinding(entry, (id) => MCP_RECIPES.find((recipe) => recipe.id === id)?.packageName);
 }
 function secretHint(slot) {
@@ -35377,7 +34364,7 @@ function sealMcpConfig(slug, previous, next, store, explicit = {}) {
       servers[name] = owned ? entry : plain;
       continue;
     }
-    const binding = mcpSecretBinding3(disk);
+    const binding = mcpSecretBinding2(disk);
     let kept = [];
     if (owned && store.boundTo(id) === binding) {
       try {
@@ -36208,9 +35195,9 @@ var init_agent_workspace_manager = __esm({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/code.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/code.js
 var require_code = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/code.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/code.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.regexpCode = exports2.getEsmExportName = exports2.getProperty = exports2.safeStringify = exports2.stringify = exports2.strConcat = exports2.addCodeArg = exports2.str = exports2._ = exports2.nil = exports2._Code = exports2.Name = exports2.IDENTIFIER = exports2._CodeOrName = void 0;
@@ -36362,9 +35349,9 @@ var require_code = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/scope.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/scope.js
 var require_scope = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/scope.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/scope.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ValueScope = exports2.ValueScopeName = exports2.Scope = exports2.varKinds = exports2.UsedValueState = void 0;
@@ -36507,9 +35494,9 @@ var require_scope = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/index.js
 var require_codegen = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/codegen/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.or = exports2.and = exports2.not = exports2.CodeGen = exports2.operators = exports2.varKinds = exports2.ValueScopeName = exports2.ValueScope = exports2.Scope = exports2.Name = exports2.regexpCode = exports2.stringify = exports2.getProperty = exports2.nil = exports2.strConcat = exports2.str = exports2._ = void 0;
@@ -37227,9 +36214,9 @@ var require_codegen = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/util.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/util.js
 var require_util7 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/util.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/util.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.checkStrictMode = exports2.getErrorPath = exports2.Type = exports2.useFunc = exports2.setEvaluated = exports2.evaluatedPropsToName = exports2.mergeEvaluated = exports2.eachItem = exports2.unescapeJsonPointer = exports2.escapeJsonPointer = exports2.escapeFragment = exports2.unescapeFragment = exports2.schemaRefOrVal = exports2.schemaHasRulesButRef = exports2.schemaHasRules = exports2.checkUnknownRules = exports2.alwaysValidSchema = exports2.toHash = void 0;
@@ -37394,9 +36381,9 @@ var require_util7 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/names.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/names.js
 var require_names = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/names.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/names.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -37433,9 +36420,9 @@ var require_names = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/errors.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/errors.js
 var require_errors2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/errors.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/errors.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.extendErrors = exports2.resetErrorsCount = exports2.reportExtraError = exports2.reportError = exports2.keyword$DataError = exports2.keywordError = void 0;
@@ -37555,9 +36542,9 @@ var require_errors2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/boolSchema.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/boolSchema.js
 var require_boolSchema = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/boolSchema.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/boolSchema.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.boolOrEmptySchema = exports2.topBoolOrEmptySchema = void 0;
@@ -37606,9 +36593,9 @@ var require_boolSchema = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/rules.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/rules.js
 var require_rules = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/rules.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/rules.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getRules = exports2.isJSONType = void 0;
@@ -37637,9 +36624,9 @@ var require_rules = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/applicability.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/applicability.js
 var require_applicability = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/applicability.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/applicability.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.shouldUseRule = exports2.shouldUseGroup = exports2.schemaHasRulesForType = void 0;
@@ -37660,9 +36647,9 @@ var require_applicability = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/dataType.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/dataType.js
 var require_dataType = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/dataType.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/dataType.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.reportTypeError = exports2.checkDataTypes = exports2.checkDataType = exports2.coerceAndCheckDataType = exports2.getJSONTypes = exports2.getSchemaTypes = exports2.DataType = void 0;
@@ -37717,7 +36704,7 @@ var require_dataType = __commonJS({
     exports2.coerceAndCheckDataType = coerceAndCheckDataType;
     var COERCIBLE = /* @__PURE__ */ new Set(["string", "number", "integer", "boolean", "null"]);
     function coerceToTypes(types, coerceTypes) {
-      return coerceTypes ? types.filter((t3) => COERCIBLE.has(t3) || coerceTypes === "array" && t3 === "array") : [];
+      return coerceTypes ? types.filter((t2) => COERCIBLE.has(t2) || coerceTypes === "array" && t2 === "array") : [];
     }
     function coerceData(it, types, coerceTo) {
       const { gen, data, opts } = it;
@@ -37727,9 +36714,9 @@ var require_dataType = __commonJS({
         gen.if((0, codegen_1._)`${dataType} == 'object' && Array.isArray(${data}) && ${data}.length == 1`, () => gen.assign(data, (0, codegen_1._)`${data}[0]`).assign(dataType, (0, codegen_1._)`typeof ${data}`).if(checkDataTypes(types, data, opts.strictNumbers), () => gen.assign(coerced, data)));
       }
       gen.if((0, codegen_1._)`${coerced} !== undefined`);
-      for (const t3 of coerceTo) {
-        if (COERCIBLE.has(t3) || t3 === "array" && opts.coerceTypes === "array") {
-          coerceSpecificType(t3);
+      for (const t2 of coerceTo) {
+        if (COERCIBLE.has(t2) || t2 === "array" && opts.coerceTypes === "array") {
+          coerceSpecificType(t2);
         }
       }
       gen.else();
@@ -37739,8 +36726,8 @@ var require_dataType = __commonJS({
         gen.assign(data, coerced);
         assignParentData(it, coerced);
       });
-      function coerceSpecificType(t3) {
-        switch (t3) {
+      function coerceSpecificType(t2) {
+        switch (t2) {
           case "string":
             gen.elseIf((0, codegen_1._)`${dataType} == "number" || ${dataType} == "boolean"`).assign(coerced, (0, codegen_1._)`"" + ${data}`).elseIf((0, codegen_1._)`${data} === null`).assign(coerced, (0, codegen_1._)`""`);
             return;
@@ -37812,8 +36799,8 @@ var require_dataType = __commonJS({
       }
       if (types.number)
         delete types.integer;
-      for (const t3 in types)
-        cond = (0, codegen_1.and)(cond, checkDataType(t3, data, strictNums, correct));
+      for (const t2 in types)
+        cond = (0, codegen_1.and)(cond, checkDataType(t2, data, strictNums, correct));
       return cond;
     }
     exports2.checkDataTypes = checkDataTypes;
@@ -37844,9 +36831,9 @@ var require_dataType = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/defaults.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/defaults.js
 var require_defaults = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/defaults.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/defaults.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.assignDefaults = void 0;
@@ -37881,9 +36868,9 @@ var require_defaults = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/code.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/code.js
 var require_code2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/code.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/code.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.validateUnion = exports2.validateArray = exports2.usePattern = exports2.callValidateCode = exports2.schemaProperties = exports2.allSchemaProperties = exports2.noPropertyInData = exports2.propertyInData = exports2.isOwnProperty = exports2.hasPropFunc = exports2.reportMissingProp = exports2.checkMissingProp = exports2.checkReportMissingProp = void 0;
@@ -38014,9 +37001,9 @@ var require_code2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/keyword.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/keyword.js
 var require_keyword = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/keyword.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/keyword.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.validateKeywordUsage = exports2.validSchemaType = exports2.funcKeywordCode = exports2.macroKeywordCode = void 0;
@@ -38132,9 +37119,9 @@ var require_keyword = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/subschema.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/subschema.js
 var require_subschema = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/subschema.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/subschema.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.extendSubschemaMode = exports2.extendSubschemaData = exports2.getSubschema = void 0;
@@ -38215,9 +37202,9 @@ var require_subschema = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/fast-deep-equal/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/fast-deep-equal/index.js
 var require_fast_deep_equal = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/fast-deep-equal/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/fast-deep-equal/index.js"(exports2, module2) {
     "use strict";
     module2.exports = function equal(a, b) {
       if (a === b) return true;
@@ -38250,9 +37237,9 @@ var require_fast_deep_equal = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/json-schema-traverse/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/json-schema-traverse/index.js
 var require_json_schema_traverse = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/json-schema-traverse/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/json-schema-traverse/index.js"(exports2, module2) {
     "use strict";
     var traverse = module2.exports = function(schema, opts, cb) {
       if (typeof opts == "function") {
@@ -38338,9 +37325,9 @@ var require_json_schema_traverse = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/resolve.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/resolve.js
 var require_resolve = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/resolve.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/resolve.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getSchemaRefs = exports2.resolveUrl = exports2.normalizeId = exports2._getFullPath = exports2.getFullPath = exports2.inlineRef = void 0;
@@ -38494,9 +37481,9 @@ var require_resolve = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/index.js
 var require_validate = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/validate/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getData = exports2.KeywordCxt = exports2.validateFunctionCode = void 0;
@@ -38728,9 +37715,9 @@ var require_validate = __commonJS({
         it.dataTypes = types;
         return;
       }
-      types.forEach((t3) => {
-        if (!includesType(it.dataTypes, t3)) {
-          strictTypesError(it, `type "${t3}" not allowed by context "${it.dataTypes.join(",")}"`);
+      types.forEach((t2) => {
+        if (!includesType(it.dataTypes, t2)) {
+          strictTypesError(it, `type "${t2}" not allowed by context "${it.dataTypes.join(",")}"`);
         }
       });
       narrowSchemaTypes(it, types);
@@ -38746,7 +37733,7 @@ var require_validate = __commonJS({
         const rule = rules[keyword];
         if (typeof rule == "object" && (0, applicability_1.shouldUseRule)(it.schema, rule)) {
           const { type } = rule.definition;
-          if (type.length && !type.some((t3) => hasApplicableType(ts, t3))) {
+          if (type.length && !type.some((t2) => hasApplicableType(ts, t2))) {
             strictTypesError(it, `missing type "${type.join(",")}" for keyword "${keyword}"`);
           }
         }
@@ -38755,15 +37742,15 @@ var require_validate = __commonJS({
     function hasApplicableType(schTs, kwdT) {
       return schTs.includes(kwdT) || kwdT === "number" && schTs.includes("integer");
     }
-    function includesType(ts, t3) {
-      return ts.includes(t3) || t3 === "integer" && ts.includes("number");
+    function includesType(ts, t2) {
+      return ts.includes(t2) || t2 === "integer" && ts.includes("number");
     }
     function narrowSchemaTypes(it, withTypes) {
       const ts = [];
-      for (const t3 of it.dataTypes) {
-        if (includesType(withTypes, t3))
-          ts.push(t3);
-        else if (withTypes.includes("integer") && t3 === "number")
+      for (const t2 of it.dataTypes) {
+        if (includesType(withTypes, t2))
+          ts.push(t2);
+        else if (withTypes.includes("integer") && t2 === "number")
           ts.push("integer");
       }
       it.dataTypes = ts;
@@ -39002,9 +37989,9 @@ var require_validate = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/validation_error.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/validation_error.js
 var require_validation_error = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/validation_error.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/validation_error.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var ValidationError = class extends Error {
@@ -39018,9 +38005,9 @@ var require_validation_error = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/ref_error.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/ref_error.js
 var require_ref_error = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/ref_error.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/ref_error.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var resolve_1 = require_resolve();
@@ -39035,9 +38022,9 @@ var require_ref_error = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/index.js
 var require_compile = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/compile/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.resolveSchema = exports2.getCompilingSchema = exports2.resolveRef = exports2.compileSchema = exports2.SchemaEnv = void 0;
@@ -39259,9 +38246,9 @@ var require_compile = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/data.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/data.json
 var require_data = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/data.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/data.json"(exports2, module2) {
     module2.exports = {
       $id: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#",
       description: "Meta-schema for $data reference (JSON AnySchema extension proposal)",
@@ -39278,9 +38265,9 @@ var require_data = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/utils.js
+// ../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/utils.js
 var require_utils2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/utils.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/utils.js"(exports2, module2) {
     "use strict";
     var isUUID = RegExp.prototype.test.bind(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu);
     var isIPv4 = RegExp.prototype.test.bind(/^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)$/u);
@@ -39535,9 +38522,9 @@ var require_utils2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/schemes.js
+// ../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/schemes.js
 var require_schemes = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/schemes.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/fast-uri/lib/schemes.js"(exports2, module2) {
     "use strict";
     var { isUUID } = require_utils2();
     var URN_REG = /([\da-z][\d\-a-z]{0,31}):((?:[\w!$'()*+,\-.:;=@]|%[\da-f]{2})+)/iu;
@@ -39745,9 +38732,9 @@ var require_schemes = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/fast-uri/index.js
 var require_fast_uri = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/fast-uri/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/fast-uri/index.js"(exports2, module2) {
     "use strict";
     var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizeComponentEncoding, isIPv4, nonSimpleDomain } = require_utils2();
     var { SCHEMES, getSchemeHandler } = require_schemes();
@@ -40000,9 +38987,9 @@ var require_fast_uri = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/uri.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/uri.js
 var require_uri = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/uri.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/uri.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var uri = require_fast_uri();
@@ -40011,9 +38998,9 @@ var require_uri = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/core.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/core.js
 var require_core = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/core.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/core.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.CodeGen = exports2.Name = exports2.nil = exports2.stringify = exports2.str = exports2._ = exports2.KeywordCxt = void 0;
@@ -40374,7 +39361,7 @@ var require_core = __commonJS({
           type: (0, dataType_1.getJSONTypes)(def.type),
           schemaType: (0, dataType_1.getJSONTypes)(def.schemaType)
         };
-        (0, util_1.eachItem)(keyword, definition.type.length === 0 ? (k) => addRule.call(this, k, definition) : (k) => definition.type.forEach((t3) => addRule.call(this, k, definition, t3)));
+        (0, util_1.eachItem)(keyword, definition.type.length === 0 ? (k) => addRule.call(this, k, definition) : (k) => definition.type.forEach((t2) => addRule.call(this, k, definition, t2)));
         return this;
       }
       getKeyword(keyword) {
@@ -40573,7 +39560,7 @@ var require_core = __commonJS({
       if (dataType && post)
         throw new Error('keyword with "post" flag cannot have "type"');
       const { RULES } = this;
-      let ruleGroup = post ? RULES.post : RULES.rules.find(({ type: t3 }) => t3 === dataType);
+      let ruleGroup = post ? RULES.post : RULES.rules.find(({ type: t2 }) => t2 === dataType);
       if (!ruleGroup) {
         ruleGroup = { type: dataType, rules: [] };
         RULES.rules.push(ruleGroup);
@@ -40622,9 +39609,9 @@ var require_core = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/id.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/id.js
 var require_id = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/id.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/id.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var def = {
@@ -40637,9 +39624,9 @@ var require_id = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/ref.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/ref.js
 var require_ref = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/ref.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/ref.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.callRef = exports2.getValidate = void 0;
@@ -40759,9 +39746,9 @@ var require_ref = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/index.js
 var require_core2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/core/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var id_1 = require_id();
@@ -40780,9 +39767,9 @@ var require_core2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitNumber.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitNumber.js
 var require_limitNumber = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitNumber.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitNumber.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -40812,9 +39799,9 @@ var require_limitNumber = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/multipleOf.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/multipleOf.js
 var require_multipleOf = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/multipleOf.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/multipleOf.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -40840,9 +39827,9 @@ var require_multipleOf = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/ucs2length.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/ucs2length.js
 var require_ucs2length = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/ucs2length.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/ucs2length.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     function ucs2length(str) {
@@ -40866,9 +39853,9 @@ var require_ucs2length = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitLength.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitLength.js
 var require_limitLength = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitLength.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitLength.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -40898,9 +39885,9 @@ var require_limitLength = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/pattern.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/pattern.js
 var require_pattern = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/pattern.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/pattern.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -40926,9 +39913,9 @@ var require_pattern = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitProperties.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitProperties.js
 var require_limitProperties = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitProperties.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitProperties.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -40955,9 +39942,9 @@ var require_limitProperties = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/required.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/required.js
 var require_required = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/required.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/required.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -41037,9 +40024,9 @@ var require_required = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitItems.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitItems.js
 var require_limitItems = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitItems.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitItems.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41066,9 +40053,9 @@ var require_limitItems = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/equal.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/equal.js
 var require_equal = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/equal.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/runtime/equal.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var equal = require_fast_deep_equal();
@@ -41077,9 +40064,9 @@ var require_equal = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
 var require_uniqueItems = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dataType_1 = require_dataType();
@@ -41112,7 +40099,7 @@ var require_uniqueItems = __commonJS({
           gen.if((0, codegen_1._)`${i} > 1`, () => (canOptimize() ? loopN : loopN2)(i, j));
         }
         function canOptimize() {
-          return itemTypes.length > 0 && !itemTypes.some((t3) => t3 === "object" || t3 === "array");
+          return itemTypes.length > 0 && !itemTypes.some((t2) => t2 === "object" || t2 === "array");
         }
         function loopN(i, j) {
           const item = gen.name("item");
@@ -41144,9 +40131,9 @@ var require_uniqueItems = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/const.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/const.js
 var require_const = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/const.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/const.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41173,9 +40160,9 @@ var require_const = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/enum.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/enum.js
 var require_enum = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/enum.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/enum.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41222,9 +40209,9 @@ var require_enum = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/index.js
 var require_validation = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var limitNumber_1 = require_limitNumber();
@@ -41260,9 +40247,9 @@ var require_validation = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
 var require_additionalItems = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.validateAdditionalItems = void 0;
@@ -41313,9 +40300,9 @@ var require_additionalItems = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items.js
 var require_items = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.validateTuple = void 0;
@@ -41370,9 +40357,9 @@ var require_items = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
 var require_prefixItems = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var items_1 = require_items();
@@ -41387,9 +40374,9 @@ var require_prefixItems = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items2020.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items2020.js
 var require_items2020 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items2020.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/items2020.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41422,9 +40409,9 @@ var require_items2020 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/contains.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/contains.js
 var require_contains = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/contains.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/contains.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41516,9 +40503,9 @@ var require_contains = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependencies.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependencies.js
 var require_dependencies = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependencies.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependencies.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.validateSchemaDeps = exports2.validatePropertyDeps = exports2.error = void 0;
@@ -41610,9 +40597,9 @@ var require_dependencies = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
 var require_propertyNames = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41653,9 +40640,9 @@ var require_propertyNames = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
 var require_additionalProperties = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -41759,9 +40746,9 @@ var require_additionalProperties = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/properties.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/properties.js
 var require_properties = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/properties.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/properties.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var validate_1 = require_validate();
@@ -41817,9 +40804,9 @@ var require_properties = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
 var require_patternProperties = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -41891,9 +40878,9 @@ var require_patternProperties = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/not.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/not.js
 var require_not = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/not.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/not.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require_util7();
@@ -41922,9 +40909,9 @@ var require_not = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/anyOf.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/anyOf.js
 var require_anyOf = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/anyOf.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/anyOf.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -41939,9 +40926,9 @@ var require_anyOf = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/oneOf.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/oneOf.js
 var require_oneOf = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/oneOf.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/oneOf.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -41997,9 +40984,9 @@ var require_oneOf = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/allOf.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/allOf.js
 var require_allOf = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/allOf.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/allOf.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require_util7();
@@ -42024,9 +41011,9 @@ var require_allOf = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/if.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/if.js
 var require_if = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/if.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/if.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -42093,9 +41080,9 @@ var require_if = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/thenElse.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/thenElse.js
 var require_thenElse = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/thenElse.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/thenElse.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require_util7();
@@ -42111,9 +41098,9 @@ var require_thenElse = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/index.js
 var require_applicator = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var additionalItems_1 = require_additionalItems();
@@ -42159,9 +41146,9 @@ var require_applicator = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/format.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/format.js
 var require_format = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/format.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/format.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -42249,9 +41236,9 @@ var require_format = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/index.js
 var require_format2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/format/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var format_1 = require_format();
@@ -42260,9 +41247,9 @@ var require_format2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/metadata.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/metadata.js
 var require_metadata = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/metadata.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/metadata.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.contentVocabulary = exports2.metadataVocabulary = void 0;
@@ -42283,9 +41270,9 @@ var require_metadata = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft7.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft7.js
 var require_draft7 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft7.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft7.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var core_1 = require_core2();
@@ -42305,9 +41292,9 @@ var require_draft7 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/types.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/types.js
 var require_types = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/types.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/types.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DiscrError = void 0;
@@ -42319,9 +41306,9 @@ var require_types = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/index.js
 var require_discriminator = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/discriminator/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -42340,7 +41327,7 @@ var require_discriminator = __commonJS({
       error,
       code(cxt) {
         const { gen, data, schema, parentSchema, it } = cxt;
-        const { oneOf: oneOf3 } = parentSchema;
+        const { oneOf: oneOf2 } = parentSchema;
         if (!it.opts.discriminator) {
           throw new Error("discriminator: requires discriminator option");
         }
@@ -42349,7 +41336,7 @@ var require_discriminator = __commonJS({
           throw new Error("discriminator: requires propertyName");
         if (schema.mapping)
           throw new Error("discriminator: mapping is not supported");
-        if (!oneOf3)
+        if (!oneOf2)
           throw new Error("discriminator: requires oneOf keyword");
         const valid = gen.let("valid", false);
         const tag = gen.const("tag", (0, codegen_1._)`${data}${(0, codegen_1.getProperty)(tagName)}`);
@@ -42377,8 +41364,8 @@ var require_discriminator = __commonJS({
           const oneOfMapping = {};
           const topRequired = hasRequired(parentSchema);
           let tagRequired = true;
-          for (let i = 0; i < oneOf3.length; i++) {
-            let sch = oneOf3[i];
+          for (let i = 0; i < oneOf2.length; i++) {
+            let sch = oneOf2[i];
             if ((sch === null || sch === void 0 ? void 0 : sch.$ref) && !(0, util_1.schemaHasRulesButRef)(sch, it.self.RULES)) {
               const ref = sch.$ref;
               sch = compile_1.resolveRef.call(it.self, it.schemaEnv.root, it.baseId, ref);
@@ -42424,9 +41411,9 @@ var require_discriminator = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-draft-07.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-draft-07.json
 var require_json_schema_draft_07 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-draft-07.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-draft-07.json"(exports2, module2) {
     module2.exports = {
       $schema: "http://json-schema.org/draft-07/schema#",
       $id: "http://json-schema.org/draft-07/schema#",
@@ -42581,9 +41568,9 @@ var require_json_schema_draft_07 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/ajv.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/ajv.js
 var require_ajv = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/ajv.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/ajv.js"(exports2, module2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.MissingRefError = exports2.ValidationError = exports2.CodeGen = exports2.Name = exports2.nil = exports2.stringify = exports2.str = exports2._ = exports2.KeywordCxt = exports2.Ajv = void 0;
@@ -42651,9 +41638,9 @@ var require_ajv = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicAnchor.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicAnchor.js
 var require_dynamicAnchor = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicAnchor.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicAnchor.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.dynamicAnchor = void 0;
@@ -42686,9 +41673,9 @@ var require_dynamicAnchor = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js
 var require_dynamicRef = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.dynamicRef = void 0;
@@ -42732,9 +41719,9 @@ var require_dynamicRef = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveAnchor.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveAnchor.js
 var require_recursiveAnchor = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveAnchor.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveAnchor.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dynamicAnchor_1 = require_dynamicAnchor();
@@ -42753,9 +41740,9 @@ var require_recursiveAnchor = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveRef.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveRef.js
 var require_recursiveRef = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveRef.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/recursiveRef.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dynamicRef_1 = require_dynamicRef();
@@ -42768,9 +41755,9 @@ var require_recursiveRef = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/index.js
 var require_dynamic = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/dynamic/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dynamicAnchor_1 = require_dynamicAnchor();
@@ -42782,9 +41769,9 @@ var require_dynamic = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/dependentRequired.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/dependentRequired.js
 var require_dependentRequired = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/dependentRequired.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/dependentRequired.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dependencies_1 = require_dependencies();
@@ -42799,9 +41786,9 @@ var require_dependentRequired = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependentSchemas.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependentSchemas.js
 var require_dependentSchemas = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependentSchemas.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/applicator/dependentSchemas.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dependencies_1 = require_dependencies();
@@ -42815,9 +41802,9 @@ var require_dependentSchemas = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitContains.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitContains.js
 var require_limitContains = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitContains.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/validation/limitContains.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require_util7();
@@ -42835,9 +41822,9 @@ var require_limitContains = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/next.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/next.js
 var require_next = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/next.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/next.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var dependentRequired_1 = require_dependentRequired();
@@ -42848,9 +41835,9 @@ var require_next = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedProperties.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedProperties.js
 var require_unevaluatedProperties = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedProperties.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedProperties.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -42914,9 +41901,9 @@ var require_unevaluatedProperties = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedItems.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedItems.js
 var require_unevaluatedItems = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedItems.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/unevaluatedItems.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -42958,9 +41945,9 @@ var require_unevaluatedItems = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/index.js
 var require_unevaluated = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/unevaluated/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var unevaluatedProperties_1 = require_unevaluatedProperties();
@@ -42970,9 +41957,9 @@ var require_unevaluated = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft2020.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft2020.js
 var require_draft2020 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft2020.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/vocabularies/draft2020.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var core_1 = require_core2();
@@ -42998,9 +41985,9 @@ var require_draft2020 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/schema.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/schema.json
 var require_schema = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/schema.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/schema.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/schema",
@@ -43058,9 +42045,9 @@ var require_schema = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/applicator.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/applicator.json
 var require_applicator2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/applicator.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/applicator.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/applicator",
@@ -43111,9 +42098,9 @@ var require_applicator2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/unevaluated.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/unevaluated.json
 var require_unevaluated2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/unevaluated.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/unevaluated.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/unevaluated",
@@ -43131,9 +42118,9 @@ var require_unevaluated2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/content.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/content.json
 var require_content = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/content.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/content.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/content",
@@ -43152,9 +42139,9 @@ var require_content = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/core.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/core.json
 var require_core3 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/core.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/core.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/core",
@@ -43208,9 +42195,9 @@ var require_core3 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/format-annotation.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/format-annotation.json
 var require_format_annotation = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/format-annotation.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/format-annotation.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/format-annotation",
@@ -43227,9 +42214,9 @@ var require_format_annotation = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/meta-data.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/meta-data.json
 var require_meta_data = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/meta-data.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/meta-data.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/meta-data",
@@ -43268,9 +42255,9 @@ var require_meta_data = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/validation.json
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/validation.json
 var require_validation2 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/validation.json"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/meta/validation.json"(exports2, module2) {
     module2.exports = {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "https://json-schema.org/draft/2020-12/meta/validation",
@@ -43363,9 +42350,9 @@ var require_validation2 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/index.js
 var require_json_schema_2020_12 = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/index.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/refs/json-schema-2020-12/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var metaSchema = require_schema();
@@ -43398,9 +42385,9 @@ var require_json_schema_2020_12 = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/2020.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv/dist/2020.js
 var require__ = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv/dist/2020.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv/dist/2020.js"(exports2, module2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.MissingRefError = exports2.ValidationError = exports2.CodeGen = exports2.Name = exports2.nil = exports2.stringify = exports2.str = exports2._ = exports2.KeywordCxt = exports2.Ajv2020 = void 0;
@@ -43475,9 +42462,9 @@ var require__ = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/formats.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/formats.js
 var require_formats = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/formats.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/formats.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.formatNames = exports2.fastFormats = exports2.fullFormats = void 0;
@@ -43596,23 +42583,23 @@ var require_formats = __commonJS({
       if (!(s1 && s2))
         return void 0;
       const t1 = (/* @__PURE__ */ new Date("2020-01-01T" + s1)).valueOf();
-      const t22 = (/* @__PURE__ */ new Date("2020-01-01T" + s2)).valueOf();
-      if (!(t1 && t22))
+      const t2 = (/* @__PURE__ */ new Date("2020-01-01T" + s2)).valueOf();
+      if (!(t1 && t2))
         return void 0;
-      return t1 - t22;
+      return t1 - t2;
     }
-    function compareIsoTime(t1, t22) {
-      if (!(t1 && t22))
+    function compareIsoTime(t1, t2) {
+      if (!(t1 && t2))
         return void 0;
       const a1 = TIME2.exec(t1);
-      const a2 = TIME2.exec(t22);
+      const a2 = TIME2.exec(t2);
       if (!(a1 && a2))
         return void 0;
       t1 = a1[1] + a1[2] + a1[3];
-      t22 = a2[1] + a2[2] + a2[3];
-      if (t1 > t22)
+      t2 = a2[1] + a2[2] + a2[3];
+      if (t1 > t2)
         return 1;
-      if (t1 < t22)
+      if (t1 < t2)
         return -1;
       return 0;
     }
@@ -43637,11 +42624,11 @@ var require_formats = __commonJS({
       if (!(dt1 && dt2))
         return void 0;
       const [d1, t1] = dt1.split(DATE_TIME_SEPARATOR);
-      const [d2, t22] = dt2.split(DATE_TIME_SEPARATOR);
+      const [d2, t2] = dt2.split(DATE_TIME_SEPARATOR);
       const res = compareDate(d1, d2);
       if (res === void 0)
         return void 0;
-      return res || compareTime(t1, t22);
+      return res || compareTime(t1, t2);
     }
     var NOT_URI_FRAGMENT = /\/|:/;
     var URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
@@ -43678,9 +42665,9 @@ var require_formats = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/limit.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/limit.js
 var require_limit = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/limit.js"(exports2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/limit.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.formatLimitDefinition = void 0;
@@ -43750,9 +42737,9 @@ var require_limit = __commonJS({
   }
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/index.js
+// ../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/index.js
 var require_dist = __commonJS({
-  "../../../../../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/index.js"(exports2, module2) {
+  "../../../../../../Volumes/File/cortex/node_modules/ajv-formats/dist/index.js"(exports2, module2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var formats_1 = require_formats();
@@ -43795,7 +42782,6 @@ var require_dist = __commonJS({
 // src/tui.ts
 var import_node_child_process4 = require("node:child_process");
 var import_node_path7 = require("node:path");
-var import_node_os4 = require("node:os");
 var import_pi_tui3 = require("@earendil-works/pi-tui");
 init_src();
 
@@ -43814,7 +42800,7 @@ init_src();
 var import_pi_tui = require("@earendil-works/pi-tui");
 init_src();
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla/internals.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla/internals.mjs
 var import_meta = {};
 function hasInitialValue(atom2) {
   return "init" in atom2;
@@ -44457,7 +43443,7 @@ function buildStore(...buildArgs) {
   return store;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/jotai/esm/vanilla.mjs
 var import_meta2 = {};
 var keyCount = 0;
 function atom(read, write) {
@@ -44528,7 +43514,7 @@ function actionLabel(action) {
     history: tr("\u8F93\u5165\u5386\u53F2", "Prompt history"),
     editor: tr("\u5916\u90E8\u7F16\u8F91\u5668", "External editor"),
     thinking: tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"),
-    permissions: tr("\u6743\u9650\u6A21\u5F0F", "Permissions"),
+    permissions: tr("\u5DE5\u4F5C\u65B9\u5F0F", "Work mode"),
     paste: tr("\u7C98\u8D34\u56FE\u7247", "Paste image"),
     steer: tr("\u7ACB\u5373\u63D2\u8BDD", "Send now"),
     leader: tr("\u5FEB\u6377\u64CD\u4F5C", "Quick actions")
@@ -44652,9 +43638,10 @@ var theme = {
   strikethrough: (text2) => style("9", text2),
   underline: (text2) => style("4", text2)
 };
-function brandGradient(position, text2) {
-  const [from, to] = appearanceStore.get(appearanceAtom).theme === "light" ? [[29, 144, 230], [43, 168, 78]] : [[63, 169, 245], [86, 217, 119]];
-  return style(rgbCode(from.map((value, index) => Math.round(value + (to[index] - value) * Math.min(1, Math.max(0, position))))), text2);
+function logoShade(level, text2) {
+  const name = appearanceStore.get(appearanceAtom).theme;
+  const base = name === "light" ? 242 : name === "high-contrast" ? 252 : name === "auto" ? 244 : 247;
+  return style("38;5;" + (base + level - 1), text2);
 }
 function unicodeSupported(env = process.env) {
   if (env.NO_UNICODE === "1" || env.NO_UNICODE === "true") return false;
@@ -44898,6 +43885,11 @@ var modeLabel = (mode) => ({
   auto: tr("\u6309\u9700\u786E\u8BA4", "Ask for approval"),
   plan: tr("\u8BA1\u5212", "Plan"),
   bypassPermissions: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve")
+})[mode];
+var workModeLabel = (mode) => ({
+  auto: tr("\u6309\u9700\u786E\u8BA4", "Ask"),
+  plan: tr("\u8BA1\u5212\xB7\u53EA\u8BFB", "Plan \xB7 Read-only"),
+  bypassPermissions: tr("\u81EA\u52A8\u6279\u51C6", "Auto-approve")
 })[mode];
 var modeNotice = (mode) => ({
   auto: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u6309\u9700\u786E\u8BA4\u300D\u3002", "Permissions set to Ask for approval."),
@@ -45159,28 +44151,20 @@ var cortexTitle = [
   " \\____\\___/|_| \\_\\|_| |_____/_/\\_\\"
 ];
 var cortexGlyph = [
-  " ###   ###  ####  ##### ##### #   #",
-  "#   # #   # #   #   #   #     #   #",
-  "#     #   # #   #   #   #      # # ",
-  "#     #   # ####    #   ####    #  ",
-  "#     #   # # #     #   #      # # ",
-  "#   # #   # #  #    #   #     #   #",
-  " ###   ###  #   #   #   ##### #   #"
+  "    \u2880\u28E0\u28F4\u28F6\u28FE\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28E6\u2840     \u28F0\u28FE\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u2807",
+  "  \u2880\u28F4\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28E6  \u28A0\u28FE\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u285F\u2801 ",
+  " \u28A0\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28F7\u28C4\u2818\u28BF\u28FF\u28FF\u28FF\u28FF\u287F\u280B   ",
+  "\u28A0\u28FF\u28FF\u28FF\u28FF\u28FF\u287F\u280B\u2801    \u2819\u28BF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28E6\u2840\u283B\u28FF\u28FF\u281F\u2801    ",
+  "\u28B8\u28FF\u28FF\u28FF\u28FF\u28FF\u2803        \u283B\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28C4\u2808\u2801      ",
+  "\u28B8\u28FF\u28FF\u28FF\u28FF\u28FF\u2844        \u28F4\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28F7\u2844      ",
+  "\u2818\u28FF\u28FF\u28FF\u28FF\u28FF\u28F7\u28C4\u2840    \u28E0\u28FE\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28E6\u2840    ",
+  " \u2818\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28F7\u28F6\u28FE\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u287F\u283B\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28F7\u28C4   ",
+  "  \u2808\u283B\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u281F  \u2818\u28BF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28E7\u2840 ",
+  "    \u2808\u2819\u283B\u283F\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u281F\u2801     \u2839\u28BF\u28FF\u28FF\u28FF\u28FF\u28FF\u28FF\u2846"
 ];
-var dotLogoWidth = cortexGlyph[0].length * 2;
+var dotLogoWidth = cortexGlyph[0].length;
 function dotLogo(frame, paint) {
-  const lines = [];
-  for (let y = -1; y <= cortexGlyph.length; y++) {
-    let line = "";
-    for (let x = 0; x < dotLogoWidth; x++) {
-      const lit = cortexGlyph[y]?.[x >> 1] === "#";
-      const wave = 0.5 + 0.5 * Math.sin(x * 0.16 - frame * 0.35 + y * 0.5);
-      if (lit) line += paint(x / (dotLogoWidth - 1), wave > 0.35 ? 2 : 1, "\u25CF");
-      else line += wave > 0.85 && (x + y) % 2 === 0 ? paint(x / (dotLogoWidth - 1), 0, "\xB7") : " ";
-    }
-    lines.push(line);
-  }
-  return lines;
+  return cortexGlyph.map((line, y) => [...line].map((dot, x) => dot === " " ? dot : paint(Math.sin(x * 0.16 - frame * 0.18 + y * 0.5) > 0 ? 2 : 1, dot)).join(""));
 }
 function resultEntries(result) {
   const entries = [];
@@ -45365,7 +44349,16 @@ function commandCatalog(context) {
     },
     { name: "settings", label: settings2, description: tr("\u6A21\u578B\u3001\u6743\u9650\u4E0E\u5916\u89C2", "Model, permissions and appearance"), group: settings2, shortcut: "F2" },
     { name: "keymap", label: tr("\u5FEB\u6377\u952E\u8BBE\u7F6E", "Key bindings"), description: tr("\u4FEE\u6539\u6309\u952E\uFF0C\u7ACB\u5373\u751F\u6548", "Change bindings and apply immediately"), group: settings2 },
-    { name: "plan", label: tr("\u5BA1\u9605\u8BA1\u5212", "Review plan"), description: tr("\u6279\u6CE8\u5F53\u524D\u8BA1\u5212\u6216\u67E5\u770B\u6700\u8FD1\u8BA1\u5212", "Comment on the pending plan or view the latest plan"), group: session },
+    {
+      name: "permissions",
+      label: tr("\u5DE5\u4F5C\u65B9\u5F0F", "Work mode"),
+      aliases: ["mode", "\u6743\u9650", "\u5207\u6A21\u5F0F", "\u53EA\u8BFB", "\u81EA\u52A8\u6267\u884C", "\u8BA1\u5212\u6A21\u5F0F"],
+      description: tr("\u9009\u62E9\u6267\u884C\u6216\u8BA1\u5212", "Choose execution or planning") + (context.session ? " \xB7 " + modeLabel(context.session.mode) : ""),
+      group: settings2,
+      argumentHint: "<auto|plan|bypassPermissions>",
+      getArgumentCompletions: (prefix) => choices(["auto", "plan", "bypassPermissions"], prefix)
+    },
+    { name: "plan", label: tr("\u5BA1\u9605\u5DF2\u6709\u8BA1\u5212", "Review existing plan"), description: tr("\u6279\u6CE8\u5F53\u524D\u8BA1\u5212\u6216\u67E5\u770B\u6700\u8FD1\u8BA1\u5212", "Comment on the pending plan or view the latest plan"), group: session },
     { name: "inbox", label: tr("\u5F85\u5904\u7406\u4F1A\u8BDD", "Session inbox"), description: tr("\u8DE8\u4F1A\u8BDD\u72B6\u6001\uFF0C\u5F85\u786E\u8BA4\u4F18\u5148", "Session activity, needs input first"), group: session },
     {
       name: "copy",
@@ -45380,19 +44373,11 @@ function commandCatalog(context) {
       {
         name: "model",
         label: tr("\u6A21\u578B", "Model"),
+        aliases: ["\u6362\u6A21\u578B", "\u5207\u6A21\u578B"],
         description: tr("\u5207\u6362\u6A21\u578B", "Change model") + (context.session ? tr("\uFF08\u5F53\u524D\uFF1A", " (current: ") + clean(context.session.model) + tr("\uFF09", ")") : ""),
         group: settings2,
         argumentHint: "<ID>",
         getArgumentCompletions: (prefix) => choices(context.session?.models ?? [], prefix)
-      },
-      {
-        name: "permissions",
-        label: tr("\u6743\u9650", "Permissions"),
-        description: tr("\u5207\u6362\u6743\u9650", "Change permissions") + (context.session ? tr("\uFF08\u5F53\u524D\uFF1A", " (current: ") + modeLabel(context.session.mode) + tr("\uFF09", ")") : ""),
-        group: settings2,
-        shortcut: "Shift+Tab",
-        argumentHint: "<auto|plan|bypassPermissions>",
-        getArgumentCompletions: (prefix) => choices(["auto", "plan", "bypassPermissions"], prefix)
       },
       { name: "new", label: tr("\u65B0\u5EFA\u4F1A\u8BDD", "New session"), description: tr("\u5728\u5F53\u524D\u9879\u76EE\u5F00\u59CB", "Start in the current project"), group: session },
       { name: "fork", label: tr("\u5206\u53C9\u4F1A\u8BDD", "Fork session"), description: tr("\u4ECE\u9009\u5B9A\u5386\u53F2\u5C1D\u8BD5\u53E6\u4E00\u65B9\u6848", "Try another approach from a point in history"), group: session },
@@ -45434,7 +44419,7 @@ function commandCatalog(context) {
         group: settings2,
         getArgumentCompletions: (prefix) => choices(context.session.thinking.levels, prefix)
       }],
-      ...!context.desktop && context.session?.provider ? [{ name: "config", label: tr("\u8FDE\u63A5\u8BBE\u7F6E", "Connection"), description: tr("\u7F16\u8F91\u4F9B\u5E94\u5546\u8FDE\u63A5", "Edit the provider connection"), group: settings2 }] : []
+      ...!context.desktop && context.session?.provider ? [{ name: "config", label: tr("\u8FDE\u63A5\u8BBE\u7F6E", "Connection"), aliases: ["\u8BBE\u7F6E API", "API Key", "\u4F9B\u5E94\u5546"], description: tr("\u7F16\u8F91\u4F9B\u5E94\u5546\u8FDE\u63A5", "Edit the provider connection"), group: settings2 }] : []
     ] : [],
     { name: "theme", label: tr("\u4E3B\u9898", "Theme"), description: tr("\u9884\u89C8\u4E0E\u4FDD\u5B58\u7EC8\u7AEF\u914D\u8272", "Preview and save terminal colors"), group: settings2 },
     { name: "motion", label: tr("\u52A8\u6001\u6548\u679C", "Motion"), description: tr("\u5F00\u542F\u6216\u51CF\u5C11\u52A8\u6001\u6548\u679C", "Enable or reduce motion"), group: settings2 },
@@ -45548,6 +44533,12 @@ function findFd() {
   for (const name of ["fd", "fdfind"]) if ((0, import_node_child_process.spawnSync)(name, ["--version"], { stdio: "ignore", timeout: 1e3 }).status === 0) return name;
   return null;
 }
+function fileReferencePrefix(before) {
+  const token = before.match(/(?:^|\s)(@?"[^"]*)$/)?.[1] ?? before.match(/(?:^|\s)([^\s"]+)$/)?.[1];
+  if (!token) return void 0;
+  if (token.startsWith("@") || /^"?(?:\.{1,2}[/\\]|~[/\\]|[a-z]:[/\\])/i.test(token)) return token;
+  return /^"?\/[^/\s]+\//.test(token) ? token : void 0;
+}
 var CortexAutocomplete = class extends import_pi_tui2.CombinedAutocompleteProvider {
   constructor(context, cwd, discover, sessions, fd = findFd()) {
     super([], cwd, fd);
@@ -45557,19 +44548,31 @@ var CortexAutocomplete = class extends import_pi_tui2.CombinedAutocompleteProvid
     this.fd = fd;
   }
   triggerCharacters = ["@", "/"];
+  fileMenu;
   shouldTriggerFileCompletion(lines, cursorLine, cursorCol) {
     const before = (lines[cursorLine] ?? "").slice(0, cursorCol).trimStart();
-    return commandCatalog(this.context()).some((command) => (command.getArgumentCompletions || command.name === "resume") && before.startsWith("/" + command.name + " ")) || super.shouldTriggerFileCompletion(lines, cursorLine, cursorCol);
+    return commandCatalog(this.context()).some((command) => (command.getArgumentCompletions || command.name === "resume") && [command.name, ...command.aliases ?? []].some((name) => before.startsWith("/" + name + " "))) || fileReferencePrefix(before) !== void 0;
   }
   async getSuggestions(lines, cursorLine, cursorCol, options) {
     const before = (lines[cursorLine] ?? "").slice(0, cursorCol);
-    const path = before.match(/(?:^|\s)(@(?:"[^"]*|[^\s"]*))$/)?.[1];
-    if (path && this.fd) return super.getSuggestions(lines, cursorLine, cursorCol, options);
+    const path = fileReferencePrefix(before);
+    this.fileMenu = void 0;
     if (path) {
-      const pathLines = [...lines];
-      pathLines[cursorLine] = before.slice(0, -path.length) + path.slice(1) + (lines[cursorLine] ?? "").slice(cursorCol);
-      const suggestions = await super.getSuggestions(pathLines, cursorLine, cursorCol - 1, { ...options, force: true });
-      return suggestions && { prefix: "@" + suggestions.prefix, items: suggestions.items.map((item) => ({ ...item, value: "@" + item.value })) };
+      let suggestions;
+      if (path.startsWith("@") && !this.fd) {
+        const pathLines = [...lines];
+        pathLines[cursorLine] = before.slice(0, -path.length) + path.slice(1) + (lines[cursorLine] ?? "").slice(cursorCol);
+        suggestions = await super.getSuggestions(pathLines, cursorLine, cursorCol - 1, { ...options, force: true });
+        if (suggestions) suggestions = { prefix: "@" + suggestions.prefix, items: suggestions.items.map((item) => ({ ...item, value: "@" + item.value })) };
+      } else suggestions = await super.getSuggestions(lines, cursorLine, cursorCol, { ...options, ...!path.startsWith("@") && { force: true } });
+      if (options.signal.aborted) return null;
+      const hidden = (text2) => text2.replace(/^@?"?/, "").split(/[/\\]/).some((part) => part.startsWith(".") && part !== "." && part !== "..");
+      const items = (suggestions?.items ?? []).filter((item) => hidden(path) || !hidden(item.value)).map((item) => ({
+        ...item,
+        description: item.description && item.description.replace(/[/\\]$/, "") !== item.label.replace(/[/\\]$/, "") ? item.description : /[/\\]$/.test(item.label) ? tr("\u76EE\u5F55", "Directory") : tr("\u6587\u4EF6", "File")
+      }));
+      this.fileMenu = { before, count: items.length };
+      return items.length ? { prefix: suggestions.prefix, items } : null;
     }
     const token = before.match(/(?:^|\s)(\/[^\s]*)$/)?.[1];
     const context = this.context();
@@ -45592,14 +44595,18 @@ var CortexAutocomplete = class extends import_pi_tui2.CombinedAutocompleteProvid
       );
       return filtered.length ? { items: filtered, prefix: token } : null;
     }
-    const commands = commandCatalog(context);
+    const commands = commandCatalog(context).flatMap((command) => [
+      command,
+      ...(command.aliases ?? []).filter((alias) => /^[a-z-]+$/.test(alias)).map((name) => ({ ...command, name }))
+    ]);
     const resume = commands.find((command) => command.name === "resume");
     if (resume) resume.getArgumentCompletions = async (prefix) => (await this.sessions(options.signal)).filter((session) => [session.id, session.title].some((value) => value.toLowerCase().includes(prefix.toLowerCase()))).map((session) => ({ value: session.id, label: clean(displaySessionTitle(session.title)) || session.id, description: session.id }));
     const commandArguments = commands.some((command) => before.trimStart().startsWith("/" + command.name + " "));
+    if (!commandArguments) return null;
     return new import_pi_tui2.CombinedAutocompleteProvider(commands, context.session?.cwd ?? process.cwd()).getSuggestions(lines, cursorLine, cursorCol, { ...options, ...commandArguments && { force: false } });
   }
   applyCompletion(lines, cursorLine, cursorCol, item, prefix) {
-    if (!prefix.startsWith("/")) return super.applyCompletion(lines, cursorLine, cursorCol, item, prefix);
+    if (!prefix.startsWith("/") || prefix.slice(1).includes("/")) return super.applyCompletion(lines, cursorLine, cursorCol, item, prefix);
     const line = lines[cursorLine] ?? "";
     const text2 = "/" + item.value + " ";
     const next = [...lines];
@@ -45801,14 +44808,30 @@ var UiCancelled = class extends Error {
   }
 };
 var Composer = class extends import_pi_tui3.Editor {
-  constructor(tui, commands, reserved, frame) {
+  constructor(tui, commands, reserved, frame, openCommands, fileHint) {
     super(tui, { borderColor: theme.muted, selectList: selectTheme }, { autocompleteMaxVisible: 6 });
     this.commands = commands;
     this.reserved = reserved;
     this.frame = frame;
+    this.openCommands = openCommands;
+    this.fileHint = fileHint;
   }
   /** 下一步预测：输入框空着时以灰字显示在光标后，Tab 填入（不发送），按其他键即消失 */
   prediction = "";
+  provider;
+  dismissedFiles;
+  setAutocompleteProvider(provider) {
+    this.provider = provider instanceof CortexAutocomplete ? provider : void 0;
+    super.setAutocompleteProvider(provider);
+  }
+  fileMenu() {
+    const menu = this.provider?.fileMenu, cursor = this.getCursor();
+    const before = (this.getLines()[cursor.line] ?? "").slice(0, cursor.col);
+    return menu?.before === before && this.dismissedFiles !== before ? menu : void 0;
+  }
+  isShowingAutocomplete() {
+    return super.isShowingAutocomplete() || this.fileMenu()?.count === 0;
+  }
   handleInput(data) {
     if (this.prediction) {
       const text2 = this.prediction;
@@ -45818,6 +44841,22 @@ var Composer = class extends import_pi_tui3.Editor {
         return;
       }
     }
+    if (data === "/" && !this.getText()) {
+      this.openCommands();
+      return;
+    }
+    if ((0, import_pi_tui3.matchesKey)(data, "tab") && !this.getText()) {
+      this.fileHint();
+      return;
+    }
+    const files = this.fileMenu();
+    if ((0, import_pi_tui3.matchesKey)(data, "escape") && files) {
+      this.dismissedFiles = files.before;
+      super.handleInput(data);
+      return;
+    }
+    if (files?.count === 0 && ((0, import_pi_tui3.matchesKey)(data, "enter") || (0, import_pi_tui3.matchesKey)(data, "tab"))) return;
+    this.dismissedFiles = void 0;
     if (this.isShowingAutocomplete() && (0, import_pi_tui3.matchesKey)(data, "enter")) {
       super.handleInput("	");
       const text2 = this.getText().trim();
@@ -45831,12 +44870,19 @@ var Composer = class extends import_pi_tui3.Editor {
   }
   render(width) {
     const rows = this.tui.terminal.rows;
-    this.setAutocompleteMaxVisible(Math.max(3, Math.min(8, Math.floor(rows / 3))));
+    this.setAutocompleteMaxVisible(Math.max(1, Math.min(6, Math.floor(rows / 3) - 2)));
     const inner = Math.max(1, width - 6);
     const lines = super.render(inner);
     const bottom = lines.indexOf("", 1);
     const end = bottom < 0 ? lines.length : bottom;
-    const menu = lines.slice(end + 1);
+    const rawMenu = lines.slice(end + 1);
+    const files = this.fileMenu();
+    const menu = files && (super.isShowingAutocomplete() || files.count === 0) ? boxed(
+      width,
+      theme.accent(tr("\u5F15\u7528\u6587\u4EF6 \xB7 ", "Reference file \xB7 ") + files.count + tr(" \u9879", " matches")),
+      files.count ? rawMenu.filter((line) => !/^\(\d+\/\d+\)$/.test(clean(line).trim())) : [theme.muted(tr("\u6CA1\u6709\u5339\u914D\u7684\u6587\u4EF6", "No matching files"))],
+      tr("\u2191\u2193 \u9009\u62E9  Enter \u63D2\u5165\u8DEF\u5F84  Esc \u5173\u95ED", "\u2191\u2193 select  Enter insert path  Esc close")
+    ) : rawMenu;
     const content = lines.slice(1, end);
     const available = this.tui.hasOverlay() ? 1 : Math.max(1, rows - (rows >= 12 ? 2 : 0) - 2 - menu.length - 2 - (rows >= 10 ? 1 : 0) - this.reserved());
     const cursor = Math.max(0, content.findIndex((line) => line.includes(import_pi_tui3.CURSOR_MARKER)));
@@ -45847,7 +44893,7 @@ var Composer = class extends import_pi_tui3.Editor {
       const text2 = (index ? "  " : theme.accent("\u203A ")) + (ghost && !index ? (0, import_pi_tui3.truncateToWidth)(line.trimEnd() + ghost, inner) : line);
       return theme.muted("\u2502") + " " + text2 + " ".repeat(Math.max(0, inner + 2 - (0, import_pi_tui3.visibleWidth)(text2))) + " " + theme.muted("\u2502");
     });
-    return [...menu, border(width, "\u256D\u256E", frame.topHint, frame.top), ...body, border(width, "\u2570\u256F")];
+    return [...menu, border(width, "\u256D\u256E", frame.topLeft, frame.top), ...body, border(width, "\u2570\u256F", "", frame.bottom)];
   }
   // 重排后的补全列表不复用旧鼠标坐标，键盘操作保持一致。
   handleMouse() {
@@ -45960,8 +45006,19 @@ var TerminalUI = class {
       this.syncLogo();
       this.tui.requestRender(true);
     });
-    this.editor = new Composer(this.tui, () => this.commands, () => this.renderActivity(80).length + this.renderAttachments(80).length, (width) => this.inputFrame(width));
-    this.editor.onChange = () => this.clearNotice();
+    this.editor = new Composer(
+      this.tui,
+      () => this.commands,
+      () => this.renderActivity(80).length + this.renderAttachments(80).length,
+      (width) => this.inputFrame(width),
+      () => this.launch(() => this.showCommands()),
+      () => this.notify(tr("\u8F93\u5165 @ \u67E5\u627E\u6587\u4EF6\uFF0C\u8F93\u5165 / \u6253\u5F00\u547D\u4EE4", "Type @ to find files, or / for commands"))
+    );
+    this.editor.onChange = () => {
+      if (!this.entries.length) this.entryCache = void 0;
+      this.clearNotice();
+      this.syncLogo();
+    };
     const transcript = {
       invalidate: () => {
         this.entryCache = void 0;
@@ -46351,7 +45408,7 @@ var TerminalUI = class {
   }
   /** 点阵标志只在欢迎页（还没有对话内容）播放；减少动态效果或 NO_COLOR 时静止 */
   syncLogo() {
-    const play = !this.disposed && !this.visibleEntries().length && !appearanceStore.get(appearanceAtom).reducedMotion && process.env.NO_COLOR === void 0;
+    const play = !this.disposed && !this.visibleEntries().length && !this.editor.getText() && !appearanceStore.get(appearanceAtom).reducedMotion && process.env.NO_COLOR === void 0;
     if (play && !this.logoTimer) {
       this.logoTimer = setInterval(() => {
         this.logoFrame++;
@@ -46528,7 +45585,7 @@ var TerminalUI = class {
     const left = (0, import_pi_tui3.truncateToWidth)(tasks, room);
     return [theme.muted(left) + " ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(left) - (0, import_pi_tui3.visibleWidth)(agents))) + agents];
   }
-  /** 上边框放模型与上下文；权限、运行状态和目录交给框外底栏。 */
+  /** 框边显示当前配置，框外只显示当前焦点可用的操作。 */
   inputFrame(width) {
     const percent = /(\d+)%/.exec(this.contextText)?.[1];
     const meter = percent === void 0 ? theme.muted(clean(this.contextText)) : (() => {
@@ -46537,58 +45594,65 @@ var TerminalUI = class {
       return paint((value >= 50 ? "\u2588".repeat(filled) + "\u2591".repeat(8 - filled) + " " : "") + (/容量估计|estimated/.test(this.contextText) ? "\u2248" : "") + value + "%");
     })();
     const thinking = this.context?.thinking?.levels.some((level) => level !== "off") ? this.context.thinking.value : "";
-    const model = [clean(this.context?.model ?? ""), thinking].filter(Boolean).join("  ");
-    const top = [this.contextText && !this.pending ? meter : "", model ? theme.accent(model) : ""].filter(Boolean).join(theme.muted("  "));
-    const shortMode = this.context && width < 44 ? { auto: tr("\u6309\u9700", "Ask"), plan: tr("\u8BA1\u5212", "Plan"), bypassPermissions: tr("\u81EA\u52A8", "Auto") }[this.context.mode] : void 0;
-    const mode = this.context ? this.context.mode === "bypassPermissions" ? theme.warning("\u25B2 " + (shortMode ?? modeLabel("bypassPermissions"))) : theme.muted(shortMode ?? modeLabel(this.context.mode)) : "";
-    const [status = "", ...queue] = clean(this.state).trim().split(/\s{2,}/);
-    const state = [status, ...queue].join("  ");
+    const model = clean(this.context?.model ?? "");
+    const top = this.contextText && !this.pending ? meter : "";
+    const modeName = this.context ? workModeLabel(this.context.mode) : "";
+    const mode = this.context?.mode === "bypassPermissions" ? theme.warning("\u25B2 " + modeName) : this.context?.mode === "plan" ? theme.accent(modeName) : modeName;
+    const room = Math.max(0, width - 6);
+    const parts = [(0, import_pi_tui3.truncateToWidth)(mode, room)];
+    if (thinking && width >= 60 && (0, import_pi_tui3.visibleWidth)(thinking + " \xB7 " + mode) <= room) parts.unshift(theme.muted(thinking));
+    const modelRoom = room - (0, import_pi_tui3.visibleWidth)(parts.join(" \xB7 ")) - 3;
+    if (model && width >= 60 && modelRoom >= 12) parts.unshift(theme.muted((0, import_pi_tui3.truncateToWidth)(model, modelRoom)));
+    const bottom = parts.filter(Boolean).join(theme.muted(" \xB7 "));
+    const state = clean(this.state).trim();
+    const metrics = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
     const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
-    const home = (0, import_node_os4.homedir)(), cwd = clean(this.context?.cwd ?? "");
-    const project = cwd === home || cwd.startsWith(home + "/") ? "~" + cwd.slice(home.length) : cwd;
+    const cwd = clean(this.context?.cwd ?? "");
     const branch = clean(this.context?.branch ?? "");
-    const right = width >= 60 && project ? theme.muted(project + (branch ? " (" + branch + ")" : "")) : "";
-    const running = () => {
-      const metrics = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
-      const summary = metrics.length > 1 ? metrics[0] : "", elapsed = metrics.at(-1) ?? "";
-      const waiting = tool?.tool === "WaitAgentUpdates" && !!summary;
-      const indicator = clean(this.indicator()).trim();
-      const segments = [
-        { text: waiting ? summary : status, drop: 0 },
-        { text: elapsed, drop: 10 },
-        { text: tr("Esc \u505C\u6B62", "Esc stop"), drop: 0 },
-        ...queue.map((text2, index) => ({ text: text2, drop: 1 + index }))
-      ].filter((segment) => segment.text);
-      const used = () => segments.reduce((sum, segment) => sum + (0, import_pi_tui3.visibleWidth)(segment.text) + 3, -3);
-      const full = width - 6 - (mode ? (0, import_pi_tui3.visibleWidth)(mode) + 2 : 0) - (0, import_pi_tui3.visibleWidth)(indicator) - 1;
-      const room = used() <= full - (right ? (0, import_pi_tui3.visibleWidth)(right) + 2 : 0) ? full - (right ? (0, import_pi_tui3.visibleWidth)(right) + 2 : 0) : full;
-      while (used() > room && segments.some((segment) => segment.drop)) {
-        const next = segments.reduce((best, segment) => segment.drop > best.drop ? segment : best);
-        segments.splice(segments.indexOf(next), 1);
-      }
-      if (used() > room && segments[0]) segments[0].text = (0, import_pi_tui3.truncateToWidth)(segments[0].text, Math.max(0, (0, import_pi_tui3.visibleWidth)(segments[0].text) - (used() - room)));
-      return theme.accent(indicator) + " " + theme.muted(segments.map((segment) => segment.text).join(" \u2502 "));
-    };
-    const detail = this.pending ? "" : this.commands.interaction ? theme.warning(width >= 70 ? tr("/pending \u786E\u8BA4 \u2502 Ctrl+C \u505C\u6B62", "/pending review \u2502 Ctrl+C stop") : "/pending \u2502 ^C") : this.editor.prediction && !this.editor.getText() ? theme.muted(tr("Tab \u63A5\u53D7\u9884\u6D4B", "Tab accept")) + theme.muted("  Beta") : this.editor.isShowingAutocomplete() ? theme.muted(tr("\u2191\u2193 \u9009\u62E9  Enter \u786E\u8BA4  Tab \u8865\u5168  Esc \u5173\u95ED", "\u2191\u2193 select  Enter confirm  Tab complete  Esc close")) : this.notice && !this.active ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
+    const project = [(0, import_node_path7.basename)(cwd) || cwd, branch].filter(Boolean).join(" \xB7 ");
+    const waiting = tool?.tool === "WaitAgentUpdates" && metrics.length > 1;
+    const running = [waiting ? metrics[0] : state, metrics.at(-1)].filter(Boolean).join(" \xB7 ");
+    const notice = this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
       { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
-    ) : this.active ? running() : !this.context ? theme.muted(state + "  " + tr("Ctrl+D \u9000\u51FA", "Ctrl+D quit")) : this.idle ? theme.muted(this.shortcut("commands") + tr(" \u547D\u4EE4", " commands")) : theme.muted(state);
-    const left = [mode, detail].filter(Boolean).join(theme.muted(" \u2502 "));
-    const steer = keyFor("steer", appearanceStore.get(appearanceAtom).keys);
-    const topHint = this.active && this.editor.getText().trim() && !this.pending && !this.commands.interaction ? theme.muted(tr("Enter \u6392\u961F", "Enter queue") + (steer ? " \xB7 " + keyLabel(steer) + tr(" \u63D2\u8BDD", " send now") : "")) : void 0;
-    return { top, topHint, left, right };
+    ) : "";
+    const heading = this.active ? theme.accent(this.indicator()) + " " + theme.muted(running) : notice || theme.muted(!this.context || !this.idle ? state : project);
+    const topLeft = (0, import_pi_tui3.truncateToWidth)(heading, Math.max(0, width - 8 - (0, import_pi_tui3.visibleWidth)(top)));
+    const hint = (key, label) => theme.bold(key) + theme.muted(" " + label);
+    const empty = !this.editor.getText();
+    const commandKey = keyFor("commands", appearanceStore.get(appearanceAtom).keys) ? this.shortcut("commands") : empty ? "/" : "";
+    const modeKey = keyFor("permissions", appearanceStore.get(appearanceAtom).keys) ? this.shortcut("permissions") : empty ? "/mode" : "";
+    const commands = commandKey ? [{ text: hint(commandKey, tr("\u547D\u4EE4", "commands")), drop: this.active ? 1 : 0 }] : [];
+    const actions = [];
+    if (!this.pending && !this.editor.isShowingAutocomplete()) {
+      if (!this.context) actions.push({ text: hint("Ctrl+D", tr("\u9000\u51FA", "quit")), drop: 0 });
+      else if (this.commands.interaction) actions.push({ text: hint("/pending", tr("\u786E\u8BA4", "review")), drop: 0 }, { text: hint("Ctrl+C", tr("\u505C\u6B62", "stop")), drop: 0 });
+      else if (this.active) {
+        actions.push({ text: hint("Esc", tr("\u505C\u6B62", "stop")), drop: 0 });
+        if (this.editor.getText().trim() || this.attachments.length) actions.push({ text: hint("Enter", tr("\u6392\u961F", "queue")), drop: 3 });
+        actions.push(...commands);
+      } else if (this.editor.prediction && empty) actions.push({ text: hint("Tab", tr("\u63A5\u53D7\u9884\u6D4B", "accept")), drop: 0 }, ...commands);
+      else if (this.idle) actions.push(
+        ...modeKey ? [{ text: hint(modeKey, tr("\u6A21\u5F0F", "mode")), drop: 2 }] : [],
+        ...empty ? [{ text: hint("/model", tr("\u6A21\u578B", "model")), drop: 3 }] : [],
+        ...commands
+      );
+      else actions.push(...commands);
+    }
+    const joined = () => actions.map((action) => action.text).join(theme.muted(" \u2502 "));
+    while ((0, import_pi_tui3.visibleWidth)(joined()) > width - 2 && actions.length > 1) {
+      const remove = actions.reduce((best, action) => action.drop > best.drop ? action : best);
+      actions.splice(actions.indexOf(remove), 1);
+    }
+    return { top, topLeft, bottom, hints: (0, import_pi_tui3.truncateToWidth)(joined(), Math.max(0, width - 2)) };
   }
   renderAttachments(width) {
     if (this.pending || this.tui.hasOverlay()) return [];
     const label = this.attachments.length ? this.attachments.length + tr(" \u9644\u4EF6  ", " " + plural(this.attachments.length, "attachment") + "  ") + this.attachments.map((file) => file.filename).join(", ") : "";
     return label ? [theme.muted((0, import_pi_tui3.truncateToWidth)(clean(label), width))] : [];
   }
-  /** 框外独立状态行；权限、状态、操作按组分隔，目录仅在完整放得下时显示。 */
+  /** 一行快捷操作；菜单与补全使用各自的按键提示。 */
   renderFooter(width) {
-    const { left, right } = this.inputFrame(width);
-    const room = Math.max(0, width - 2);
-    const shown = (0, import_pi_tui3.truncateToWidth)(left, room);
-    const tail = right && (0, import_pi_tui3.visibleWidth)(shown) + (0, import_pi_tui3.visibleWidth)(right) + 3 <= room ? right : "";
-    return [" " + shown + (tail ? " ".repeat(room - (0, import_pi_tui3.visibleWidth)(shown) - (0, import_pi_tui3.visibleWidth)(tail)) + tail : "")];
+    return [" " + this.inputFrame(width).hints];
   }
   launch(run) {
     void run().catch((error) => {
@@ -46634,7 +45698,7 @@ var TerminalUI = class {
       [tr("\u547D\u4EE4\u4E0E\u8BBE\u7F6E", "Commands and settings"), [
         ["Ctrl+P", tr("\u547D\u4EE4\u4E0E Skills", "Commands and Skills")],
         ["Ctrl+S", tr("\u601D\u8003\u5F3A\u5EA6\u62E8\u76D8", "Thinking dial")],
-        ["Shift+Tab", tr("\u5207\u6362\u6743\u9650\u6A21\u5F0F", "Cycle permissions")],
+        ["Shift+Tab", tr("\u9009\u62E9\u5DE5\u4F5C\u65B9\u5F0F", "Choose work mode")],
         ["F2", tr("\u8BBE\u7F6E", "Settings")]
       ]],
       [tr("\u4EE3\u7406\u4E0E\u9644\u4EF6", "Agents and attachments"), [
@@ -46671,21 +45735,38 @@ var TerminalUI = class {
     });
   }
   async showCommands() {
-    await this.wait(tr("\u8BFB\u53D6\u547D\u4EE4\u4E0E Skills", "Reading commands and Skills"), (signal) => this.onDiscover(signal));
-    const command = await this.select(tr("\u547D\u4EE4\u4E0E Skills", "Commands and Skills"), [
-      ...commandCatalog(this.commands).map((item) => ({
+    const context = this.commands;
+    const available = new Set(commandCatalog(context).map((item) => item.name));
+    const commands = commandCatalog({ ...context, busy: false });
+    const common = ["permissions", "model", "config", "resume"];
+    commands.sort((a, b) => {
+      const rank = (name) => common.includes(name) ? common.indexOf(name) : common.length;
+      return rank(a.name) - rank(b.name);
+    });
+    const skills = () => (this.commands.session?.skills ?? []).map((skill) => ({
+      value: "/skill:" + skill.id,
+      group: "Skill",
+      label: skill.id,
+      description: clean(skill.name + (skill.description ? " \u2014 " + skill.description : "")).replace(/\s+/g, " ")
+    }));
+    const command = await this.select(tr("\u547D\u4EE4\u4E0E\u64CD\u4F5C", "Commands and actions"), [
+      ...commands.map((item) => ({
         value: "/" + item.name,
         group: item.group,
         label: item.label,
-        description: item.shortcut ?? "/" + item.name
+        muted: !available.has(item.name),
+        searchText: [item.name, item.description, ...item.aliases ?? []].join(" "),
+        description: available.has(item.name) ? item.shortcut ?? "/" + item.name : context.busyReason ?? tr("\u5F53\u524D\u6682\u4E0D\u53EF\u7528", "Currently unavailable")
       })),
-      ...(this.commands.session?.skills ?? []).map((skill) => ({
-        value: "/skill:" + skill.id,
-        group: "Skill",
-        label: skill.id,
-        description: clean(skill.name + (skill.description ? " \u2014 " + skill.description : "")).replace(/\s+/g, " ")
-      }))
-    ], { hint: tr("\u2191\u2193 \u9009\u62E9  Enter \u6253\u5F00  Esc \u8FD4\u56DE", "\u2191\u2193 select  Enter open  Esc back") });
+      ...skills()
+    ], {
+      hint: tr("\u8F93\u5165\u7528\u9014\u641C\u7D22  \u2191\u2193 \u9009\u62E9  Enter \u6253\u5F00  Esc \u8FD4\u56DE", "Search by action  \u2191\u2193 select  Enter open  Esc back"),
+      disabled: (value) => !value.startsWith("/skill:") && !commandCatalog(this.commands).some((item) => "/" + item.name === value) ? this.commands.busyReason ?? tr("\u5F53\u524D\u6682\u4E0D\u53EF\u7528", "Currently unavailable") : void 0,
+      loadItems: async (signal) => {
+        await this.onDiscover(signal);
+        return skills();
+      }
+    });
     if (command.startsWith("/skill:")) {
       this.editor.insertTextAtCursor(command + " ");
       this.tui.requestRender();
@@ -46798,24 +45879,28 @@ var TerminalUI = class {
       const clipped = (0, import_pi_tui3.truncateToWidth)(text2, width);
       return " ".repeat(Math.max(0, Math.floor((width - (0, import_pi_tui3.visibleWidth)(clipped)) / 2))) + clipped;
     };
-    if (!this.visibleEntries().length) {
+    if (!this.visibleEntries().length && !this.editor.getText()) {
       const greeting = [
-        theme.accent(theme.bold(tr("\u6B22\u8FCE\u4F7F\u7528 Cortex", "Welcome to Cortex"))),
-        theme.bold(this.shortcut("commands")) + theme.muted(tr(" \u547D\u4EE4  ", " commands  ")) + theme.bold("?") + theme.muted(tr(" \u5FEB\u6377\u952E", " shortcuts"))
+        theme.bold("Cortex"),
+        theme.accent(tr("\u63CF\u8FF0\u4EFB\u52A1\uFF0C\u6309 Enter \u5F00\u59CB", "Describe a task and press Enter")),
+        theme.muted(tr("\u4F8B\u5982\uFF1A\u89E3\u91CA\u8FD9\u4E2A\u9879\u76EE\u600E\u4E48\u542F\u52A8", "Try: Explain how to run this project")),
+        theme.bold("/") + theme.muted(tr(" \u547D\u4EE4  ", " commands  ")) + theme.bold("@") + theme.muted(tr(" \u5F15\u7528\u6587\u4EF6", " reference files"))
       ];
       const greetingWidth = Math.max(...greeting.map((line) => (0, import_pi_tui3.visibleWidth)(line)));
       const welcome = [];
       if (this.unicode && this.terminal.rows >= 24 && width >= dotLogoWidth + 4) {
-        const logo = dotLogo(this.logoFrame, (position, level, text2) => level === 2 ? brandGradient(position, text2) : theme.dim(brandGradient(position, text2)));
+        const logo = dotLogo(this.logoFrame, logoShade);
         if (width >= dotLogoWidth + greetingWidth + 8) {
           const pad = " ".repeat(Math.max(0, Math.floor((width - dotLogoWidth - greetingWidth - 6) / 2)));
-          welcome.push(...logo.map((line, row) => pad + line + (row === 3 || row === 4 ? "      " + greeting[row - 3] : "")));
+          const greetingStart = Math.floor((logo.length - greeting.length) / 2);
+          welcome.push(...logo.map((line, row) => pad + line + (greeting[row - greetingStart] ? "      " + greeting[row - greetingStart] : "")));
         } else welcome.push(...logo.map(center), "", ...greeting.map(center));
-      } else welcome.push(...(width >= 38 && this.terminal.rows >= 18 ? cortexTitle : ["CORTEX"]).map((line) => center(theme.accent(theme.bold(line)))), "", ...greeting.map(center));
+      } else welcome.push(...(width >= 38 && this.terminal.rows >= 18 ? cortexTitle : ["CORTEX"]).map((line) => center(theme.accent(theme.bold(line)))), "", ...greeting.slice(1).map(center));
       lines.push(...Array(Math.max(0, Math.floor((this.terminal.rows - 3 - welcome.length) / 2))).fill(""), ...welcome);
     }
-    lines.push("");
+    if (lines.length) lines.push("");
     const groups = transcriptGroups(this.collapsedEntries());
+    let assistantShown = false;
     const agentHead = (entry) => clean(entry.text).split(/\s{2,}/)[0];
     const agentWidths = /* @__PURE__ */ new Map();
     for (const entry of groups.flat()) if (entry.agentName) {
@@ -46827,7 +45912,7 @@ var TerminalUI = class {
         const label = turnLabel(turn.steps ?? [], { added: theme.success, removed: theme.error });
         clickable(turn.id);
         lines.push((0, import_pi_tui3.truncateToWidth)(
-          theme.muted("  " + (open ? "\u25BE " : "\u25B8 ")) + theme.muted(label),
+          theme.muted(open ? "\u25BE " : "\u25B8 ") + theme.muted(label),
           width
         ), "");
         continue;
@@ -46835,7 +45920,8 @@ var TerminalUI = class {
       if (group[0].kind === "divider") {
         const end = group[0], paint = end.turnStatus === "completed" ? theme.muted : end.turnStatus === "cancelled" ? theme.warning : theme.error;
         const label = (0, import_pi_tui3.truncateToWidth)(clean(end.text), width);
-        lines.push(" ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(label))) + paint(label), "", "");
+        while (lines.at(-1) === "") lines.pop();
+        lines.push(" ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(label))) + paint(label), "");
         continue;
       }
       const grouped = group.length > 1;
@@ -46846,10 +45932,10 @@ var TerminalUI = class {
         const color2 = reason ? group[0].status === "denied" ? theme.warning : theme.error : theme.muted;
         const owner = group[0].agentId ? this.agents.find((agent) => agent.id === group[0].agentId)?.name : void 0;
         clickable(id);
-        lines.push((0, import_pi_tui3.truncateToWidth)(color2(theme.bold("  " + (open ? "\u25BE " : "\u25B8 ") + clean(toolGroupLabel(group)) + (owner ? "  @" + clean(owner) : ""))), width));
+        lines.push((0, import_pi_tui3.truncateToWidth)(color2((open ? "\u25BE " : "\u25B8 ") + clean(toolGroupLabel(group)) + (owner ? "  @" + clean(owner) : "")), width));
         if (!open) {
-          if (reason) lines.push((0, import_pi_tui3.truncateToWidth)("    " + color2(clean(reason).split("\n")[0]), width));
-          lines.push("");
+          if (reason) lines.push((0, import_pi_tui3.truncateToWidth)("  " + color2(clean(reason).split("\n")[0]), width));
+          if (groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
           continue;
         }
       }
@@ -46865,30 +45951,43 @@ var TerminalUI = class {
         }
         if (entry.kind === "assistant") {
           if (text2) {
-            if (groups[groupIndex - 1]?.at(-1)?.kind !== "assistant") lines.push(theme.accent(theme.bold("\u25CF Cortex")));
+            if (!assistantShown) lines.push(theme.accent(theme.bold("\u25CF Cortex")));
+            assistantShown = true;
             const rewritten = rewriteMentionLinks(text2, this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks);
             lines.push(...new import_pi_tui3.Markdown(rewritten, 0, 0, markdownTheme).render(Math.max(1, width - 2)).map((line) => "  " + line), "");
           }
           continue;
         }
         if (entry.kind === "user") {
-          lines.push(...new import_pi_tui3.Text(text2, 0, 0).render(Math.max(1, width - 4)).map((line, index) => theme.success("\u258E") + " " + (index ? "  " : theme.success("\u203A ")) + line), "");
+          assistantShown = false;
+          lines.push(...new import_pi_tui3.Text(text2, 0, 0).render(Math.max(1, width - 2)).map((line, index) => (index ? "  " : theme.success("\u203A ")) + line), "");
           continue;
         }
         if (entry.kind === "tool") {
           const failed = ["failed", "denied", "unknown"].includes(entry.status ?? "");
           const open = this.isOpen(entry.id);
           const showing = open || entry.status === "running";
-          const indent = grouped ? "    " : "  ";
+          const indent = grouped ? "  " : "";
           const marker = text2.split(" ")[0];
+          const status = entry.status === "denied" ? tr("\u672A\u6267\u884C", "Not executed") : entry.status === "failed" ? tr("\u5931\u8D25", "Failed") : entry.status === "unknown" ? tr("\u7ED3\u679C\u5F85\u6838\u5BF9", "Check result") : entry.status === "cancelled" ? tr("\u5DF2\u505C\u6B62", "Stopped") : marker;
           const color3 = entry.status === "denied" ? theme.warning : failed ? theme.error : entry.status === "completed" ? theme.success : entry.status === "cancelled" ? theme.muted : theme.accent;
           const owner = !grouped && entry.agentId ? this.agents.find((agent) => agent.id === entry.agentId)?.name : void 0;
-          const heading = indent + (open ? "\u25BE " : "\u25B8 ") + color3(theme.bold(marker)) + " " + theme.bold(text2.slice(marker.length).trimStart()) + (owner ? "  @" + clean(owner) : "") + (!open && entry.exitCode !== void 0 && entry.exitCode !== 0 ? "  " + tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : "");
+          const label = entry.tool ? theme.bold(clean(entry.tool)) + (entry.summary ? "  " + clean(entry.summary) : "") : text2.slice(marker.length).trimStart();
+          const prefix = indent + (open ? "\u25BE " : "\u25B8 ");
+          const exit = !open && entry.exitCode !== void 0 && entry.exitCode !== 0 ? tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : "";
+          const inlineExit = !!exit && (0, import_pi_tui3.visibleWidth)(status + "  " + exit) + Math.min(8, (0, import_pi_tui3.visibleWidth)(label)) <= width - (0, import_pi_tui3.visibleWidth)(prefix) - 2;
+          const tail = (0, import_pi_tui3.truncateToWidth)(color3(status) + (inlineExit ? "  " + exit : ""), Math.max(0, width - (0, import_pi_tui3.visibleWidth)(prefix) - 2));
+          const heading = prefix + (0, import_pi_tui3.truncateToWidth)(
+            label + (owner ? "  @" + clean(owner) : ""),
+            Math.max(0, width - (0, import_pi_tui3.visibleWidth)(prefix) - (0, import_pi_tui3.visibleWidth)(tail) - 2)
+          ) + "  " + tail;
           clickable(entry.id);
           lines.push((0, import_pi_tui3.truncateToWidth)(heading, width));
+          if (exit && !inlineExit) lines.push((0, import_pi_tui3.truncateToWidth)(indent + "  " + color3(exit), width));
           if (!showing) {
-            if (failed) lines.push((0, import_pi_tui3.truncateToWidth)(indent + "  " + color3(clean(toolFailure(entry)).split("\n")[0]), width));
-            if (!grouped) lines.push("");
+            const reason = clean(toolFailure(entry)).split("\n")[0];
+            if (failed && reason) lines.push((0, import_pi_tui3.truncateToWidth)(indent + "  " + color3(reason), width));
+            if (!grouped && groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
             continue;
           }
           const inner = Math.max(1, width - (0, import_pi_tui3.visibleWidth)(indent) - 4);
@@ -46909,14 +46008,14 @@ var TerminalUI = class {
             lines.push(...new import_pi_tui3.Text(theme.error(clean(entry.detail)), 0, 0).render(inner).slice(0, 3).map((line) => indent + theme.muted("  \u2502 ") + line));
           }
           const metadata = [
-            entry.elapsedMs !== void 0 ? formatDuration(entry.elapsedMs) : "",
-            typeof entry.input?.timeout === "number" ? "timeout " + formatDuration(entry.input.timeout * 1e3) : "",
-            entry.permission && entry.output?.includes(entry.permission) ? "" : entry.permission,
+            open && entry.elapsedMs !== void 0 ? formatDuration(entry.elapsedMs) : "",
+            open && typeof entry.input?.timeout === "number" ? "timeout " + formatDuration(entry.input.timeout * 1e3) : "",
+            !open && !failed || entry.permission && entry.output?.includes(entry.permission) ? "" : entry.permission,
             entry.concurrent ? tr("\u672C\u8F6E\u6709\u5E76\u884C\u547D\u4EE4", "Concurrent commands in this run") : "",
             entry.exitCode !== void 0 && entry.exitCode !== 0 ? tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : ""
           ].filter(Boolean).join("  ");
           if (metadata) lines.push((0, import_pi_tui3.truncateToWidth)(indent + theme.muted("  \u2514 " + clean(metadata)), width));
-          if (!grouped) lines.push("");
+          if (!grouped && groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
           continue;
         }
         if (entry.agentName) {
@@ -46946,7 +46045,7 @@ var TerminalUI = class {
         }
         lines.push("");
       }
-      if (grouped) lines.push("");
+      if (grouped && groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
     }
     this.entryCache = { width, rows: this.terminal.rows, entries: this.entries, appearance, live: this.liveRunId, lines };
     this.entryTargets = targets;
@@ -46980,19 +46079,20 @@ var TerminalUI = class {
   }
   /** muted：净化后再淡化显示；hidden：只在输入搜索词后出现，放在列表末尾；key：标签前的快捷键字母；group：标签前右对齐的淡色分组列 */
   select(title, items, options = {}) {
-    const groupWidth = Math.max(0, ...items.map((item) => item.group ? (0, import_pi_tui3.visibleWidth)(clean(item.group)) : 0));
-    const tailColumn = Math.max(0, ...items.map((item) => item.tail ? (0, import_pi_tui3.visibleWidth)(clean(item.label || item.value)) : 0));
+    let groupWidth = Math.max(0, ...items.map((item) => item.group ? (0, import_pi_tui3.visibleWidth)(clean(item.group)) : 0));
+    let tailColumn = Math.max(0, ...items.map((item) => item.tail ? (0, import_pi_tui3.visibleWidth)(clean(item.label || item.value)) : 0));
     const compose = (item, text2, query = "") => {
       const at = query ? text2.toLowerCase().indexOf(query) : -1;
       const shown2 = at < 0 ? text2 : text2.slice(0, at) + theme.warning(text2.slice(at, at + query.length)) + text2.slice(at + query.length);
       const group = groupWidth ? theme.muted(" ".repeat(groupWidth - (0, import_pi_tui3.visibleWidth)(clean(item.group ?? ""))) + clean(item.group ?? "")) + "  " : "";
       return group + (item.key ? theme.accent(clean(item.key)) + "  " : "") + (item.muted ? theme.muted(shown2) : shown2) + (item.tail ? " ".repeat(Math.max(0, tailColumn - (0, import_pi_tui3.visibleWidth)(text2)) + 2) + item.tail : "");
     };
-    const safeItems = items.map((item) => {
+    const prepare = () => items.map((item) => {
       const text2 = clean(item.label || item.value) || tr("\u672A\u547D\u540D\u9009\u9879", "Untitled option");
       return { ...item, text: text2, label: compose(item, text2), description: item.description ? clean(item.description) : void 0 };
     });
-    const shown = safeItems.filter((item) => !item.hidden);
+    let safeItems = prepare();
+    let shown = safeItems.filter((item) => !item.hidden);
     const openedAt = Date.now();
     let list = new import_pi_tui3.SelectList(shown, 6, selectTheme);
     let filtered = shown;
@@ -47006,7 +46106,7 @@ var TerminalUI = class {
     const filterItems = () => {
       const selected = list.getSelectedItem()?.value;
       const search = clean(input.getValue()).toLowerCase();
-      filtered = (search ? safeItems : shown).filter((item) => [item.value, item.text, item.group, item.description].some((text2) => text2?.toLowerCase().includes(search))).map((item) => ({ ...item, label: compose(item, item.text, search) }));
+      filtered = (search ? safeItems : shown).filter((item) => [item.value, item.text, item.group, item.description, item.searchText].some((text2) => text2?.toLowerCase().includes(search))).map((item) => ({ ...item, label: compose(item, item.text, search) }));
       const next = new import_pi_tui3.SelectList(filtered, visible, selectTheme);
       next.setSelectedIndex(Math.max(0, filtered.findIndex((item) => item.value === selected)));
       next.onSelect = list.onSelect;
@@ -47014,8 +46114,8 @@ var TerminalUI = class {
       next.onSelectionChange = (item) => options.onHighlight?.(item.value);
       list = next;
       descriptionOffset = 0;
-      const current3 = list.getSelectedItem();
-      if (current3) options.onHighlight?.(current3.value);
+      const current2 = list.getSelectedItem();
+      if (current2) options.onHighlight?.(current2.value);
       this.tui.requestRender();
     };
     const component = {
@@ -47099,10 +46199,31 @@ var TerminalUI = class {
         }
       }
     };
-    return this.form(component, (resolve7, reject) => {
-      list.onSelect = (item) => resolve7(item.value);
+    const controller = new AbortController();
+    const result = this.form(component, (resolve7, reject) => {
+      list.onSelect = (item) => {
+        const reason = options.disabled?.(item.value);
+        if (reason) {
+          this.notify(reason, "warning");
+          return;
+        }
+        resolve7(item.value);
+      };
       list.onCancel = () => reject(new UiCancelled());
     });
+    if (options.loadItems) void options.loadItems(controller.signal).then((extra) => {
+      if (controller.signal.aborted) return;
+      const values = new Set(items.map((item) => item.value));
+      items = [...items, ...extra.filter((item) => !values.has(item.value))];
+      groupWidth = Math.max(0, ...items.map((item) => item.group ? (0, import_pi_tui3.visibleWidth)(clean(item.group)) : 0));
+      tailColumn = Math.max(0, ...items.map((item) => item.tail ? (0, import_pi_tui3.visibleWidth)(clean(item.label || item.value)) : 0));
+      safeItems = prepare();
+      shown = safeItems.filter((item) => !item.hidden);
+      filterItems();
+    }).catch((error) => {
+      if (!controller.signal.aborted) this.notify(clean(error instanceof Error ? error.message : String(error)), "warning");
+    });
+    return result.finally(() => controller.abort());
   }
   /** 详情只在独立浏览区滚动，底部操作不随长文本消失。 */
   /**
@@ -47439,9 +46560,9 @@ function providerLabel(id) {
   };
   return labels[id] ?? PROVIDER_LABELS[id];
 }
-function savedConnections(settings2, current3) {
+function savedConnections(settings2, current2) {
   if (!settings2) return [];
-  const seen = /* @__PURE__ */ new Set([current3.provider + ":" + current3.baseUrl]);
+  const seen = /* @__PURE__ */ new Set([current2.provider + ":" + current2.baseUrl]);
   return [settings2.provider + ":" + settings2.baseUrl, ...Object.keys(settings2.credentials ?? {})].flatMap((key) => {
     if (seen.has(key)) return [];
     seen.add(key);
@@ -47453,7 +46574,7 @@ function savedConnections(settings2, current3) {
     return [{ provider, baseUrl, label: providerLabel(provider) + host + model }];
   });
 }
-async function chooseModel(ui, load2, current3 = "", saveScope, heading, extra = []) {
+async function chooseModel(ui, load2, current2 = "", saveScope, heading, extra = []) {
   while (true) {
     let models = [];
     let error = "";
@@ -47463,19 +46584,19 @@ async function chooseModel(ui, load2, current3 = "", saveScope, heading, extra =
       if (reason instanceof UiCancelled) throw reason;
       error = errorSummary(reason.message);
     }
-    const available = [.../* @__PURE__ */ new Set([...current3 ? [current3] : [], ...models])];
+    const available = [.../* @__PURE__ */ new Set([...current2 ? [current2] : [], ...models])];
     let scope = "default";
     const selection = await ui.select(
       tr("\u9009\u62E9\u6A21\u578B", "Select model"),
       [
-        ...available.map((id, index) => ({ value: id, label: id + (id === current3 ? " \u2713" : ""), ...heading && { group: index ? "" : heading } })),
+        ...available.map((id, index) => ({ value: id, label: id + (id === current2 ? " \u2713" : ""), ...heading && { group: index ? "" : heading } })),
         { value: ":manual", label: tr("\u624B\u52A8\u8F93\u5165\u6A21\u578B ID", "Enter model ID") },
         { value: ":retry", label: tr("\u91CD\u65B0\u83B7\u53D6\u5217\u8868", "Reload models") },
         ...extra
       ],
       {
-        initial: current3 || void 0,
-        description: error || (models.length ? current3 ? tr("\u5F53\u524D\u6A21\u578B\uFF1A", "Current model: ") + current3 : "" : tr("\u4F9B\u5E94\u5546\u672A\u8FD4\u56DE\u53EF\u9009\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u3002", "No models returned; enter a model ID.")),
+        initial: current2 || void 0,
+        description: error || (models.length ? current2 ? tr("\u5F53\u524D\u6A21\u578B\uFF1A", "Current model: ") + current2 : "" : tr("\u4F9B\u5E94\u5546\u672A\u8FD4\u56DE\u53EF\u9009\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u3002", "No models returned; enter a model ID.")),
         ...saveScope ? {
           search: "toggle",
           hint: tr("Enter \u9ED8\u8BA4  s \u672C\u6B21  / \u641C\u7D22  Esc \u8FD4\u56DE", "Enter default  s session  / search  Esc back"),
@@ -47490,7 +46611,7 @@ async function chooseModel(ui, load2, current3 = "", saveScope, heading, extra =
     );
     if (selection === ":retry") continue;
     if (extra.some((item) => item.value === selection)) return selection;
-    const model = selection === ":manual" ? await ui.ask(tr("\u6A21\u578B ID", "Model ID"), { value: current3, validate: (model2) => {
+    const model = selection === ":manual" ? await ui.ask(tr("\u6A21\u578B ID", "Model ID"), { value: current2, validate: (model2) => {
       if (!model2 || model2.length > 256 || /[\s\x00-\x1f\x7f-\x9f]/.test(model2)) throw new Error(tr("\u8BF7\u8F93\u5165\u4E0D\u542B\u7A7A\u767D\u7684\u6A21\u578B ID", "Enter a model ID without spaces"));
     } }) : selection;
     saveScope?.(scope);
@@ -47503,7 +46624,11 @@ async function editConnection(ui, initial, actions, keyEnv, hasKey = !!initial?.
   const provider = async () => {
     const selected = await ui.select(
       tr("\u9009\u62E9\u4F9B\u5E94\u5546", "Select provider"),
-      Object.keys(PROVIDER_LABELS).map((id) => ({ value: id, label: providerLabel(id) })),
+      Object.keys(PROVIDER_LABELS).map((id) => ({
+        value: id,
+        label: providerLabel(id),
+        group: id === "custom" ? tr("\u81EA\u5B9A\u4E49", "Custom") : ["flock", "openrouter"].includes(id) ? tr("\u805A\u5408\u5E73\u53F0", "Platforms") : tr("\u539F\u5382 API", "Direct API")
+      })),
       { initial: draft.provider }
     );
     if (selected !== draft.provider) {
@@ -47639,7 +46764,7 @@ init_src();
 
 // ../electron/src/main/runtime/profile.ts
 var import_node_fs14 = require("node:fs");
-var import_node_os6 = require("node:os");
+var import_node_os5 = require("node:os");
 var import_node_path11 = require("node:path");
 init_src();
 init_file_lock();
@@ -47656,7 +46781,7 @@ function contains(parent, path) {
 function openProfile(input) {
   const directory = canonical((0, import_node_path11.resolve)(input));
   for (const protectedName of [".cortex", ".cortex-kb-dev", ".cortex-dev"]) {
-    const protectedPath = canonical((0, import_node_path11.join)((0, import_node_os6.homedir)(), protectedName));
+    const protectedPath = canonical((0, import_node_path11.join)((0, import_node_os5.homedir)(), protectedName));
     if (contains(protectedPath, directory) || contains(directory, protectedPath)) throw new Error(tr("CLI \u9884\u89C8\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55\u6216\u5176\u7236\u5B50\u76EE\u5F55", "CLI preview can\u2019t use the desktop config directory or its parents or children"));
   }
   (0, import_node_fs14.mkdirSync)(directory, { recursive: true, mode: 448 });
@@ -48226,7 +47351,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.33";
+var version = "0.1.37";
 
 // src/interactive.ts
 var import_node_fs19 = require("node:fs");
@@ -48544,13 +47669,26 @@ async function runInteractive(worker, options, request, ui) {
   let first = true;
   let timedOut = false;
   let outputFailed = false;
+  const operationReason = () => {
+    const current2 = store.get(state);
+    if (current2.closing) return tr("\u6B63\u5728\u9000\u51FA\u4F1A\u8BDD", "Closing the session");
+    if (!current2.session) return tr("\u6B63\u5728\u8FDE\u63A5\u4F1A\u8BDD", "Connecting to the session");
+    if (current2.stopping) return tr("\u6B63\u5728\u505C\u6B62\u4EFB\u52A1", "Stopping the task");
+    if (current2.requests.some((item) => item.interaction.kind === "plan")) return tr("\u8BA1\u5212\u6B63\u5728\u7B49\u5F85\u6279\u51C6\uFF0C\u8BF7\u5148\u5BA1\u9605\u8BA1\u5212", "The plan needs approval; review it first");
+    if (current2.requests.length) return tr("\u6709\u5F85\u786E\u8BA4\u8BF7\u6C42\uFF0C\u8BF7\u5148\u5904\u7406", "Handle the pending request first");
+    if (current2.running) return tr("\u672C\u8F6E\u4EFB\u52A1\u8FD0\u884C\u4E2D\uFF0C\u7ED3\u675F\u540E\u53EF\u5207\u6362", "This turn is running; change modes after it ends");
+    if (current2.starting) return tr("\u6B63\u5728\u63D0\u4EA4\u6D88\u606F", "Submitting the message");
+    if (Object.keys(current2.submissions).length) return tr("\u6B63\u5728\u7B49\u5F85\u8BBE\u7F6E\u6216\u64CD\u4F5C\u56DE\u6267", "Waiting for the settings or action receipt");
+    return void 0;
+  };
   const commandContext = () => {
-    const current3 = store.get(state);
+    const current2 = store.get(state);
     return {
-      session: current3.session,
-      busy: current3.running || current3.starting || current3.closing || editing || Object.keys(current3.submissions).length > 0,
+      session: current2.session,
+      busy: current2.running || current2.starting || current2.closing || editing || Object.keys(current2.submissions).length > 0,
+      busyReason: operationReason(),
       desktop: options.desktop,
-      interaction: current3.requests[0]?.interaction.kind,
+      interaction: current2.requests[0]?.interaction.kind,
       keys: appearanceStore.get(appearanceAtom).keys
     };
   };
@@ -48583,9 +47721,9 @@ async function runInteractive(worker, options, request, ui) {
     send(message);
   };
   const cancel = (exit = false) => {
-    const current3 = store.get(state);
-    const active = current3.running || current3.starting;
-    if (current3.stopping && !exit) return;
+    const current2 = store.get(state);
+    const active = current2.running || current2.starting;
+    if (current2.stopping && !exit) return;
     update({ queuePaused: true, stopping: active });
     if (exit) update({ closing: true });
     if (exit) send({ type: "close" });
@@ -48594,7 +47732,7 @@ async function runInteractive(worker, options, request, ui) {
       update({ closing: true });
       send({ type: "close" });
     }
-    entry(active ? tr("\u6B63\u5728\u505C\u6B62\u2026", "Stopping\u2026") : tr("\u6B63\u5728\u9000\u51FA\u3002", "Quitting\u2026"), active ? current3.runId + ":cancelled" : void 0);
+    entry(active ? tr("\u6B63\u5728\u505C\u6B62\u2026", "Stopping\u2026") : tr("\u6B63\u5728\u9000\u51FA\u3002", "Quitting\u2026"), active ? current2.runId + ":cancelled" : void 0);
     forceTimer ??= setTimeout(() => {
       entry(tr("\u65E0\u6CD5\u786E\u8BA4\u8FD0\u884C\u5DF2\u505C\u6B62\uFF0C\u8BF7\u6838\u5BF9\u4F1A\u8BDD\u548C\u6587\u4EF6\u3002", "Couldn\u2019t confirm the run stopped. Check the session and files."));
       process.exitCode = 4;
@@ -48602,8 +47740,8 @@ async function runInteractive(worker, options, request, ui) {
     }, 1e4);
   };
   const respond = (answer, item = store.get(state).requests[0], reason) => {
-    const current3 = store.get(state);
-    if (!item || closed || current3.closing || !current3.requests.some((pending) => pending.runId === item.runId && pending.interaction.request.sessionId === item.interaction.request.sessionId && pending.interaction.request.requestId === item.interaction.request.requestId)) return;
+    const current2 = store.get(state);
+    if (!item || closed || current2.closing || !current2.requests.some((pending) => pending.runId === item.runId && pending.interaction.request.sessionId === item.interaction.request.sessionId && pending.interaction.request.requestId === item.interaction.request.requestId)) return;
     tracked({
       type: "respond",
       id: (0, import_node_crypto9.randomUUID)(),
@@ -48654,16 +47792,16 @@ async function runInteractive(worker, options, request, ui) {
     update({ queue });
   };
   const dispatchQueue = () => {
-    const current3 = store.get(state);
-    if (!current3.session || current3.running || current3.starting || current3.closing || current3.stopping || current3.queuePaused || editing || Object.keys(current3.submissions).length) return;
-    const item = current3.queue[0];
+    const current2 = store.get(state);
+    if (!current2.session || current2.running || current2.starting || current2.closing || current2.stopping || current2.queuePaused || editing || Object.keys(current2.submissions).length) return;
+    const item = current2.queue[0];
     if (!item) return;
     if (item.state !== "waiting") {
       update({ queuePaused: true });
       return;
     }
     try {
-      saveQueue(current3.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
+      saveQueue(current2.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
       tracked({ type: "submit", id: item.id, text: item.text, attachments: item.attachments, ...item.readOnly && { readOnly: true } }, { text: item.text, attachments: item.attachments, readOnly: item.readOnly });
     } catch (error) {
       update({ queuePaused: true });
@@ -48671,9 +47809,9 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const resumeQueue = () => {
-    const current3 = store.get(state);
-    if (!current3.queuePaused || current3.running || current3.starting || current3.stopping || current3.closing) return false;
-    const unsure = current3.queue.filter((item) => item.state !== "waiting").length;
+    const current2 = store.get(state);
+    if (!current2.queuePaused || current2.running || current2.starting || current2.stopping || current2.closing) return false;
+    const unsure = current2.queue.filter((item) => item.state !== "waiting").length;
     if (unsure) {
       ui?.notify(tr(`\u6709 ${unsure} \u6761\u6D88\u606F\u53EF\u80FD\u5DF2\u53D1\u9001\uFF0C\u5148\u5728 /queue \u6838\u5BF9`, `${unsure} ${plural(unsure, "message")} may have been sent. Check them in /queue first.`), "warning");
       return false;
@@ -48686,9 +47824,9 @@ async function runInteractive(worker, options, request, ui) {
       ui?.notify(tr("\u5BA1\u67E5\u4F1A\u5728\u5355\u72EC\u7684\u4E00\u8F6E\u8FD0\u884C", "The review will run separately"), "warning");
       return;
     }
-    const current3 = store.get(state);
+    const current2 = store.get(state);
     if (!item) return;
-    if (!current3.running || current3.stopping || current3.closing) {
+    if (!current2.running || current2.stopping || current2.closing) {
       ui?.notify(tr("\u5F53\u524D\u6CA1\u6709\u8FD0\u884C\uFF0C\u6D88\u606F\u4F1A\u6309\u987A\u5E8F\u53D1\u9001\u3002", "Nothing is running; queued messages send in order."), "warning");
       return;
     }
@@ -48700,12 +47838,12 @@ async function runInteractive(worker, options, request, ui) {
       ui?.notify(tr("\u5E26\u9644\u4EF6\u7684\u6D88\u606F\u8981\u7B49\u672C\u8F6E\u7ED3\u675F\u540E\u53D1\u9001\u3002", "Messages with attachments send after this run."), "warning");
       return;
     }
-    if (Object.keys(current3.submissions).length) {
+    if (Object.keys(current2.submissions).length) {
       ui?.notify(tr("\u4E0A\u4E00\u6761\u8FD8\u5728\u63D0\u4EA4\uFF0C\u8BF7\u7A0D\u540E\u518D\u63D2\u8BDD\u3002", "The previous message is still submitting; try again shortly."), "warning");
       return;
     }
     try {
-      saveQueue(current3.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
+      saveQueue(current2.queue.map((value) => value.id === item.id ? { ...value, state: "sending" } : value));
       tracked({ type: "submit", id: item.id, text: item.text, steer: true }, { text: item.text, steer: true });
     } catch (error) {
       entry(error.message, void 0, "error");
@@ -48713,7 +47851,7 @@ async function runInteractive(worker, options, request, ui) {
   };
   const withdrawQueued = (item, edit) => {
     if (edit && item.readOnly) throw new Error(tr("\u53EA\u8BFB\u5BA1\u67E5\u4E0D\u80FD\u6539\u6210\u666E\u901A\u8349\u7A3F\uFF1B\u53EF\u64A4\u56DE\u540E\u91CD\u65B0\u9009\u62E9\u5BA1\u67E5\u8303\u56F4", "A read-only review can\u2019t become a regular draft; withdraw it and choose the review scope again"));
-    if (edit) runtimeAttachmentRefs([...draftAttachments, ...(item.attachments ?? []).filter((file) => !draftAttachments.some((current3) => current3.id === file.id))]);
+    if (edit) runtimeAttachmentRefs([...draftAttachments, ...(item.attachments ?? []).filter((file) => !draftAttachments.some((current2) => current2.id === file.id))]);
     saveQueue(store.get(state).queue.filter((value) => value.id !== item.id));
     if (edit) restoreDraft(item.text, item.attachments);
   };
@@ -48731,20 +47869,20 @@ async function runInteractive(worker, options, request, ui) {
     if (!ui || editing) return;
     editing = true;
     try {
-      const current3 = store.get(state);
+      const current2 = store.get(state);
       const selected = await ui.select(tr("\u5F85\u53D1\u9001\u6D88\u606F", "Queued messages"), [
-        ...current3.queue.map((item2) => ({
+        ...current2.queue.map((item2) => ({
           value: item2.id,
           label: item2.text.replace(/\s+/g, " "),
           description: item2.state === "sending" ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : item2.state === "uncertain" ? tr("\u53EF\u80FD\u5DF2\u53D1\u9001\uFF0C\u9700\u6838\u5BF9", "May have been sent; check it") : tr("\u5F85\u53D1\u9001", "Queued")
         })),
         {
           value: ":toggle",
-          label: current3.queuePaused ? tr("\u7EE7\u7EED\u53D1\u9001", "Resume sending") : tr("\u6682\u505C\u53D1\u9001", "Pause sending"),
+          label: current2.queuePaused ? tr("\u7EE7\u7EED\u53D1\u9001", "Resume sending") : tr("\u6682\u505C\u53D1\u9001", "Pause sending"),
           description: tr("\u5F53\u524D\u4EFB\u52A1\u7ED3\u675F\u540E\u9010\u6761\u53D1\u9001", "Sends one by one after the current task")
         }
       ], {
-        description: current3.queue.length ? tr("\u5F85\u53D1\u9001\u5185\u5BB9\u5DF2\u4FDD\u5B58\u5728\u672C\u673A\uFF1B\u53D6\u6D88\u6216\u5F02\u5E38\u7ED3\u675F\u540E\u6682\u505C\uFF0C\u6309 Enter \u6216\u53D1\u65B0\u6D88\u606F\u7EE7\u7EED\u3002", "Queued messages are saved locally and pause after a cancel or error. Enter or a new message resumes them.") : tr("\u5F53\u524D\u6CA1\u6709\u5F85\u53D1\u9001\u6D88\u606F\u3002", "No queued messages.")
+        description: current2.queue.length ? tr("\u5F85\u53D1\u9001\u5185\u5BB9\u5DF2\u4FDD\u5B58\u5728\u672C\u673A\uFF1B\u53D6\u6D88\u6216\u5F02\u5E38\u7ED3\u675F\u540E\u6682\u505C\uFF0C\u6309 Enter \u6216\u53D1\u65B0\u6D88\u606F\u7EE7\u7EED\u3002", "Queued messages are saved locally and pause after a cancel or error. Enter or a new message resumes them.") : tr("\u5F53\u524D\u6CA1\u6709\u5F85\u53D1\u9001\u6D88\u606F\u3002", "No queued messages.")
       });
       if (selected === ":toggle") {
         update({ queuePaused: !store.get(state).queuePaused });
@@ -48788,13 +47926,13 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const switchSession = async (command, value) => {
-    const current3 = store.get(state);
-    if (!current3.session || editing || current3.closing) return;
+    const current2 = store.get(state);
+    if (!current2.session || editing || current2.closing) return;
     if (uploading) {
       entry(tr("\u8BF7\u7B49\u5F85\u9644\u4EF6\u6DFB\u52A0\u5B8C\u6210\uFF0C\u518D\u5207\u6362\u4F1A\u8BDD\u3002", "Wait for the attachment before switching sessions."));
       return;
     }
-    if (current3.running && !(options.desktop && command === "/resume") || current3.starting || Object.keys(current3.submissions).length) {
+    if (current2.running && !(options.desktop && command === "/resume") || current2.starting || Object.keys(current2.submissions).length) {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u5207\u6362\u4F1A\u8BDD\u3002", "Wait for the current operation before switching sessions."));
       return;
     }
@@ -48813,8 +47951,8 @@ async function runInteractive(worker, options, request, ui) {
           await ui.view(tr("\u6062\u590D\u4F1A\u8BDD", "Resume session"), tr("\u5F53\u524D\u6CA1\u6709\u53EF\u6062\u590D\u7684\u4F1A\u8BDD\u3002", "No sessions to resume."));
           return;
         }
-        const now = Date.now(), here = current3.session.cwd;
-        const currentId = current3.session.sessionId;
+        const now = Date.now(), here = current2.session.cwd;
+        const currentId = current2.session.sessionId;
         const rows = [...reply.sessions].sort((a, b) => Number(b.id === currentId) - Number(a.id === currentId) || Number(b.cwd === here) - Number(a.cwd === here) || b.updatedAt - a.updatedAt);
         const older = rows.filter((item) => item.id !== currentId && item.updatedAt < now - 3 * 864e5);
         const option = (item, hidden = false) => {
@@ -48842,7 +47980,7 @@ async function runInteractive(worker, options, request, ui) {
         busy = reply.sessions.some((item) => item.id === sessionId && item.busy);
       }
       if (command === "/resume" && !/^[A-Za-z0-9_-]{1,128}$/.test(sessionId)) throw new Error(tr("\u4F1A\u8BDD ID \u65E0\u6548", "Invalid session ID"));
-      if (sessionId === current3.session.sessionId) return;
+      if (sessionId === current2.session.sessionId) return;
       if (command === "/resume" && value) {
         const reply = await query({ type: "sessions", id: (0, import_node_crypto9.randomUUID)() }, AbortSignal.timeout(1e4));
         if (reply.type !== "sessions" || !reply.sessions.some((item) => item.id === sessionId)) throw new Error(tr("\u4F1A\u8BDD\u4E0D\u5B58\u5728", "Session not found"));
@@ -48858,11 +47996,11 @@ async function runInteractive(worker, options, request, ui) {
       }
       configure = {
         kind: "switch",
-        cwd: current3.session.cwd,
-        sessionId: current3.session.sessionId,
+        cwd: current2.session.cwd,
+        sessionId: current2.session.sessionId,
         next: { command: "interactive", configDir: request.configDir, ...command === "/resume" ? { sessionId } : {
-          cwd: current3.session.cwd,
-          newSessionFrom: current3.session.sessionId
+          cwd: current2.session.cwd,
+          newSessionFrom: current2.session.sessionId
         } }
       };
       update({ closing: true, queuePaused: true });
@@ -48878,15 +48016,15 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const rewind = async () => {
-    const current3 = store.get(state);
-    if (!ui || !current3.session || editing || current3.closing) return;
-    if (current3.running || current3.starting || Object.keys(current3.submissions).length) {
+    const current2 = store.get(state);
+    if (!ui || !current2.session || editing || current2.closing) return;
+    if (current2.running || current2.starting || Object.keys(current2.submissions).length) {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u56DE\u9000\u3002", "Wait for the current operation before rewinding."));
       return;
     }
     editing = true;
     try {
-      const sessionId = current3.session.sessionId;
+      const sessionId = current2.session.sessionId;
       const reply = await ui.wait(tr("\u8BFB\u53D6\u56DE\u9000\u70B9", "Reading rewind points"), (signal) => query({ type: "rewind", id: (0, import_node_crypto9.randomUUID)(), sessionId }, signal));
       if (reply.type !== "rewind-points") return;
       if (!reply.points.length) {
@@ -48931,11 +48069,11 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const showDiff = async () => {
-    const current3 = store.get(state);
-    if (!ui || !current3.session || editing || current3.closing) return;
+    const current2 = store.get(state);
+    if (!ui || !current2.session || editing || current2.closing) return;
     editing = true;
     try {
-      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto9.randomUUID)(), sessionId: current3.session.sessionId }, signal));
+      const reply = await ui.wait(tr("\u8BFB\u53D6\u6539\u52A8", "Reading changes"), (signal) => query({ type: "diff", id: (0, import_node_crypto9.randomUUID)(), sessionId: current2.session.sessionId }, signal));
       if (reply.type !== "diff") return;
       if (!reply.fileChanges.length) {
         await ui.view(tr("\u672C\u4F1A\u8BDD\u6539\u52A8", "Changes in this session"), tr("\u672C\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u6587\u4EF6\u6539\u52A8", "No file changes in this session yet"));
@@ -48968,17 +48106,66 @@ async function runInteractive(worker, options, request, ui) {
       dispatchQueue();
     }
   };
+  const openMode = async () => {
+    const current2 = store.get(state);
+    if (!ui || editing) return;
+    if (!current2.session) {
+      ui.notify(operationReason(), "info");
+      return;
+    }
+    editing = true;
+    try {
+      const mode = await ui.select(tr("\u5DE5\u4F5C\u65B9\u5F0F \xB7 \u5F53\u524D\u4F1A\u8BDD", "Work mode \xB7 This session"), [
+        ...[
+          { value: "auto", label: workModeLabel("auto"), description: tr("\u6267\u884C\u4EFB\u52A1\uFF0C\u9700\u8981\u6388\u6743\u65F6\u8BE2\u95EE", "Run tasks and ask when approval is needed") },
+          { value: "plan", label: workModeLabel("plan"), description: tr("\u5148\u5206\u6790\u548C\u5236\u5B9A\u65B9\u6848", "Analyze and prepare a plan first") },
+          { value: "bypassPermissions", label: workModeLabel("bypassPermissions"), description: tr("\u5E38\u89C4\u5DE5\u5177\u4E0D\u9010\u9879\u786E\u8BA4\uFF0C\u4FDD\u7559\u8FB9\u754C\u4FDD\u62A4", "Approve routine tools; boundary protections remain") }
+        ].map((item) => ({ ...item, label: (item.value === current2.session.mode ? "\u2713 " : "  ") + item.label })),
+        ...current2.requests.some((item) => item.interaction.kind === "plan") ? [{ value: ":plan", label: tr("\u5BA1\u9605\u5F85\u6279\u51C6\u8BA1\u5212", "Review the pending plan"), description: tr("\u6279\u51C6\u3001\u6279\u6CE8\u6216\u8BF7\u6C42\u4FEE\u6539", "Approve, comment, or request changes") }] : []
+      ], {
+        initial: current2.session.mode,
+        search: false,
+        description: () => operationReason() ?? tr("\u9009\u62E9\u540E\u5E94\u7528\u4E8E\u5F53\u524D\u4F1A\u8BDD", "Applies to this session after confirmation"),
+        disabled: (value) => value === ":plan" ? void 0 : operationReason(),
+        hint: tr("\u2191\u2193 \u9009\u62E9  Enter \u5E94\u7528  Esc \u8FD4\u56DE", "\u2191\u2193 select  Enter apply  Esc back")
+      });
+      if (mode === ":plan") {
+        prompted = "";
+        return;
+      }
+      const reason = operationReason();
+      if (reason) {
+        ui.notify(reason, "warning");
+        return;
+      }
+      if (store.get(state).session?.mode === mode) return;
+      tracked(
+        { type: "settings", id: (0, import_node_crypto9.randomUUID)(), mode },
+        { notice: modeNotice(mode) + "\n" + tr("\u4EC5\u5F53\u524D\u4F1A\u8BDD\u3002", "This session only."), log: true }
+      );
+    } catch (error) {
+      if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
+    } finally {
+      editing = false;
+      update({});
+      dispatchQueue();
+    }
+  };
   const openSettings = async (command) => {
-    const current3 = store.get(state);
-    if (!ui || !current3.session || editing) return;
-    const busy = current3.running || Object.keys(current3.submissions).length > 0;
+    if (command === "/permissions") {
+      await openMode();
+      return;
+    }
+    const current2 = store.get(state);
+    if (!ui || !current2.session || editing) return;
+    const busy = current2.running || Object.keys(current2.submissions).length > 0;
     if (busy && command !== "/settings") {
       entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u4FEE\u6539\u8BBE\u7F6E\u3002", "Wait for the current operation before changing settings."));
       return;
     }
     editing = true;
     let next;
-    const session = current3.session;
+    const session = current2.session;
     const connection = { version: 1, provider: session.provider, baseUrl: session.baseUrl, model: session.model };
     const actions = {
       models: async (draft, signal) => {
@@ -49088,15 +48275,7 @@ async function runInteractive(worker, options, request, ui) {
           }
         );
       } else if (command === "/permissions") {
-        const mode = await ui.select(tr("\u6743\u9650\u6A21\u5F0F", "Permission mode"), [
-          { value: "auto", label: modeLabel("auto") },
-          { value: "plan", label: modeLabel("plan"), description: tr("\u53EA\u8BFB\u5206\u6790", "Read-only analysis") },
-          { value: "bypassPermissions", label: modeLabel("bypassPermissions"), description: tr("\u4ECD\u4FDD\u7559\u4E0D\u53EF\u9006\u547D\u4EE4\u4FDD\u62A4", "Irreversible commands stay protected") }
-        ], { initial: session.mode, search: false });
-        tracked(
-          { type: "settings", id: (0, import_node_crypto9.randomUUID)(), mode },
-          { notice: modeNotice(mode), log: true }
-        );
+        next = command;
       } else {
         if (options.desktop) {
           entry(tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E\u8BF7\u5728 Cortex \u684C\u9762\u4FEE\u6539\uFF1B/model \u53EF\u5207\u6362\u5DF2\u542F\u7528\u6A21\u578B\u3002", "Change provider settings in Cortex desktop; /model switches enabled models."));
@@ -49114,16 +48293,16 @@ async function runInteractive(worker, options, request, ui) {
     if (next) await openSettings(next);
   };
   const addAttachment = async (path) => {
-    const current3 = store.get(state);
-    if (!ui || !current3.session || current3.closing || uploading) return;
+    const current2 = store.get(state);
+    if (!ui || !current2.session || current2.closing || uploading) return;
     if (draftAttachments.length >= 8) throw new Error(tr("\u6700\u591A\u6DFB\u52A0 8 \u4E2A\u9644\u4EF6", "You can add up to 8 attachments"));
     uploading = true;
     let staged;
     try {
-      const file = path ? readSelectedAttachment(path, current3.session.cwd) : { bytes: await clipboardImage(), filename: "clipboard-" + Date.now() + ".png" };
+      const file = path ? readSelectedAttachment(path, current2.session.cwd) : { bytes: await clipboardImage(), filename: "clipboard-" + Date.now() + ".png" };
       staged = stageAttachment(request.configDir, file.bytes);
       const reply = await query(
-        { type: "attachment", id: (0, import_node_crypto9.randomUUID)(), sessionId: current3.session.sessionId, path: staged, filename: file.filename },
+        { type: "attachment", id: (0, import_node_crypto9.randomUUID)(), sessionId: current2.session.sessionId, path: staged, filename: file.filename },
         AbortSignal.timeout(1e4)
       );
       if (reply.type !== "attachment" || reply.sessionId !== store.get(state).session?.sessionId || store.get(state).closing) {
@@ -49158,10 +48337,10 @@ async function runInteractive(worker, options, request, ui) {
   const requestPrediction = () => {
     predicting?.abort();
     predicting = void 0;
-    const current3 = store.get(state);
-    if (!ui?.setPrediction || appearanceStore.get(appearanceAtom).predictions === false || !current3.session || current3.running || current3.starting || current3.queue.length || current3.requests.length || ui.editor.getText()) return;
-    const user = current3.entries.findLast((item) => item.kind === "user" && !item.agentId)?.text ?? "";
-    const assistant = current3.entries.findLast((item) => item.kind === "assistant" && !item.agentId)?.text ?? "";
+    const current2 = store.get(state);
+    if (!ui?.setPrediction || appearanceStore.get(appearanceAtom).predictions === false || !current2.session || current2.running || current2.starting || current2.queue.length || current2.requests.length || ui.editor.getText()) return;
+    const user = current2.entries.findLast((item) => item.kind === "user" && !item.agentId)?.text ?? "";
+    const assistant = current2.entries.findLast((item) => item.kind === "assistant" && !item.agentId)?.text ?? "";
     if (!user || !assistant) return;
     const controller = predicting = new AbortController();
     const screen = ui;
@@ -49181,22 +48360,23 @@ async function runInteractive(worker, options, request, ui) {
       else if (store.get(state).queue.length && resumeQueue()) dispatchQueue();
       return;
     }
-    const current3 = store.get(state);
-    if (!current3.session || current3.closing) {
+    const current2 = store.get(state);
+    if (!current2.session || current2.closing) {
       entry(tr("\u5F53\u524D\u5C1A\u4E0D\u80FD\u53D1\u9001\uFF0C\u8349\u7A3F\u5DF2\u4FDD\u7559\u3002", "Can\u2019t send yet; draft kept."));
       restoreDraft(text2);
       return;
     }
     if (text2.trimStart().startsWith("/") && !/^\/skill:[A-Za-z0-9][A-Za-z0-9._-]*(?:\s|$)/.test(text2.trimStart())) {
-      const [command, ...args] = text2.trim().split(/\s+/);
+      const [rawCommand, ...args] = text2.trim().split(/\s+/);
+      const command = rawCommand === "/mode" ? "/permissions" : rawCommand;
       const value = args.join(" ");
       if (command === "/help") {
         if (ui) ui.showHelp();
         else entry(help(commandContext()));
       } else if (command === "/status") {
-        const session = current3.session;
-        const context = current3.context;
-        entry("Cortex CLI v" + version + "\n" + (session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + (session.provider ? tr("\u4F9B\u5E94\u5546\uFF1A", "Provider: ") + session.provider + (session.credentialSource === "environment" ? tr("\uFF08\u73AF\u5883\u53D8\u91CF\u51ED\u636E\uFF09", " (environment credentials)") : session.credentialSource === "saved" ? tr("\uFF08\u5DF2\u4FDD\u5B58\u8FDE\u63A5\uFF09", " (saved connection)") : session.credentialSource === "desktop" ? tr("\uFF08\u684C\u9762\u8FDE\u63A5\uFF09", " (desktop connection)") : "") + "\n" : "") + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current3.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
+        const session = current2.session;
+        const context = current2.context;
+        entry("Cortex CLI v" + version + "\n" + (session.title ? tr("\u6807\u9898\uFF1A", "Title: ") + displaySessionTitle(session.title) + "\n" : "") + tr("\u4F1A\u8BDD\uFF1A", "Session: ") + session.sessionId + "\n" + tr("\u9879\u76EE\uFF1A", "Project: ") + session.cwd + "\n" + tr("\u6A21\u578B\uFF1A", "Model: ") + session.model + "\n" + (session.provider ? tr("\u4F9B\u5E94\u5546\uFF1A", "Provider: ") + session.provider + (session.credentialSource === "environment" ? tr("\uFF08\u73AF\u5883\u53D8\u91CF\u51ED\u636E\uFF09", " (environment credentials)") : session.credentialSource === "saved" ? tr("\uFF08\u5DF2\u4FDD\u5B58\u8FDE\u63A5\uFF09", " (saved connection)") : session.credentialSource === "desktop" ? tr("\uFF08\u684C\u9762\u8FDE\u63A5\uFF09", " (desktop connection)") : "") + "\n" : "") + tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(session.mode) + "\n" + (session.thinking?.levels.some((level) => level !== "off") ? tr("\u601D\u8003\uFF1A", "Thinking: ") + thinkingLabel(session.thinking.value) + "\n" : "") + (context ? tr("\u4E0A\u4E0B\u6587\uFF1A", "Context: ") + (context.tokens === null ? tr("\u672A\u77E5", "Unknown") : tr("\u7EA6 ", "About ") + context.tokens + " tokens") + " / " + (context.window || tr("\u672A\u77E5", "unknown")) + (context.windowEstimated ? tr("\uFF08\u5BB9\u91CF\u4F30\u8BA1\uFF09", " (estimated window)") : "") + "\n" : "") + (current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : tr("\u7A7A\u95F2", "Idle")));
       } else if (command === "/mcp") {
         void (async () => {
           const ask = (signal) => query({ type: "mcp", id: (0, import_node_crypto9.randomUUID)() }, signal);
@@ -49211,18 +48391,18 @@ async function runInteractive(worker, options, request, ui) {
       } else if (command === "/queue") {
         if (ui) void openQueue();
         else {
-          const count = current3.queue.length;
+          const count = current2.queue.length;
           entry(tr("\u5F85\u53D1\u9001\uFF1A", "Queued: ") + count + tr(" \u6761\uFF1B\u4F7F\u7528\u4EA4\u4E92\u7EC8\u7AEF\u7BA1\u7406\u3002", " " + plural(count, "message") + "; manage them in an interactive terminal."));
         }
       } else if (command === "/pending") {
-        if (!current3.requests.length) {
+        if (!current2.requests.length) {
           ui?.notify(tr("\u5F53\u524D\u6CA1\u6709\u5F85\u786E\u8BA4\u8BF7\u6C42", "No pending requests"));
           return;
         }
         prompted = "";
         update({});
       } else if (command === "/plan") {
-        if (current3.requests[0]?.interaction.kind === "plan") {
+        if (current2.requests[0]?.interaction.kind === "plan") {
           prompted = "";
           update({});
         } else if (lastPlanReview && ui) void ui.view(tr("\u6700\u8FD1\u8BA1\u5212\uFF08\u53EA\u8BFB\uFF09", "Latest plan (read-only)"), lastPlanReview.plan).catch(() => {
@@ -49250,9 +48430,9 @@ async function runInteractive(worker, options, request, ui) {
             tr("\u5F85\u5904\u7406\u4F1A\u8BDD", "Session inbox"),
             rows.map((item2) => ({
               value: item2.id,
-              label: (item2.unread && item2.id !== current3.session.sessionId ? "\u25CF " : "") + displaySessionTitle(item2.title),
+              label: (item2.unread && item2.id !== current2.session.sessionId ? "\u25CF " : "") + displaySessionTitle(item2.title),
               group: label(item2.activity),
-              description: [item2.cwd, item2.pendingCount ? item2.pendingCount + tr(" \u5F85\u786E\u8BA4", " awaiting input") : "", item2.id === current3.session.sessionId ? tr("\u5F53\u524D", "Current") : ""].filter(Boolean).join(" \xB7 ")
+              description: [item2.cwd, item2.pendingCount ? item2.pendingCount + tr(" \u5F85\u786E\u8BA4", " awaiting input") : "", item2.id === current2.session.sessionId ? tr("\u5F53\u524D", "Current") : ""].filter(Boolean).join(" \xB7 ")
             })),
             {
               onHighlight: (id) => {
@@ -49261,8 +48441,8 @@ async function runInteractive(worker, options, request, ui) {
               description: () => [highlighted?.preview ?? "", options.desktop ? tr("\u5F85\u786E\u8BA4\u4F18\u5148\uFF1BEnter \u8FDB\u5165\u539F\u4F1A\u8BDD\u5904\u7406\u3002", "Needs input first; Enter opens the original session.") : tr("\u72EC\u7ACB\u6A21\u5F0F\u65E0\u6CD5\u8BFB\u53D6\u5176\u4ED6\u8FDB\u7A0B\u7684\u8FD0\u884C\u72B6\u6001\uFF1B\u5360\u7528\u4E2D\u7684\u4F1A\u8BDD\u8BF7\u5230\u539F\u7EC8\u7AEF\u5904\u7406\u3002", "Standalone mode can\u2019t inspect other processes; handle open sessions in their original terminal.")].filter(Boolean).join("\n")
             }
           );
-          if (selected === current3.session?.sessionId) {
-            if (current3.requests.length) {
+          if (selected === current2.session?.sessionId) {
+            if (current2.requests.length) {
               prompted = "";
               update({});
             }
@@ -49284,7 +48464,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         void (async () => {
-          const points = await query({ type: "rewind", id: (0, import_node_crypto9.randomUUID)(), sessionId: current3.session.sessionId }, AbortSignal.timeout(1e4));
+          const points = await query({ type: "rewind", id: (0, import_node_crypto9.randomUUID)(), sessionId: current2.session.sessionId }, AbortSignal.timeout(1e4));
           if (points.type !== "rewind-points") return;
           const point = await ui.select(tr("\u4ECE\u54EA\u91CC\u5206\u53C9\uFF1F", "Where should the fork start?"), [
             { value: ":latest", label: tr("\u5F53\u524D\u5B8C\u6574\u5BF9\u8BDD", "The full conversation") },
@@ -49293,7 +48473,7 @@ async function runInteractive(worker, options, request, ui) {
           const reply = await query({
             type: "fork",
             id: (0, import_node_crypto9.randomUUID)(),
-            sessionId: current3.session.sessionId,
+            sessionId: current2.session.sessionId,
             ...point !== ":latest" && { messageId: point }
           }, AbortSignal.timeout(3e4));
           if (reply.type === "forked") await switchSession("/resume", reply.sessionId);
@@ -49312,7 +48492,7 @@ async function runInteractive(worker, options, request, ui) {
             { value: "commit", label: tr("\u5355\u6B21\u63D0\u4EA4", "One commit") }
           ], { search: false, description: tr("\u672C\u8F6E\u4EC5\u63D0\u4F9B\u8BFB\u53D6\u5DE5\u5177\uFF1B\u4FEE\u590D\u9700\u53E6\u884C\u53D1\u9001\u6D88\u606F\u3002", "This run provides read tools only; request fixes in a separate message.") });
           const ref = scope === "uncommitted" ? void 0 : await ui.ask(scope === "base" ? tr("\u57FA\u51C6\u5206\u652F", "Base branch") : tr("\u63D0\u4EA4 SHA", "Commit SHA"));
-          const text3 = await prepareReview(current3.session.cwd, scope === "base" ? { base: ref } : scope === "commit" ? { commit: ref } : {});
+          const text3 = await prepareReview(current2.session.cwd, scope === "base" ? { base: ref } : scope === "commit" ? { commit: ref } : {});
           saveQueue([...store.get(state).queue, { id: (0, import_node_crypto9.randomUUID)(), text: text3, state: "waiting", readOnly: true }]);
           resumeQueue();
           dispatchQueue();
@@ -49341,18 +48521,18 @@ async function runInteractive(worker, options, request, ui) {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
         else {
-          entry(current3.agents.length ? current3.agents.map((agent) => agent.name + tr("\uFF1A", ": ") + agent.status).join("\n") : tr("\u672C\u8F6E\u8FD8\u6CA1\u6709\u5B50\u4EE3\u7406\u3002", "No subagents in this run yet."));
+          entry(current2.agents.length ? current2.agents.map((agent) => agent.name + tr("\uFF1A", ": ") + agent.status).join("\n") : tr("\u672C\u8F6E\u8FD8\u6CA1\u6709\u5B50\u4EE3\u7406\u3002", "No subagents in this run yet."));
         }
       } else if (command === "/rename") {
-        if (current3.running || current3.starting || Object.keys(current3.submissions).length) {
+        if (current2.running || current2.starting || Object.keys(current2.submissions).length) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u6539\u540D\u3002", "Wait for the current operation before renaming."));
           return;
         }
-        const sessionId = current3.session.sessionId;
+        const sessionId = current2.session.sessionId;
         void (async () => {
           const title = (value || await ui?.ask(tr("\u4F1A\u8BDD\u540D\u79F0", "Session name"), {
             // 未命名标记不作为预填内容
-            value: DEFAULT_SESSION_TITLES.has(current3.session.title ?? "") ? "" : current3.session.title ?? ""
+            value: DEFAULT_SESSION_TITLES.has(current2.session.title ?? "") ? "" : current2.session.title ?? ""
           }) || "").trim();
           if (!title) {
             entry(tr("\u7528\u6CD5\uFF1A/rename <\u540D\u79F0>", "Usage: /rename <title>"));
@@ -49364,7 +48544,7 @@ async function runInteractive(worker, options, request, ui) {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
       } else if (command === "/export") {
-        const session = current3.session;
+        const session = current2.session;
         const stamp = /* @__PURE__ */ new Date(), pad = (n) => String(n).padStart(2, "0");
         const time = `${stamp.getFullYear()}${pad(stamp.getMonth() + 1)}${pad(stamp.getDate())}-${pad(stamp.getHours())}${pad(stamp.getMinutes())}`;
         const slug = (session.title ?? "").replace(/[\\/:*?"<>|\x00-\x1f]/g, "").trim().replace(/\s+/g, "-") || session.sessionId.slice(0, 8);
@@ -49372,7 +48552,7 @@ async function runInteractive(worker, options, request, ui) {
         try {
           (0, import_node_fs19.writeFileSync)(
             path,
-            transcriptMarkdown(current3.entries, { title: session.title, model: session.model, cwd: session.cwd, exportedAt: stamp.getTime() }),
+            transcriptMarkdown(current2.entries, { title: session.title, model: session.model, cwd: session.cwd, exportedAt: stamp.getTime() }),
             { flag: "wx" }
           );
           entry(tr("\u5DF2\u5BFC\u51FA\uFF1A", "Exported: ") + path);
@@ -49380,7 +48560,7 @@ async function runInteractive(worker, options, request, ui) {
           entry(error.code === "EEXIST" ? tr("\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u672A\u8986\u76D6\uFF1A", "File already exists, not overwritten: ") + path : error.message, void 0, "error");
         }
       } else if (command === "/copy") {
-        const reply = copyableReply(current3.entries, current3.running ? current3.runId : void 0);
+        const reply = copyableReply(current2.entries, current2.running ? current2.runId : void 0);
         if (!["", "reply", "code", "plan"].includes(value)) {
           entry(tr("\u7528\u6CD5\uFF1A/copy [reply|code|plan]", "Usage: /copy [reply|code|plan]"));
           return;
@@ -49401,13 +48581,13 @@ async function runInteractive(worker, options, request, ui) {
             if (!blocks[index]) return;
             text3 = blocks[index].text;
           }
-          const result = await (ui?.copyText(value === "code" ? clean(text3) : clean(rewriteMentionLinks(text3, current3.session.cwd, false))) ?? Promise.resolve(false));
+          const result = await (ui?.copyText(value === "code" ? clean(text3) : clean(rewriteMentionLinks(text3, current2.session.cwd, false))) ?? Promise.resolve(false));
           return result === "clipboard" ? ui?.notify(tr("\u5DF2\u590D\u5236", "Copied"), "success") : result === "terminal" ? ui?.notify(tr("\u5DF2\u53D1\u9001\u5230\u7EC8\u7AEF\uFF0C\u8BF7\u7C98\u8D34\u6838\u5BF9", "Copy sent to terminal. Paste to verify"), "info") : (ui?.notify(tr("\u65E0\u6CD5\u590D\u5236", "Couldn\u2019t copy"), "error"), entry(tr("\u65E0\u6CD5\u590D\u5236\u3002", "Couldn\u2019t copy."), void 0, "error"));
         })().catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
       } else if (command === "/todos") {
-        const tasks = currentTasks(current3);
+        const tasks = currentTasks(current2);
         const body = tasks.length ? taskLines(tasks) : tr("\u5F53\u524D\u6CA1\u6709\u4EFB\u52A1\u6E05\u5355\u3002", "No tasks yet.");
         if (ui) void ui.view(tr("\u4EFB\u52A1\u6E05\u5355", "Tasks"), body).catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
@@ -49420,7 +48600,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         try {
-          saveQueue([...current3.queue, { id: (0, import_node_crypto9.randomUUID)(), text: "/compact", state: "waiting" }]);
+          saveQueue([...current2.queue, { id: (0, import_node_crypto9.randomUUID)(), text: "/compact", state: "waiting" }]);
           dispatchQueue();
         } catch (error) {
           entry(error.message, void 0, "error");
@@ -49446,7 +48626,7 @@ async function runInteractive(worker, options, request, ui) {
           entry(tr("\u5171\u4EAB\u6A21\u5F0F\u8BF7\u5728 Cortex \u684C\u9762\u4E2D\u8BBE\u7F6E\u4F9B\u5E94\u5546\u3002", "In shared mode, set providers in Cortex desktop."));
           return;
         }
-        if (command === "/config" && (current3.running || Object.keys(current3.submissions).length)) {
+        if (command === "/config" && (current2.running || Object.keys(current2.submissions).length)) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u4FEE\u6539\u914D\u7F6E\u3002", "Wait for the current operation before changing the configuration."));
           return;
         }
@@ -49462,7 +48642,7 @@ async function runInteractive(worker, options, request, ui) {
           "\u8BBE\u7F6E\u4FDD\u5B58\u540E\u5C06\u65B0\u5EFA\u4F1A\u8BDD\uFF1B\u5F53\u524D\u4F1A\u8BDD\u4FDD\u7559\u3002\u53D6\u6D88\u8BBE\u7F6E\u5219\u8FD4\u56DE\u5F53\u524D\u4F1A\u8BDD\u3002",
           "Saving settings starts a new session and keeps this one. Cancel to return to this session."
         ));
-        configure = { kind: "configure", cwd: current3.session.cwd, sessionId: current3.session.sessionId };
+        configure = { kind: "configure", cwd: current2.session.cwd, sessionId: current2.session.sessionId };
         update({ closing: true });
         send({ type: "close" });
       } else if (command === "/exit") {
@@ -49471,7 +48651,7 @@ async function runInteractive(worker, options, request, ui) {
         if (!value) {
           if (ui) void openSettings(command);
           else {
-            entry(command === "/model" ? tr("\u6A21\u578B\uFF1A", "Model: ") + current3.session.model : command === "/thinking" ? tr("\u601D\u8003\uFF1A", "Thinking: ") + (current3.session.thinking?.value ?? tr("\u672A\u77E5", "Unknown")) : tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(current3.session.mode));
+            entry(command === "/model" ? tr("\u6A21\u578B\uFF1A", "Model: ") + current2.session.model : command === "/thinking" ? tr("\u601D\u8003\uFF1A", "Thinking: ") + (current2.session.thinking?.value ?? tr("\u672A\u77E5", "Unknown")) : tr("\u6743\u9650\uFF1A", "Permissions: ") + modeLabel(current2.session.mode));
           }
           return;
         }
@@ -49479,7 +48659,19 @@ async function runInteractive(worker, options, request, ui) {
           entry(tr("\u6743\u9650\u6A21\u5F0F\u65E0\u6548\u3002", "Invalid permission mode."));
           return;
         }
-        if (command === "/thinking" && !current3.session.thinking?.levels.includes(value)) {
+        if (command === "/permissions") {
+          const reason = operationReason();
+          if (reason) {
+            ui?.notify(reason, "warning");
+            if (current2.requests.some((item) => item.interaction.kind === "plan")) {
+              prompted = "";
+              update({});
+            }
+            return;
+          }
+          if (value === current2.session.mode) return;
+        }
+        if (command === "/thinking" && !current2.session.thinking?.levels.includes(value)) {
           entry(tr("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6\u3002", "This model doesn\u2019t support that thinking level."));
           return;
         }
@@ -49490,7 +48682,7 @@ async function runInteractive(worker, options, request, ui) {
           ...command === "/model" ? { model: value } : command === "/thinking" ? { thinking: value } : { mode: value }
         }, command === "/permissions" ? { notice: modeNotice(value) + "\n" + tr("\u4EC5\u5F53\u524D\u4F1A\u8BDD\u3002", "This session only."), log: true } : { notice: value + tr("  \u4EC5\u5F53\u524D\u4F1A\u8BDD", "  This session only") });
       } else if (command === "/allow" || command === "/deny") {
-        const pending = current3.requests[0]?.interaction;
+        const pending = current2.requests[0]?.interaction;
         if (!pending || pending.kind === "question") {
           entry(tr("\u5F53\u524D\u6CA1\u6709\u5F85\u786E\u8BA4\u64CD\u4F5C\uFF1B\u95EE\u9898\u8BF7\u7528 /answer \u56DE\u7B54\u3002", "Nothing to approve; answer questions with /answer."));
           return;
@@ -49504,14 +48696,14 @@ async function runInteractive(worker, options, request, ui) {
           respond("allow_session");
         } else respond(pending.kind === "plan" ? "approve_edit" : "allow");
       } else if (command === "/answer") {
-        const pending = current3.requests[0]?.interaction;
+        const pending = current2.requests[0]?.interaction;
         if (pending?.kind !== "question" || !value) {
           entry(tr("\u8BF7\u5728\u6709\u95EE\u9898\u65F6\u8F93\u5165 /answer <\u56DE\u7B54\u5185\u5BB9>\u3002", "Use /answer <answer> when there\u2019s a question."));
           return;
         }
-        const question = pending.request.questions.find((item) => !current3.answers[item.question]);
+        const question = pending.request.questions.find((item) => !current2.answers[item.question]);
         if (!question) return;
-        const answers = { ...current3.answers, [question.question]: value };
+        const answers = { ...current2.answers, [question.question]: value };
         update({ answers });
         if (pending.request.questions.every((item) => answers[item.question])) respond(answers);
       } else {
@@ -49527,7 +48719,7 @@ async function runInteractive(worker, options, request, ui) {
     }
     let attachments;
     try {
-      attachments = runtimeAttachmentRefs(draftAttachments, current3.session.sessionId);
+      attachments = runtimeAttachmentRefs(draftAttachments, current2.session.sessionId);
     } catch (error) {
       entry(error.message, void 0, "error");
       restoreDraft(text2);
@@ -49535,7 +48727,7 @@ async function runInteractive(worker, options, request, ui) {
     }
     if (!text2.trim()) text2 = "\u8BF7\u67E5\u770B\u9644\u4EF6\u3002";
     try {
-      saveQueue([...current3.queue, { id: (0, import_node_crypto9.randomUUID)(), text: text2, attachments, state: "waiting" }]);
+      saveQueue([...current2.queue, { id: (0, import_node_crypto9.randomUUID)(), text: text2, attachments, state: "waiting" }]);
       draftAttachments = [];
       ui?.setAttachments?.([]);
       resumeQueue();
@@ -49546,8 +48738,8 @@ async function runInteractive(worker, options, request, ui) {
     }
   };
   const pendingText = () => {
-    const current3 = store.get(state);
-    const item = current3.requests[0]?.interaction;
+    const current2 = store.get(state);
+    const item = current2.requests[0]?.interaction;
     if (!item) return "";
     if (item.kind === "permission") {
       return tr("\u9700\u8981\u786E\u8BA4\uFF1A", "Approval needed: ") + item.request.toolName + "\n" + item.request.description + "\n" + (item.request.editPreview ?? JSON.stringify(item.request.toolInput, null, 2)) + "\n" + (item.request.decisionReason ?? "") + "\n" + (item.request.allowAlways === false ? tr("/allow \u5141\u8BB8\u672C\u6B21    /deny [\u539F\u56E0] \u62D2\u7EDD", "/allow allow once    /deny [reason] deny") : tr(
@@ -49558,7 +48750,7 @@ async function runInteractive(worker, options, request, ui) {
     if (item.kind === "plan") {
       return tr("\u6279\u51C6\u8BA1\u5212\u5E76\u5207\u6362\u5230\u6309\u9700\u786E\u8BA4\uFF1F", "Approve the plan and switch to Ask for approval?") + "\n" + item.request.plan + "\n" + tr("/allow \u6279\u51C6    /deny [\u610F\u89C1] \u62D2\u7EDD", "/allow approve    /deny [feedback] deny");
     }
-    const question = item.request.questions.find((value) => !current3.answers[value.question]);
+    const question = item.request.questions.find((value) => !current2.answers[value.question]);
     if (!question) return tr("\u6B63\u5728\u63D0\u4EA4\u56DE\u7B54\u3002", "Submitting answer\u2026");
     return tr("\u9700\u8981\u56DE\u7B54\uFF1A", "Answer needed: ") + question.question + "\n" + question.options.map((option) => option.label + (option.description ? tr("\uFF1A", ": ") + option.description : "")).join("\n") + "\n" + tr("/answer <\u56DE\u7B54\u5185\u5BB9>", "/answer <answer>") + (question.multiSelect ? tr("\uFF08\u53EF\u586B\u5199\u591A\u4E2A\u9009\u9879\uFF09", " (multiple options allowed)") : "");
   };
@@ -49661,18 +48853,18 @@ async function runInteractive(worker, options, request, ui) {
         else lookup.reject(new HostRejected(message.message ?? tr("\u67E5\u8BE2\u5931\u8D25", "Query failed")));
         return;
       }
-      const current3 = store.get(state);
-      const submission = current3.submissions[message.id];
-      const submissions = { ...current3.submissions };
+      const current2 = store.get(state);
+      const submission = current2.submissions[message.id];
+      const submissions = { ...current2.submissions };
       delete submissions[message.id];
       update({ submissions });
-      const queued = current3.queue.find((item) => item.id === message.id);
+      const queued = current2.queue.find((item) => item.id === message.id);
       if (queued) {
         try {
-          saveQueue(message.accepted ? current3.queue.filter((item) => item.id !== message.id) : current3.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto9.randomUUID)(), state: "waiting" } : item));
+          saveQueue(message.accepted ? current2.queue.filter((item) => item.id !== message.id) : current2.queue.map((item) => item.id === message.id ? { ...item, id: (0, import_node_crypto9.randomUUID)(), state: "waiting" } : item));
           if (!message.accepted) update({ queuePaused: true });
         } catch (error) {
-          update({ queue: current3.queue.map((item) => item.id === message.id ? { ...item, state: "uncertain" } : item), queuePaused: true });
+          update({ queue: current2.queue.map((item) => item.id === message.id ? { ...item, state: "uncertain" } : item), queuePaused: true });
           entry(
             tr("\u65E0\u6CD5\u4FDD\u5B58\u961F\u5217\uFF0C\u8BF7\u6838\u5BF9\u6D88\u606F\uFF0C\u52FF\u91CD\u590D\u53D1\u9001\uFF1A", "Couldn\u2019t save the queue. Check the messages and don\u2019t resend them: ") + error.message,
             void 0,
@@ -49697,10 +48889,10 @@ async function runInteractive(worker, options, request, ui) {
           );
         }
         if (submission?.requestId) {
-          update({ requests: current3.requests.filter((item) => item.interaction.request.requestId !== submission.requestId), answers: {} });
+          update({ requests: current2.requests.filter((item) => item.interaction.request.requestId !== submission.requestId), answers: {} });
         }
       } else {
-        if (submission?.text && current3.startingId === message.id) update({ starting: false, startingId: void 0 });
+        if (submission?.text && current2.startingId === message.id) update({ starting: false, startingId: void 0 });
         if (message.message !== "\u6D88\u606F\u672A\u53D7\u7406\uFF0C\u8BF7\u67E5\u770B\u9519\u8BEF\u540E\u91CD\u8BD5")
           entry(tr("\u672A\u53D7\u7406\uFF1A", "Not accepted: ") + message.message, void 0, "error");
         if (submission?.text && !queued) restoreDraft(submission.text, submission.attachments);
@@ -49733,14 +48925,14 @@ async function runInteractive(worker, options, request, ui) {
       } else if (event.type === "context.updated") {
         if (event.sessionId === store.get(state).session?.sessionId && event.runId === store.get(state).runId) update({ context: event.context });
       } else if (event.type === "agents.updated") {
-        const current3 = store.get(state);
-        if (current3.running && event.sessionId === current3.session?.sessionId && event.runId === current3.runId && (current3.agentsSequence === void 0 || event.sequence >= current3.agentsSequence)) {
-          const notifications = agentEntries(event.agents ?? [], current3.agents, event.runId);
+        const current2 = store.get(state);
+        if (current2.running && event.sessionId === current2.session?.sessionId && event.runId === current2.runId && (current2.agentsSequence === void 0 || event.sequence >= current2.agentsSequence)) {
+          const notifications = agentEntries(event.agents ?? [], current2.agents, event.runId);
           update({
             agents: event.agents ?? [],
             agentsSequence: event.sequence,
             agentsTruncated: event.agentsTruncated,
-            entries: upsertEntries(current3.entries, notifications)
+            entries: upsertEntries(current2.entries, notifications)
           });
         }
       } else if (event.type === "message.updated") entry(event.text ?? "", `${event.sessionId}:${event.messageId}`, "assistant", void 0, event.agentId);
@@ -49773,21 +48965,21 @@ async function runInteractive(worker, options, request, ui) {
         update({ entries });
       }
     } else if (message.type === "result") {
-      const current3 = store.get(state);
+      const current2 = store.get(state);
       if (!isCurrentResult(
         message.result,
-        current3.session?.sessionId,
-        current3.running ? current3.runId : void 0,
-        current3.starting ? current3.startingId : void 0
+        current2.session?.sessionId,
+        current2.running ? current2.runId : void 0,
+        current2.starting ? current2.startingId : void 0
       )) {
         const history = resultEntries(message.result);
-        if (message.result.answer && !current3.entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === message.result.runId)) history.unshift({
+        if (message.result.answer && !current2.entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === message.result.runId)) history.unshift({
           id: message.result.runId + ":history-answer",
           kind: "assistant",
           runId: message.result.runId ?? void 0,
           text: clean(message.result.answer)
         });
-        update({ entries: [...current3.entries, ...history.filter((item) => !current3.entries.some((existing) => existing.id === item.id))] });
+        update({ entries: [...current2.entries, ...history.filter((item) => !current2.entries.some((existing) => existing.id === item.id))] });
         return;
       }
       if (timeout) clearTimeout(timeout);
@@ -49803,26 +48995,26 @@ async function runInteractive(worker, options, request, ui) {
         queuePaused: store.get(state).queuePaused || !["completed", "blocked"].includes(message.result.status),
         startupFailed: !store.get(state).session
       });
-      if (current3.session) refreshBranch(current3.session.cwd);
+      if (current2.session) refreshBranch(current2.session.cwd);
       process.exitCode = outputFailed ? 4 : timedOut && message.result.status === "cancelled" ? 124 : message.result.exitCode;
       const result = message.result;
-      if (current3.session && result.persistence === "saved") {
+      if (current2.session && result.persistence === "saved") {
         try {
-          markSessionSeen(request.configDir, current3.session.sessionId, Date.now());
+          markSessionSeen(request.configDir, current2.session.sessionId, Date.now());
         } catch {
         }
       }
       update({
-        agents: result.agents ?? current3.agents.map((agent) => ({
+        agents: result.agents ?? current2.agents.map((agent) => ({
           ...agent,
           ...["queued", "running"].includes(agent.status) && { status: "interrupted" },
           controllable: false,
           steerable: false,
           waitingConfirmation: false
         })),
-        agentsTruncated: result.agentsTruncated ?? current3.agentsTruncated
+        agentsTruncated: result.agentsTruncated ?? current2.agentsTruncated
       });
-      const notifications = agentEntries(store.get(state).agents, current3.agents, result.runId ?? "");
+      const notifications = agentEntries(store.get(state).agents, current2.agents, result.runId ?? "");
       update({ entries: upsertEntries(store.get(state).entries, notifications) });
       if (result.answer && !store.get(state).entries.some((item) => item.kind === "assistant" && !item.agentId && item.runId === result.runId)) {
         entry(result.answer, void 0, "assistant");
@@ -49868,8 +49060,8 @@ async function runInteractive(worker, options, request, ui) {
         process.stdout.write(tr("\u672A\u53D1\u9001\u8349\u7A3F\uFF1A", "Unsent draft: ") + clean(text2) + "\n");
       };
       const unsubscribe = store.sub(state, () => {
-        const current3 = store.get(state);
-        for (const item of current3.entries) {
+        const current2 = store.get(state);
+        for (const item of current2.entries) {
           if (printed.get(item.id) !== item.text) {
             const speaker = item.agentId ? "@" + item.agentId + tr("\uFF1A", ": ") : item.kind === "assistant" ? tr("Cortex\uFF1A", "Cortex: ") : item.kind === "user" ? tr("\u4F60\uFF1A", "You: ") : "";
             process.stdout.write(speaker + item.text + "\n");
@@ -49992,35 +49184,35 @@ async function runInteractive(worker, options, request, ui) {
         }
       };
       const render = () => {
-        const current3 = store.get(state);
-        const tasks = currentTasks(current3);
-        const queue = current3.queue.length ? tr("  \u5F85\u53D1\u9001 ", "  Queued ") + current3.queue.length + (current3.queuePaused ? tr("\uFF08\u6682\u505C\uFF09", " (paused)") : "") + (current3.running && current3.queue[0]?.state === "waiting" && !current3.queue[0].attachments?.length ? tr("  Enter \u63D2\u8BDD", "  Enter send now") : "") + (current3.queuePaused && !current3.running && !current3.starting && !current3.stopping && current3.queue.every((item) => item.state === "waiting") ? tr("  Enter \u7EE7\u7EED", "  Enter resume") : "") + (current3.queue.some((item) => item.state === "waiting") ? tr("  \u2191 \u6539\u56DE\u8349\u7A3F", "  \u2191 edit") : "") : "";
-        const elapsed = current3.running && current3.startedAt !== void 0 ? "  " + formatDuration(Math.max(0, Date.now() - current3.startedAt)) : "";
-        const status = current3.closing ? configure?.kind === "switch" ? tr("\u6B63\u5728\u5207\u6362\u4F1A\u8BDD", "Switching sessions\u2026") : tr("\u6B63\u5728\u9000\u51FA", "Quitting\u2026") : current3.requests.length ? tr("\u7B49\u5F85\u786E\u8BA4 ", "Awaiting confirmation ") + current3.requests.length : current3.stopping ? tr("\u6B63\u5728\u505C\u6B62", "Stopping\u2026") : current3.running ? tr("\u8FD0\u884C\u4E2D", "Running") : current3.starting ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : current3.startupFailed ? tr("\u542F\u52A8\u5931\u8D25\uFF1B/config \u8BBE\u7F6E", "Startup failed; set up with /config") : current3.session ? tr("\u7A7A\u95F2", "Idle") : tr("\u6B63\u5728\u8FDE\u63A5", "Connecting\u2026");
-        const activeAgents = current3.agents.filter((agent) => agent.kind !== "workflow" && ["queued", "running"].includes(agent.status)).length;
-        const waiting = current3.agents.filter((agent) => agent.waitingConfirmation).length;
-        const waitingAgents = current3.entries.some((item) => item.kind === "tool" && item.status === "running" && /WaitAgentUpdates/.test(item.text));
-        const summary = current3.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u4EE3\u7406", " " + plural(activeAgents, "agent")) : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
-        screen.liveRunId = current3.running ? current3.runId : void 0;
+        const current2 = store.get(state);
+        const tasks = currentTasks(current2);
+        const queue = current2.queue.length ? tr("  \u5F85\u53D1\u9001 ", "  Queued ") + current2.queue.length + (current2.queuePaused ? tr("\uFF08\u6682\u505C\uFF09", " (paused)") : "") + (current2.running && current2.queue[0]?.state === "waiting" && !current2.queue[0].attachments?.length ? tr("  Enter \u63D2\u8BDD", "  Enter send now") : "") + (current2.queuePaused && !current2.running && !current2.starting && !current2.stopping && current2.queue.every((item) => item.state === "waiting") ? tr("  Enter \u7EE7\u7EED", "  Enter resume") : "") + (current2.queue.some((item) => item.state === "waiting") ? tr("  \u2191 \u6539\u56DE\u8349\u7A3F", "  \u2191 edit") : "") : "";
+        const elapsed = current2.running && current2.startedAt !== void 0 ? "  " + formatDuration(Math.max(0, Date.now() - current2.startedAt)) : "";
+        const status = current2.closing ? configure?.kind === "switch" ? tr("\u6B63\u5728\u5207\u6362\u4F1A\u8BDD", "Switching sessions\u2026") : tr("\u6B63\u5728\u9000\u51FA", "Quitting\u2026") : current2.requests.length ? tr("\u7B49\u5F85\u786E\u8BA4 ", "Awaiting confirmation ") + current2.requests.length : current2.stopping ? tr("\u6B63\u5728\u505C\u6B62", "Stopping\u2026") : current2.running ? tr("\u8FD0\u884C\u4E2D", "Running") : current2.starting ? tr("\u6B63\u5728\u63D0\u4EA4", "Submitting\u2026") : current2.startupFailed ? tr("\u542F\u52A8\u5931\u8D25\uFF1B/config \u8BBE\u7F6E", "Startup failed; set up with /config") : current2.session ? tr("\u7A7A\u95F2", "Idle") : tr("\u6B63\u5728\u8FDE\u63A5", "Connecting\u2026");
+        const activeAgents = current2.agents.filter((agent) => agent.kind !== "workflow" && ["queued", "running"].includes(agent.status)).length;
+        const waiting = current2.agents.filter((agent) => agent.waitingConfirmation).length;
+        const waitingAgents = current2.entries.some((item) => item.kind === "tool" && item.status === "running" && /WaitAgentUpdates/.test(item.text));
+        const summary = current2.agents.length ? (waitingAgents ? tr("\u7B49\u5F85 ", "Waiting for ") + activeAgents + tr(" \u4E2A\u4EE3\u7406", " " + plural(activeAgents, "agent")) : tr("\u4EE3\u7406 ", "Agents: ") + activeAgents + tr(" \u6D3B\u52A8", " active")) + (waiting ? "  " + waiting + tr(" \u5F85\u786E\u8BA4", " awaiting confirmation") : "") : "";
+        screen.liveRunId = current2.running ? current2.runId : void 0;
         screen.update(
-          current3.entries,
-          current3.session && { ...current3.session, branch: current3.branch },
+          current2.entries,
+          current2.session && { ...current2.session, branch: current2.branch },
           status + queue,
           [waitingAgents ? summary : "", elapsed.trim()].filter(Boolean).join("  "),
-          current3.agents,
-          current3.runId,
-          !current3.requests.length && (current3.running || current3.starting || !current3.session && !current3.startupFailed),
-          current3.agentsTruncated,
-          !!current3.session && !current3.running && !current3.starting && !current3.requests.length && !current3.closing && !current3.stopping && !current3.startupFailed && !queue,
-          current3.context?.tokens === null || !current3.context?.window ? "" : contextLabel(current3.context),
+          current2.agents,
+          current2.runId,
+          !current2.requests.length && (current2.running || current2.starting || !current2.session && !current2.startupFailed),
+          current2.agentsTruncated,
+          !!current2.session && !current2.running && !current2.starting && !current2.requests.length && !current2.closing && !current2.stopping && !current2.startupFailed && !queue,
+          current2.context?.tokens === null || !current2.context?.window ? "" : contextLabel(current2.context),
           taskSummary(tasks),
-          !!current3.requests.length
+          !!current2.requests.length
         );
         screen.setCommandContext(commandContext());
-        if (current3.session && completionSession !== current3.session.sessionId) {
-          completionSession = current3.session.sessionId;
-          for (const text2 of readPromptHistory(request.configDir, current3.session.cwd).reverse()) screen.editor.addToHistory(text2);
-          screen.editor.setAutocompleteProvider(new CortexAutocomplete(commandContext, current3.session.cwd, discoverSkills, async (signal) => {
+        if (current2.session && completionSession !== current2.session.sessionId) {
+          completionSession = current2.session.sessionId;
+          for (const text2 of readPromptHistory(request.configDir, current2.session.cwd).reverse()) screen.editor.addToHistory(text2);
+          screen.editor.setAutocompleteProvider(new CortexAutocomplete(commandContext, current2.session.cwd, discoverSkills, async (signal) => {
             try {
               const reply = await query({ type: "sessions", id: (0, import_node_crypto9.randomUUID)() }, AbortSignal.any([signal, AbortSignal.timeout(5e3)]));
               return reply.type === "sessions" ? reply.sessions : [];
@@ -50032,7 +49224,7 @@ async function runInteractive(worker, options, request, ui) {
             }
           }));
         }
-        const pending = current3.requests[0];
+        const pending = current2.requests[0];
         const id = pending?.interaction.request.requestId ?? "";
         if (id !== prompted) {
           if (prompted) screen.cancelForm();
@@ -50071,7 +49263,7 @@ async function runInteractive(worker, options, request, ui) {
       };
       restoreDraft = (text2, files = []) => {
         screen.editor.setText([screen.editor.getExpandedText(), text2].filter(Boolean).join("\n"));
-        draftAttachments = [...draftAttachments, ...files.filter((file) => !draftAttachments.some((current3) => current3.id === file.id))];
+        draftAttachments = [...draftAttachments, ...files.filter((file) => !draftAttachments.some((current2) => current2.id === file.id))];
         screen.setAttachments?.(draftAttachments);
         screen.tui.requestRender();
       };
@@ -50087,13 +49279,13 @@ async function runInteractive(worker, options, request, ui) {
         if (!store.get(state).requests.length && (store.get(state).running || store.get(state).starting)) cancel();
       };
       screen.onSteer = () => {
-        const current3 = store.get(state);
-        if (current3.requests.length) {
+        const current2 = store.get(state);
+        if (current2.requests.length) {
           screen.notify(tr("\u8BF7\u5148\u5904\u7406\u5F85\u786E\u8BA4\u8BF7\u6C42", "Handle the pending request first"), "warning");
           return;
         }
         const text2 = screen.editor.getExpandedText();
-        if (!current3.running) {
+        if (!current2.running) {
           screen.notify(tr("\u5F53\u524D\u6CA1\u6709\u8FD0\u884C\uFF1BEnter \u53D1\u9001", "Nothing is running; Enter sends"));
           return;
         }
@@ -50104,7 +49296,7 @@ async function runInteractive(worker, options, request, ui) {
         if (text2.trim()) {
           try {
             const item = { id: (0, import_node_crypto9.randomUUID)(), text: text2, state: "waiting" };
-            saveQueue([...current3.queue, item]);
+            saveQueue([...current2.queue, item]);
             screen.editor.setText("");
             steerQueued(item);
           } catch (error) {
@@ -50121,21 +49313,12 @@ async function runInteractive(worker, options, request, ui) {
         await discoverSkills(signal);
       };
       screen.onCycleMode = () => {
-        const current3 = store.get(state);
-        if (!current3.session || commandContext().busy) {
-          entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u5207\u6362\u6743\u9650\u3002", "Wait for the current operation before changing permissions."));
-          return;
-        }
-        if (current3.session.mode === "plan") {
-          submit("/permissions");
-          return;
-        }
-        submit("/permissions " + (current3.session.mode === "auto" ? "plan" : "auto"));
+        void openMode();
       };
       screen.onDial = () => {
-        const current3 = store.get(state);
-        const thinking = current3.session?.thinking;
-        if (!current3.session || commandContext().busy) {
+        const current2 = store.get(state);
+        const thinking = current2.session?.thinking;
+        if (!current2.session || commandContext().busy) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u8C03\u6574\u601D\u8003\u5F3A\u5EA6\u3002", "Wait for the current operation before changing thinking."));
           return;
         }
@@ -50147,7 +49330,7 @@ async function runInteractive(worker, options, request, ui) {
           tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"),
           thinking.levels.map((level) => ({ value: level, label: thinkingLabel(level) })),
           thinking.value,
-          [tr("\u6A21\u578B  ", "Model  ") + current3.session.model, tr("\u8303\u56F4  \u5F53\u524D\u4F1A\u8BDD", "Scope  This session")]
+          [tr("\u6A21\u578B  ", "Model  ") + current2.session.model, tr("\u8303\u56F4  \u5F53\u524D\u4F1A\u8BDD", "Scope  This session")]
         ).then((value) => {
           if (value === ":list") submit("/thinking");
           else if (value !== thinking.value) submit("/thinking " + value);
@@ -50157,8 +49340,8 @@ async function runInteractive(worker, options, request, ui) {
       };
       screen.onError = (error) => entry(error.message, void 0, "error");
       screen.onAgentControl = async (action, text2) => {
-        const current3 = store.get(state);
-        if (!current3.running || current3.stopping || current3.closing || current3.session?.sessionId !== action.sessionId || current3.runId !== action.runId) {
+        const current2 = store.get(state);
+        if (!current2.running || current2.stopping || current2.closing || current2.session?.sessionId !== action.sessionId || current2.runId !== action.runId) {
           throw new Error(tr("\u4EE3\u7406\u64CD\u4F5C\u5DF2\u8FC7\u671F", "The agent action is stale"));
         }
         const controller = new AbortController();
@@ -50224,7 +49407,7 @@ async function runInteractive(worker, options, request, ui) {
 }
 
 // src/args.ts
-var import_node_os7 = require("node:os");
+var import_node_os6 = require("node:os");
 var import_node_path22 = require("node:path");
 var import_node_crypto14 = require("node:crypto");
 var import_node_util7 = require("node:util");
@@ -50365,7 +49548,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
     return {
       ...options,
       format: values.json ? "json" : options.format,
-      doctor: { configDir: values["config-dir"] ?? (0, import_node_path22.join)((0, import_node_os7.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview") }
+      doctor: { configDir: values["config-dir"] ?? (0, import_node_path22.join)((0, import_node_os6.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview") }
     };
   }
   if (values.json) throw new Error(tr("--json \u4EC5\u7528\u4E8E doctor\uFF1B\u6267\u884C\u4EFB\u52A1\u8BF7\u7528 --output-format json", "--json is only for doctor; use --output-format json for tasks"));
@@ -50375,7 +49558,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   }
   if (positionals[0] === "mcp") {
     if (options.desktop) throw new Error(tr("\u5171\u4EAB\u6A21\u5F0F\u7684 MCP \u8BF7\u5728 Cortex \u684C\u9762\u7684\u6269\u5C55\u4E2D\u5FC3\u7BA1\u7406", "In desktop mode, manage MCP servers in the Cortex desktop extension center"));
-    return { ...options, mcp: { command: parseMcpCommand(positionals, values), configDir: values["config-dir"] ?? (0, import_node_path22.join)((0, import_node_os7.homedir)(), ".cortex-cli-preview") } };
+    return { ...options, mcp: { command: parseMcpCommand(positionals, values), configDir: values["config-dir"] ?? (0, import_node_path22.join)((0, import_node_os6.homedir)(), ".cortex-cli-preview") } };
   }
   if (values.url || values.header || values.env) throw new Error(tr("--url\u3001--header\u3001--env \u53EA\u7528\u4E8E cortex mcp add", "--url, --header and --env are only for cortex mcp add"));
   if (positionals[0] === "completions") {
@@ -50433,7 +49616,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
     options.outputSchema = values["output-schema"];
     options.outputFile = values["output-last-message"];
   }
-  values["config-dir"] ??= (0, import_node_path22.join)((0, import_node_os7.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
+  values["config-dir"] ??= (0, import_node_path22.join)((0, import_node_os6.homedir)(), options.desktop ? ".cortex" : ".cortex-cli-preview");
   if (!values["config-dir"]?.trim()) {
     throw new Error(tr(
       "\u9884\u89C8\u5FC5\u987B\u7528 --config-dir \u6307\u5B9A\u72EC\u7ACB\u76EE\u5F55\uFF0C\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55",
@@ -50474,7 +49657,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
 // src/update.ts
 var import_node_child_process8 = require("node:child_process");
 var import_node_fs24 = require("node:fs");
-var import_node_os8 = require("node:os");
+var import_node_os7 = require("node:os");
 var import_node_path23 = require("node:path");
 var import_node_util8 = require("node:util");
 init_src();
@@ -50491,18 +49674,18 @@ function compareVersions(a, b) {
   }
   return 0;
 }
-function changelog(commits, current3, latest) {
+function changelog(commits, current2, latest) {
   const entries = [];
   for (const { commit } of commits) {
     const [subject = "", ...body] = (commit?.message ?? "").split("\n");
     const version2 = /^cortex-cli (\d+\.\d+\.\d+)/.exec(subject.trim())?.[1];
-    if (!version2 || compareVersions(version2, current3) <= 0 || compareVersions(version2, latest) > 0 || entries.some((entry) => entry.version === version2)) continue;
+    if (!version2 || compareVersions(version2, current2) <= 0 || compareVersions(version2, latest) > 0 || entries.some((entry) => entry.version === version2)) continue;
     entries.push({ version: version2, items: body.map((line) => line.trim()).filter((line) => line.startsWith("- ")).map((line) => line.slice(2)) });
   }
   return entries.sort((a, b) => compareVersions(b.version, a.version));
 }
 async function runUpdate(deps) {
-  const { current: current3, write } = deps;
+  const { current: current2, write } = deps;
   write(theme.bold(tr("Cortex CLI \u66F4\u65B0", "Cortex CLI update")) + "\n");
   let latest;
   try {
@@ -50514,14 +49697,14 @@ async function runUpdate(deps) {
   }
   const [currentLabel, latestLabel] = [tr("\u5F53\u524D", "Current"), tr("\u6700\u65B0", "Latest")];
   const labelWidth = Math.max(currentLabel.length, latestLabel.length);
-  write("  " + theme.muted(currentLabel.padEnd(labelWidth)) + "  " + current3 + "\n  " + theme.muted(latestLabel.padEnd(labelWidth)) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
-  if (compareVersions(latest, current3) <= 0) {
-    write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current3) + "\n");
+  write("  " + theme.muted(currentLabel.padEnd(labelWidth)) + "  " + current2 + "\n  " + theme.muted(latestLabel.padEnd(labelWidth)) + "  " + theme.accent(theme.bold(latest)) + "   " + theme.muted(updateSource) + "\n");
+  if (compareVersions(latest, current2) <= 0) {
+    write("\n" + theme.success("\u2713 " + tr("\u5DF2\u662F\u6700\u65B0\u7248\u672C ", "Already up to date: ") + current2) + "\n");
     return 0;
   }
   let notes = [];
   try {
-    notes = changelog(JSON.parse(await deps.fetchText(commitsUrl)), current3, latest);
+    notes = changelog(JSON.parse(await deps.fetchText(commitsUrl)), current2, latest);
   } catch {
     notes = [];
   }
@@ -50538,20 +49721,20 @@ async function runUpdate(deps) {
   deps.progress("");
   const took = formatDuration(deps.now() - started);
   if (result.code !== 0) {
-    write(theme.error("\u2717 " + tr("\u66F4\u65B0\u5931\u8D25", "Update failed")) + "  " + theme.muted(tr("npm \u9000\u51FA\u7801 ", "npm exit code ") + result.code + tr("\uFF0C\u5F53\u524D\u4ECD\u662F ", "; still on ") + current3) + "\n");
+    write(theme.error("\u2717 " + tr("\u66F4\u65B0\u5931\u8D25", "Update failed")) + "  " + theme.muted(tr("npm \u9000\u51FA\u7801 ", "npm exit code ") + result.code + tr("\uFF0C\u5F53\u524D\u4ECD\u662F ", "; still on ") + current2) + "\n");
     for (const line of result.output.trim().split("\n").slice(-4)) if (line.trim()) write("  " + theme.muted(line) + "\n");
     write("  " + theme.muted(tr("\u53EF\u4EE5\u91CD\u8BD5\uFF0C\u6216\u624B\u52A8\u8FD0\u884C\uFF1Anpm install -g ", "Try again, or run: npm install -g ") + updateSource) + "\n");
     return 1;
   }
   const now = deps.installed();
-  if (now && compareVersions(now, current3) <= 0) {
+  if (now && compareVersions(now, current2) <= 0) {
     write(theme.warning("\u26A0 " + tr("\u5B89\u88C5\u5B8C\u6210\uFF0C\u4F46\u7248\u672C\u4ECD\u662F ", "Installed, but the version is still ") + now) + "\n");
     return 1;
   }
-  write(theme.success("\u2713 " + tr("\u5DF2\u66F4\u65B0  ", "Updated  ") + current3 + " \u2192 " + (now ?? latest)) + "  " + theme.muted(tr("\u7528\u65F6 ", "took ") + took) + "\n  " + theme.muted(tr("\u91CD\u65B0\u6253\u5F00 cortex \u5373\u53EF\u4F7F\u7528\u65B0\u7248\u672C", "Reopen cortex to use the new version")) + "\n");
+  write(theme.success("\u2713 " + tr("\u5DF2\u66F4\u65B0  ", "Updated  ") + current2 + " \u2192 " + (now ?? latest)) + "  " + theme.muted(tr("\u7528\u65F6 ", "took ") + took) + "\n  " + theme.muted(tr("\u91CD\u65B0\u6253\u5F00 cortex \u5373\u53EF\u4F7F\u7528\u65B0\u7248\u672C", "Reopen cortex to use the new version")) + "\n");
   return 0;
 }
-function systemUpdateDeps(current3) {
+function systemUpdateDeps(current2) {
   const unicode = unicodeSupported();
   const out = (text2) => {
     const shown = unicode ? text2 : toAscii(text2);
@@ -50560,7 +49743,7 @@ function systemUpdateDeps(current3) {
   const command = process.platform === "win32" ? "npm.cmd" : "npm";
   let progressShown = false;
   return {
-    current: current3,
+    current: current2,
     now: Date.now,
     write: out,
     fetchText: async (url) => {
@@ -50609,10 +49792,10 @@ function systemUpdateDeps(current3) {
     }
   };
 }
-async function checkForUpdate(current3, options = {}) {
+async function checkForUpdate(current2, options = {}) {
   const env = options.env ?? process.env;
   if (env.CORTEX_NO_UPDATE_CHECK === "1" || env.CORTEX_NO_UPDATE_CHECK === "true") return void 0;
-  const path = options.path ?? (0, import_node_path23.join)((0, import_node_os8.homedir)(), ".cortex-cli-update.json");
+  const path = options.path ?? (0, import_node_path23.join)((0, import_node_os7.homedir)(), ".cortex-cli-update.json");
   const now = options.now ?? Date.now();
   let cached = {};
   try {
@@ -50639,7 +49822,7 @@ async function checkForUpdate(current3, options = {}) {
       return void 0;
     }
   }
-  return latest && compareVersions(latest, current3) > 0 ? latest : void 0;
+  return latest && compareVersions(latest, current2) > 0 ? latest : void 0;
 }
 
 // src/index.ts

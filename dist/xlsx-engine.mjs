@@ -1,4 +1,4 @@
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/_u64.js
+// ../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/_u64.js
 var U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
 var _32n = /* @__PURE__ */ BigInt(32);
 function fromBig(n, le = false) {
@@ -41,7 +41,7 @@ var add4H = (low, Ah, Bh, Ch, Dh) => Ah + Bh + Ch + Dh + (low / 2 ** 32 | 0) | 0
 var add5L = (Al, Bl, Cl, Dl, El) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0) + (Dl >>> 0) + (El >>> 0);
 var add5H = (low, Ah, Bh, Ch, Dh, Eh) => Ah + Bh + Ch + Dh + Eh + (low / 2 ** 32 | 0) | 0;
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/utils.js
+// ../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/utils.js
 function isBytes(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
 }
@@ -117,7 +117,7 @@ var oidNist = (suffix) => ({
   oid: Uint8Array.from([6, 9, 96, 134, 72, 1, 101, 3, 4, 2, suffix])
 });
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/_md.js
+// ../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/_md.js
 var HashMD = class {
   blockLen;
   outputLen;
@@ -232,7 +232,7 @@ var SHA512_IV = /* @__PURE__ */ Uint32Array.from([
   327033209
 ]);
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/ext-uri-BHBcIrW7.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/ext-uri-BHBcIrW7.mjs
 var stripColorHashPrefix = (color) => color.charAt(0) === "#" ? color.substring(1) : color;
 var parseOnOff = (raw) => {
   if (raw === void 0) return void 0;
@@ -2045,7 +2045,7 @@ function extUriMatches(actual, expected) {
   return norm(actual) === norm(expected);
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/fflate/esm/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/fflate/esm/index.mjs
 import { createRequire } from "module";
 var require2 = createRequire("/");
 var _a;
@@ -3559,7 +3559,7 @@ function unzipSync(data, opts) {
   return files;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/sha2.js
+// ../../../../../../Volumes/File/cortex/node_modules/@noble/hashes/sha2.js
 var K512 = /* @__PURE__ */ (() => split([
   "0x428a2f98d728ae22",
   "0x7137449123ef65cd",
@@ -3793,7 +3793,7 @@ var sha512 = /* @__PURE__ */ createHasher(
   /* @__PURE__ */ oidNist(3)
 );
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/util-ptE16MEk.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/util-ptE16MEk.mjs
 var CRC_TABLE = /* @__PURE__ */ new Int32Array(256);
 for (let i = 0; i < 256; i++) {
   let c = i;
@@ -4277,7 +4277,7 @@ function derivePasswordHash(password, spinCount = 1e5) {
   };
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/xml/dist/utils.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/xml/dist/utils.mjs
 var OOXML_XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 function findChild(parent, name) {
   return parent?.elements?.find((e) => e.name === name);
@@ -4329,7 +4329,7 @@ function findFirst(parent, name) {
   }
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/xml/dist/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/xml/dist/index.mjs
 var ENTITY_MAP = {
   "&amp;": "&",
   "&lt;": "<",
@@ -4835,7 +4835,7 @@ function stringifyElement(el) {
   return `<${el.name}${attrStr}>${stringify(el)}</${el.name}>`;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/patch-AkQY17CD.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/patch-AkQY17CD.mjs
 var FIELD_MAP = [
   {
     name: "dc:title",
@@ -4943,7 +4943,7 @@ function buildCorePropertiesXmlString(opts) {
   return p.join("");
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/descriptor-BqaNZrrZ.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/descriptor-BqaNZrrZ.mjs
 function stringify$1(desc, value, ctx) {
   return desc.stringify(value, ctx);
 }
@@ -4951,7 +4951,7 @@ function parse$1(desc, el, ctx) {
   return desc.parse(el, ctx);
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/drawing-BCAyrCCw.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/drawing-BCAyrCCw.mjs
 var PERCENT_TRANSFORMS = /* @__PURE__ */ new Set([
   "tint",
   "shade",
@@ -8256,7 +8256,7 @@ var textBodyDesc = {
   }
 };
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/style-matrix-B6jhPAT3.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/style-matrix-B6jhPAT3.mjs
 function stringifyStyleMatrixReference(tag, opts, ctx) {
   const color = opts.color ? stringifyColorChoice(opts.color, ctx) : "";
   return `<${tag} idx="${opts.index}">${color}</${tag}>`;
@@ -8363,7 +8363,7 @@ function parseFormatScheme(el, ctx) {
   return result;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/color-mapping-CFF0vRSe.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/color-mapping-CFF0vRSe.mjs
 var MAPPING_ATTRS = [
   {
     attr: "bg1",
@@ -8465,7 +8465,7 @@ function parseColorMapping(el) {
   return Object.keys(result).length > 0 ? result : void 0;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/chart-DED4tXC9.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/chart-DED4tXC9.mjs
 var ChartCollection = class {
   map;
   constructor() {
@@ -10465,7 +10465,7 @@ var chartSpaceDesc = {
   }
 };
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/vector-DhLGZjP5.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/vector-DhLGZjP5.mjs
 var styleToKeyMap = {
   flip: "flip",
   height: "height",
@@ -12732,7 +12732,7 @@ function stringifyVmlShapeLayout(opts) {
   return children2.length > 0 ? `<o:shapelayout${attrStr}>${children2.join("")}</o:shapelayout>` : `<o:shapelayout${attrStr}/>`;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/theme-BKnXRmvn.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/theme-BKnXRmvn.mjs
 var DEFAULT_COLORS = {
   dark1: "000000",
   light1: "FFFFFF",
@@ -13033,7 +13033,7 @@ var themeDesc = {
   }
 };
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/core/dist/index.mjs
 var TargetModeType = { EXTERNAL: "External" };
 var Relationships = class {
   entries = [];
@@ -14352,7 +14352,7 @@ function dropDanglingPassthroughRels(files, passthroughRelationships) {
   return dropped;
 }
 
-// ../../../../../../../../../../Volumes/File/cortex/node_modules/@office-open/xlsx/dist/index.mjs
+// ../../../../../../Volumes/File/cortex/node_modules/@office-open/xlsx/dist/index.mjs
 function parseFont(el) {
   const result = {};
   const boolProp = (prop) => parseOnOff(attr(prop, "val")) ?? true;
