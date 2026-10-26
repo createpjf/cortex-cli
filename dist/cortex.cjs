@@ -48140,6 +48140,10 @@ var workModeLabel = (mode) => ({
   bypassPermissions: tr("\u81EA\u52A8\u6279\u51C6", "Auto-approve"),
   fullAccess: tr("\u5B8C\u5168\u653E\u884C", "Bypass permissions")
 })[mode];
+function timeoutNotice(seconds) {
+  const minutes = seconds % 60 === 0 ? seconds / 60 : void 0;
+  return minutes !== void 0 ? tr(`\u8D85\u8FC7 ${minutes} \u5206\u949F\u4E0A\u9650\uFF0C\u5DF2\u505C\u6B62`, `Stopped: hit the ${minutes}-minute limit`) : tr(`\u8D85\u8FC7 ${seconds} \u79D2\u4E0A\u9650\uFF0C\u5DF2\u505C\u6B62`, `Stopped: hit the ${seconds}-second limit`);
+}
 var modeNotice = (mode) => ({
   auto: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u6309\u9700\u786E\u8BA4\u300D\u3002", "Permissions set to Ask for approval."),
   plan: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u8BA1\u5212\u300D\uFF1A\u53EA\u8BFB\uFF0C\u4E0D\u6539\u6587\u4EF6\u3002", "Permissions set to Plan: read-only, no file changes."),
@@ -51614,7 +51618,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.41";
+var version = "0.1.42";
 
 // src/interactive.ts
 var import_node_fs19 = require("node:fs");
@@ -53203,7 +53207,7 @@ async function runInteractive(worker, options, request, ui) {
         });
         timedOut = false;
         if (timeout) clearTimeout(timeout);
-        timeout = setTimeout(() => {
+        if (options.timeout) timeout = setTimeout(() => {
           timedOut = true;
           cancel();
         }, options.timeout * 1e3);
@@ -53330,6 +53334,7 @@ async function runInteractive(worker, options, request, ui) {
       activeReadOnly = false;
       activeAttachments = [];
       if (result.recovery) entry(JSON.stringify({ recovery: result.recovery }));
+      if (timedOut && result.status === "cancelled" && options.timeout) entry(timeoutNotice(options.timeout), result.runId + ":timeout");
       dispatchQueue();
       if (result.status === "completed") requestPrediction();
     } else if (message.type === "closed") closed = true;
@@ -53816,7 +53821,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   const options = {
     format,
     keyEnv: values["api-key-env"] ?? "CORTEX_API_KEY",
-    timeout: Number(values.timeout ?? 300),
+    timeout: values.timeout === void 0 ? void 0 : Number(values.timeout),
     stdin: values.stdin ?? false,
     help: values.help ?? false,
     version: values.version ?? false,
@@ -53853,7 +53858,7 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
     }
     return { ...options, completions: shell };
   }
-  if (!Number.isSafeInteger(options.timeout) || options.timeout < 1 || options.timeout > 86400) {
+  if (options.timeout !== void 0 && (!Number.isSafeInteger(options.timeout) || options.timeout < 1 || options.timeout > 86400)) {
     throw new Error(tr("--timeout \u5FC5\u987B\u662F 1\u201386400 \u79D2\u7684\u6574\u6570", "--timeout must be a whole number of seconds from 1 to 86400"));
   }
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.keyEnv)) {
@@ -54331,8 +54336,8 @@ function help2() {
     tr("  --output-schema <\u6587\u4EF6>           \u6821\u9A8C\u6700\u7EC8 JSON\uFF1B\u4E0D\u7B26\u5408\u65F6\u9000\u51FA\u7801 3", "  --output-schema <file>           Validate final JSON; exits 3 on mismatch"),
     tr("  -o, --output-last-message <\u6587\u4EF6>  \u4FDD\u5B58\u6700\u7EC8\u56DE\u590D\uFF1B\u4E0D\u8986\u76D6\u5DF2\u6709\u6587\u4EF6", "  -o, --output-last-message <file>  Save the final reply without overwriting files"),
     tr(
-      "  --timeout <\u79D2>                   \u9ED8\u8BA4 300\uFF0C\u8D85\u65F6\u8BF7\u6C42\u53D6\u6D88",
-      "  --timeout <seconds>              Default 300; requests cancellation on timeout"
+      "  --timeout <\u79D2>                   exec \u9ED8\u8BA4 300\uFF0C\u4EA4\u4E92\u6A21\u5F0F\u9ED8\u8BA4\u4E0D\u9650\u65F6\uFF1B\u8D85\u65F6\u8BF7\u6C42\u53D6\u6D88",
+      "  --timeout <seconds>              exec defaults to 300; interactive has no limit unless set"
     ),
     "",
     tr(
@@ -54530,7 +54535,7 @@ async function main() {
       const timeout = setTimeout(() => {
         timedOut = true;
         stop();
-      }, options.timeout * 1e3);
+      }, (options.timeout ?? 300) * 1e3);
       worker.on("message", (message) => {
         if (message.type === "ready") worker.send({ type: "start", request: { ...request, apiKey } });
         else if (message.type === "result") output(message.result);
