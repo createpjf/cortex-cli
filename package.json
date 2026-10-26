@@ -1,6 +1,6 @@
 {
   "name": "cortex-cli",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "private": true,
   "description": "An AI agent for your terminal. Bring your own model.",
   "license": "MIT",
@@ -42,7 +42,6 @@
     "sharp": "0.35.3"
   },
   "overrides": {
-    "@earendil-works/chord": "1.1.0",
     "@earendil-works/pi-codemode": "1.4.0",
     "@earendil-works/pi-mcp": "1.4.0",
     "@earendil-works/pi-telemetry": "1.4.0"

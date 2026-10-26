@@ -635,8 +635,8 @@ var init_agent = __esm({
         "Cortex note: this Python doesn\u2019t have markitdown. Read gets text from PPTX, DOCX, XLSX, and PDF files without it."
       ],
       dependency_missing: [
-        "\u8FD0\u884C\u73AF\u5883\u7F3A\u5C11\u6240\u9700\u6A21\u5757\u6216\u7A0B\u5E8F\u3002\u5148\u7528 CheckDependencies \u6838\u5BF9\u540C\u4E00 Shell \u548C\u89E3\u91CA\u5668\uFF08\u7ED3\u679C\u6807\u660E\u6258\u7BA1\u73AF\u5883 / \u7CFB\u7EDF\uFF09\uFF0C\u7F3A\u5C11\u7684 Python / Node \u5305\u7528 InstallDependency \u88C5\u8FDB\u6258\u7BA1\u8FD0\u884C\u65F6\uFF0C\u4E0D\u8981\u5728 Bash \u91CC pip install / npm install\uFF08\u6C99\u7BB1\u65AD\u7F51\u4F1A\u5931\u8D25\uFF09\uFF1B\u4E0D\u8981\u53CD\u590D\u91CD\u8BD5\u539F\u547D\u4EE4\u3002\u529E\u516C\u6587\u6863\u6587\u5B57\u53EF\u76F4\u63A5\u7528 Read\u3002",
-        "Cortex note: a module or program the command needs is missing. The agent checks with CheckDependencies and installs packages with InstallDependency."
+        "\u8FD0\u884C\u73AF\u5883\u7F3A\u5C11\u6240\u9700\u6A21\u5757\u6216\u7A0B\u5E8F\u3002\u5148\u7528 Environment \u7684 check \u6838\u5BF9\u540C\u4E00 Shell \u548C\u89E3\u91CA\u5668\uFF08\u7ED3\u679C\u6807\u660E\u6258\u7BA1\u73AF\u5883 / \u7CFB\u7EDF\uFF09\uFF0C\u7F3A\u5C11\u7684 Python / Node \u5305\u7528 Environment \u7684 install \u88C5\u8FDB\u6258\u7BA1\u8FD0\u884C\u65F6\uFF0C\u4E0D\u8981\u5728 Bash \u91CC pip install / npm install\uFF08\u6C99\u7BB1\u65AD\u7F51\u4F1A\u5931\u8D25\uFF09\uFF1B\u4E0D\u8981\u53CD\u590D\u91CD\u8BD5\u539F\u547D\u4EE4\u3002\u529E\u516C\u6587\u6863\u6587\u5B57\u53EF\u76F4\u63A5\u7528 Read\u3002",
+        "Cortex note: a module or program the command needs is missing. The agent checks with Environment (check) and installs packages with Environment (install)."
       ]
     };
     TOOL_ERRORS = {
@@ -736,9 +736,17 @@ var init_agent = __esm({
 ${hint[0]}`, `Couldn\u2019t read the document: ${cause?.[1] ?? p.detail}
 ${hint[1]}`];
       },
+      // 听写音频、看视频（TranscribeAudio / ReadVideo）
+      media_not_file: (p) => [`\u627E\u4E0D\u5230\u6587\u4EF6\u6216\u4E0D\u662F\u666E\u901A\u6587\u4EF6\uFF1A${p.name}`, `File not found or not a regular file: ${p.name}`],
+      media_too_large: (p) => [`${p.name} \u592A\u5927\uFF0C\u97F3\u89C6\u9891\u6700\u5927 ${p.limit} GB\u3002`, `${p.name} is too large. Audio and video files can be up to ${p.limit} GB.`],
+      media_too_long: (p) => [`${p.name} \u6709 ${p.minutes} \u5206\u949F\uFF0C\u6700\u957F\u53EA\u80FD\u5904\u7406 ${p.limit} \u5206\u949F\u3002\u8BF7\u5148\u526A\u77ED\u518D\u8BD5\u3002`, `${p.name} is ${p.minutes} minutes long. Files can be up to ${p.limit} minutes. Trim it and try again.`],
+      media_decode_failed: (p) => [`\u65E0\u6CD5\u89E3\u7801 ${p.name}\uFF1A\u683C\u5F0F\u4E0D\u53D7\u652F\u6301\u6216\u6587\u4EF6\u5DF2\u635F\u574F\u3002\u652F\u6301 mp3\u3001m4a\u3001aac\u3001wav\u3001ogg\u3001opus\u3001flac \u97F3\u9891\u548C mp4\u3001mov\u3001webm \u89C6\u9891\u3002`, `Couldn\u2019t decode ${p.name}: the format isn\u2019t supported or the file is damaged. Supported: mp3, m4a, aac, wav, ogg, opus, and flac audio; mp4, mov, and webm video.`],
+      media_no_audio: (p) => [`${p.name} \u91CC\u6CA1\u6709\u58F0\u97F3\u3002`, `${p.name} has no audio.`],
+      speech_model_missing: () => ["\u8FD8\u6CA1\u6709\u4E0B\u8F7D\u672C\u5730\u8BED\u97F3\u6A21\u578B\u3002\u8BF7\u5728\u300C\u8BBE\u7F6E \u203A \u8F93\u5165\u4E0E\u5FEB\u6377\u952E \u203A \u8BED\u97F3\u8F93\u5165\u300D\u4E0B\u8F7D\u540E\u518D\u8BD5\uFF1B\u542C\u5199\u53EA\u7528\u672C\u5730\u6A21\u578B\uFF0C\u4E0D\u4F1A\u628A\u97F3\u9891\u53D1\u5230\u4E91\u7AEF\u3002", "No local speech model is downloaded. Download one in Settings \u203A Input & shortcuts \u203A Voice input and try again. Transcription only uses local models and never sends audio to the cloud."],
+      read_media_file: (p) => [`\u8FD9\u662F\u97F3\u9891\u6216\u89C6\u9891\u6587\u4EF6\uFF0CRead \u8BFB\u4E0D\u51FA\u5185\u5BB9\u3002\u8BF7\u7528 ${p.tool} \u5904\u7406\uFF08\u53EF\u80FD\u8981\u5148\u7528 DiscoverCapabilities \u542F\u7528\uFF09\u3002`, `This is an audio or video file, so Read can\u2019t show its contents. Use ${p.tool} instead (enable it with DiscoverCapabilities if needed).`],
       office_doc_too_large: () => ["\u529E\u516C\u6587\u6863\u987B\u4E3A\u4E0D\u8D85\u8FC7 50MB \u7684\u666E\u901A\u6587\u4EF6\uFF0C\u8BF7\u62C6\u5206\u540E\u8BFB\u53D6\u3002", "Office documents must be regular files up to 50 MB. Split it and try again."],
       doc_no_text: () => [
-        "\u672A\u63D0\u53D6\u5230\u6587\u5B57\u3002\u8BF7\u68C0\u67E5\u6587\u6863\u662F\u5426\u52A0\u5BC6\u3001\u635F\u574F\u6216\u4EC5\u542B\u56FE\u7247\uFF1B\u626B\u63CF\u7248 PDF \u7684 OCR \u9700\u8981\u6587\u6863\u7EC4\u4EF6\uFF08InstallDocumentRuntime\uFF09\uFF1B\u9700\u8981\u56FE\u8868\u6216\u7248\u5F0F\u65F6\u8BF7\u4F7F\u7528\u652F\u6301\u8BE5\u683C\u5F0F\u7684\u539F\u751F\u9644\u4EF6\u6A21\u578B\u3002",
+        "\u672A\u63D0\u53D6\u5230\u6587\u5B57\u3002\u8BF7\u68C0\u67E5\u6587\u6863\u662F\u5426\u52A0\u5BC6\u3001\u635F\u574F\u6216\u4EC5\u542B\u56FE\u7247\uFF1B\u626B\u63CF\u7248 PDF \u7684 OCR \u9700\u8981\u6587\u6863\u7EC4\u4EF6\uFF08Environment \u7684 install_document_runtime\uFF09\uFF1B\u9700\u8981\u56FE\u8868\u6216\u7248\u5F0F\u65F6\u8BF7\u4F7F\u7528\u652F\u6301\u8BE5\u683C\u5F0F\u7684\u539F\u751F\u9644\u4EF6\u6A21\u578B\u3002",
         "No text found. The document may be encrypted, damaged, or images only. Scanned PDFs need the document components for OCR."
       ],
       doc_line_over_budget: () => ["\u5355\u884C\u5185\u5BB9\u8D85\u8FC7\u5F53\u524D\u6A21\u578B\u8BFB\u53D6\u9884\u7B97\uFF0C\u8BF7\u62C6\u5206\u957F\u884C\u6216\u5207\u6362\u66F4\u5927\u7A97\u53E3\u7684\u6A21\u578B\u3002", "One line is over this model\u2019s read budget. Split long lines or use a model with a larger context."],
@@ -925,12 +933,12 @@ ${hint[1]}`];
         return [describeMcpFailure(failure3, "zh-CN"), describeMcpFailure(failure3, "en")];
       },
       mcp_changed: (p) => [
-        `\u8FDE\u63A5\u5668 ${p.server} \u7684\u914D\u7F6E\u6216\u5DE5\u5177\u5B9A\u4E49\u5DF2\u53D8\u5316\uFF0C\u672C\u6B21\u672A\u6267\u884C\u3002\u8BF7\u7528 ListMcpTools \u91CD\u65B0\u53D1\u73B0\uFF0C\u518D\u7528 CallMcpTool \u8C03\u7528\u5F53\u524D\u5DE5\u5177\u3002`,
-        `Nothing was sent because connector ${p.server} or its tools changed. Use ListMcpTools, then CallMcpTool with the current definition.`
+        `\u8FDE\u63A5\u5668 ${p.server} \u7684\u914D\u7F6E\u6216\u5DE5\u5177\u5B9A\u4E49\u5DF2\u53D8\u5316\uFF0C\u672C\u6B21\u672A\u6267\u884C\u3002\u8BF7\u7528 Connectors \u7684 list_tools \u91CD\u65B0\u53D1\u73B0\uFF0C\u518D\u7528 call \u8C03\u7528\u5F53\u524D\u5DE5\u5177\u3002`,
+        `Nothing was sent because connector ${p.server} or its tools changed. Use Connectors (list_tools), then call with the current definition.`
       ],
       mcp_arguments: (p) => [
-        `${p.server}/${p.tool} \u7684\u53C2\u6570\u4E0D\u7B26\u5408\u5F53\u524D\u5DE5\u5177\u5B9A\u4E49\uFF0C\u672C\u6B21\u672A\u6267\u884C\u3002\u8BF7\u7528 ListMcpTools \u6838\u5BF9\u53C2\u6570\u3002`,
-        `Nothing was sent because arguments for ${p.server}/${p.tool} do not match the current definition. Check ListMcpTools.`
+        `${p.server}/${p.tool} \u7684\u53C2\u6570\u4E0D\u7B26\u5408\u5F53\u524D\u5DE5\u5177\u5B9A\u4E49\uFF0C\u672C\u6B21\u672A\u6267\u884C\u3002\u8BF7\u7528 Connectors \u7684 list_tools \u6838\u5BF9\u53C2\u6570\u3002`,
+        `Nothing was sent because arguments for ${p.server}/${p.tool} do not match the current definition. Check Connectors (list_tools).`
       ],
       // DiscoverCapabilities：本轮不可用的工具（tool 为 computer_use 时 reason 见 computerUseUnavailablePair；为 mcp 时 server、kind、status、reason 是连接失败分类）
       capability_unavailable: (p) => {
@@ -949,6 +957,9 @@ ${hint[1]}`];
         `Background command limit reached (${p.perSession} per chat, ${p.total} per app), so it didn\u2019t start.`
       ],
       background_unknown: (p) => [`\u6CA1\u6709\u7F16\u53F7\u4E3A ${p.id} \u7684\u540E\u53F0\u547D\u4EE4\uFF08\u53EF\u80FD\u5DF2\u968F\u5BF9\u8BDD\u5F52\u6863\u6216\u5E94\u7528\u9000\u51FA\u7ED3\u675F\uFF09`, `There\u2019s no background command ${p.id}. It may have ended when the chat was archived or Cortex quit.`],
+      background_not_interactive: (p) => [`\u540E\u53F0\u547D\u4EE4 ${p.id} \u4E0D\u662F\u4EA4\u4E92\u5F0F\u542F\u52A8\u7684\uFF0C\u4E0D\u80FD\u8F93\u5165\u3002\u9700\u8981\u8F93\u5165\u7684\u547D\u4EE4\u7528 bash \u7684 run_in_background \u52A0 interactive=true \u91CD\u65B0\u542F\u52A8`, `Background command ${p.id} wasn\u2019t started as interactive, so it can\u2019t take input.`],
+      background_not_running: (p) => [`\u540E\u53F0\u547D\u4EE4 ${p.id} \u5DF2\u7ECF\u7ED3\u675F\uFF0C\u6CA1\u6709\u8F93\u5165`, `Background command ${p.id} has already ended, so nothing was sent.`],
+      background_watch_ended: (p) => [`\u540E\u53F0\u547D\u4EE4 ${p.id} \u5DF2\u7ECF\u7ED3\u675F\uFF0C\u7528 BashOutput \u8BFB\u7ED3\u679C`, `Background command ${p.id} has already ended. Read its output instead.`],
       capability_subagent_tools: () => ["\u5B50\u4EE3\u7406\u7684\u5DE5\u5177\u5DF2\u5168\u90E8\u63D0\u4F9B\uFF0C\u53EA\u80FD\u67E5\u627E\u548C\u52A0\u8F7D\u6280\u80FD", "Subagents already have all their tools and can only find and load skills."],
       // 技能
       skill_unreadable: (p) => [`\u6280\u80FD\u201C${p.name}\u201D\u65E0\u6CD5\u8BFB\u53D6\uFF0C\u8BF7\u68C0\u67E5\u5B89\u88C5\u5185\u5BB9\u3002`, `Couldn\u2019t read the skill \u201C${p.name}\u201D. Check its installed files.`],
@@ -997,7 +1008,7 @@ ${hint[1]}`];
         ];
       },
       // Cola 的跨项目只读工具
-      project_not_found: (p) => [`\u627E\u4E0D\u5230\u9879\u76EE\uFF1A${p.project}\uFF1B\u7528 ListProjects \u67E5\u770B\u9879\u76EE id \u4E0E\u540D\u79F0`, `Couldn\u2019t find the project \u201C${p.project}\u201D.`],
+      project_not_found: (p) => [`\u627E\u4E0D\u5230\u9879\u76EE\uFF1A${p.project}\uFF1B\u7528 Projects \u7684 list \u67E5\u770B\u9879\u76EE id \u4E0E\u540D\u79F0`, `Couldn\u2019t find the project \u201C${p.project}\u201D.`],
       // reason 为 secret / missing / directory / too_large（mb）/ binary / offset（offset、lines）/ no_dir（path 是目录参数原样）
       project_file: (p) => {
         switch (p.reason) {
@@ -1006,7 +1017,7 @@ ${hint[1]}`];
           case "missing":
             return [`\u6587\u4EF6\u4E0D\u5B58\u5728\uFF1A${p.path}`, `File not found: ${p.path}`];
           case "directory":
-            return [`${p.path} \u662F\u76EE\u5F55\uFF0C\u7528 ListProjectFiles \u5217\u51FA\u5176\u4E2D\u7684\u6587\u4EF6`, `${p.path} is a folder, not a file.`];
+            return [`${p.path} \u662F\u76EE\u5F55\uFF0C\u7528 Projects \u7684 list_files \u5217\u51FA\u5176\u4E2D\u7684\u6587\u4EF6`, `${p.path} is a folder, not a file.`];
           case "too_large":
             return [`\u6587\u4EF6\u8D85\u8FC7 ${p.mb} MB\uFF0C\u4E0D\u8BFB\u53D6\uFF1A${p.path}`, `Files over ${p.mb} MB aren\u2019t read: ${p.path}`];
           case "binary":
@@ -1023,7 +1034,7 @@ ${hint[1]}`];
           case "self":
             return ["\u4E0D\u80FD\u8BFB\u53D6\u5F53\u524D\u5BF9\u8BDD\u81EA\u5DF1\uFF0C\u76F4\u63A5\u67E5\u770B\u672C\u5BF9\u8BDD\u5386\u53F2\u5373\u53EF", "That\u2019s this chat, so there\u2019s nothing to read."];
           case "missing":
-            return ["\u5BF9\u8BDD\u4E0D\u5B58\u5728\u6216\u5DF2\u5220\u9664\uFF0C\u8BF7\u7528 FindSessions \u91CD\u65B0\u67E5\u627E", "That chat doesn\u2019t exist or was deleted."];
+            return ["\u5BF9\u8BDD\u4E0D\u5B58\u5728\u6216\u5DF2\u5220\u9664\uFF0C\u8BF7\u7528 Chats \u7684 find \u91CD\u65B0\u67E5\u627E", "That chat doesn\u2019t exist or was deleted."];
           case "archived":
             return ["\u5BF9\u8BDD\u5DF2\u5F52\u6863\uFF0C\u9700\u8981\u7528\u6237\u6062\u590D\u540E\u624D\u80FD\u8BFB\u53D6", "That chat is archived. Restore it so the agent can read it."];
           default:
@@ -1038,6 +1049,8 @@ ${hint[1]}`];
       session_reply_unknown: () => ["\u53EA\u80FD\u56DE\u590D\u672C\u8F6E\u6536\u5230\u7684\u534F\u4F5C\u8BF7\u6C42", "The agent can only reply to requests it received in this run."],
       // 读过外部内容的对话删除记忆要在桌面卡上逐次确认；无人值守与终端运行确认不了，直接拒绝
       memory_forget_unattended: () => ["\u8FD9\u4E2A\u5BF9\u8BDD\u8BFB\u8FC7\u5916\u90E8\u5185\u5BB9\uFF0C\u5220\u9664\u8BB0\u5FC6\u8981\u7528\u6237\u5728\u684C\u9762\u7AEF\u9010\u6B21\u786E\u8BA4\uFF1B\u672C\u6B21\u8FD0\u884C\u65E0\u6CD5\u786E\u8BA4\uFF0C\u6CA1\u6709\u5220\u9664", "This chat has read outside content, so deleting a memory needs approval in the desktop app. Nothing was deleted."],
+      // 后台子代理在派出它的那一轮正常结束后继续跑，没人能看到审批卡，需要确认的调用直接拒绝
+      background_no_confirm: () => ["\u540E\u53F0\u5B50\u4EE3\u7406\u8131\u79BB\u672C\u8F6E\u540E\u4E0D\u80FD\u7B49\u5F85\u786E\u8BA4\uFF0C\u8FD9\u4E00\u6B65\u672A\u6267\u884C", "This background subagent can\u2019t wait for approval after its turn ended, so this step didn\u2019t run."],
       // 任务清单：update 为 1 时是 TaskUpdate
       task_not_found: (p) => [`\u4EFB\u52A1\u4E0D\u5B58\u5728: ${p.id}${p.update ? "\uFF0C\u8BF7\u5148\u521B\u5EFA\u4EFB\u52A1" : ""}`, `Task not found: ${p.id}`],
       // 检查视图（CheckView）：reason 为 view:load 的失败原因（outside / missing / symlink / too-large / not-fragment）或 empty / timeout / load（其余未知错误也归到 load，原文只进日志）
@@ -1274,6 +1287,13 @@ var init_background_command = __esm({
   }
 });
 
+// ../../packages/shared/src/types/background-agent.ts
+var init_background_agent = __esm({
+  "../../packages/shared/src/types/background-agent.ts"() {
+    "use strict";
+  }
+});
+
 // ../../packages/shared/src/types/view.ts
 var VIEW_EXPORT_MAX_BYTES;
 var init_view = __esm({
@@ -1310,6 +1330,13 @@ var init_voice_models = __esm({
 // ../../packages/shared/src/types/asset-packs.ts
 var init_asset_packs = __esm({
   "../../packages/shared/src/types/asset-packs.ts"() {
+    "use strict";
+  }
+});
+
+// ../../packages/shared/src/types/storage-usage.ts
+var init_storage_usage = __esm({
+  "../../packages/shared/src/types/storage-usage.ts"() {
     "use strict";
   }
 });
@@ -1356,10 +1383,12 @@ var init_types = __esm({
     init_creative_design();
     init_terminal();
     init_background_command();
+    init_background_agent();
     init_view();
     init_mcp_app();
     init_voice_models();
     init_asset_packs();
+    init_storage_usage();
   }
 });
 
@@ -1519,7 +1548,7 @@ var init_subagent_templates = __esm({
         description: "\u5728\u672C\u6B21\u5BF9\u8BDD\u6240\u9009\u7684\u77E5\u8BC6\u5E93\u91CC\u67E5\u4E00\u4E2A\u4E3B\u9898\uFF0C\u8BFB\u6700\u76F8\u5173\u7684\u539F\u6587\u5E76\u5E26\u51FA\u5904\u56DE\u7B54\uFF1B\u53EA\u7528\u77E5\u8BC6\u5E93\uFF0C\u4E0D\u4E0A\u7F51",
         prompt: [
           "\u4F60\u662F\u77E5\u8BC6\u5E93\u68C0\u7D22\u5458\uFF0C\u53EA\u5728\u672C\u6B21\u77E5\u8BC6\u8303\u56F4\u5185\u67E5\u627E\uFF0C\u4E0D\u8054\u7F51\u8865\u5145\u3002",
-          "1. \u7528 knowledge_search \u6362\u4E24\u4E09\u79CD\u8BF4\u6CD5\u68C0\u7D22\uFF0C\u6311\u6700\u76F8\u5173\u7684\u8D44\u6599\u8BFB\u539F\u6587\uFF0C\u4E0D\u53EA\u770B\u7247\u6BB5\u3002",
+          "1. \u7528 Knowledge\uFF08action=search\uFF09\u6362\u4E24\u4E09\u79CD\u8BF4\u6CD5\u68C0\u7D22\uFF0C\u6311\u6700\u76F8\u5173\u7684\u8D44\u6599\u8BFB\u539F\u6587\uFF0C\u4E0D\u53EA\u770B\u7247\u6BB5\u3002",
           "2. \u6BCF\u6761\u7ED3\u8BBA\u5199\u660E\u8D44\u6599\u540D\u79F0\u4E0E\u4F4D\u7F6E\uFF08\u7AE0\u8282\u3001\u9875\u7801\u6216\u6BB5\u843D\uFF09\uFF0C\u5E76\u6458\u5F55\u5173\u952E\u539F\u53E5\u3002",
           "3. \u5206\u5F00\u5199\u300C\u8D44\u6599\u539F\u6587\u300D\u548C\u300C\u63A8\u65AD\u300D\uFF1B\u8D44\u6599\u4E4B\u95F4\u4E0D\u4E00\u81F4\u65F6\u90FD\u5217\u51FA\u6765\uFF0C\u5E76\u6CE8\u660E\u5404\u81EA\u7248\u672C\u6216\u65E5\u671F\u3002",
           "4. \u67E5\u4E0D\u5230\u5C31\u76F4\u63A5\u8BF4\u67E5\u4E0D\u5230\uFF0C\u4EE5\u53CA\u67E5\u8FC7\u54EA\u4E9B\u5173\u952E\u8BCD\uFF0C\u4E0D\u8981\u7F16\u9020\u6216\u7528\u5E38\u8BC6\u4EE3\u66FF\u3002"
@@ -2121,7 +2150,7 @@ var init_model_routing2 = __esm({
     isReason = oneOf({ first: true, continued: true, same_category: true, switch: true, rule: true, same_tier: true, upgrade: true, downgrade: true, short_followup: true, uncertain: true, no_candidate: true, regenerate: true, retry_after_failure: true, manual: true });
     isClassifier = oneOf({ "this-that": true, fast_model: true, none: true });
     isClassifierError = oneOf({ timeout: true, error: true, invalid: true });
-    isSkipReason = oneOf({ disabled: true, not_local: true, no_tools: true, image: true, native_file: true, context: true, price_unknown: true, failed_last_run: true });
+    isSkipReason = oneOf({ disabled: true, not_local: true, no_tools: true, image: true, native_file: true, context: true, price_unknown: true, failed_last_run: true, recent_failure: true });
     isRuleKind = oneOf({ detect: true, terms: true, project: true, sticky: true });
     TASK_TYPE_NAMES = {
       qa: ["\u7B80\u5355\u95EE\u7B54", "Quick questions"],
@@ -2360,6 +2389,37 @@ var init_mcp_app_csp = __esm({
   }
 });
 
+// ../../packages/shared/src/utils/tool-names.ts
+var TOOL_FACADES, FACADE_OF;
+var init_tool_names = __esm({
+  "../../packages/shared/src/utils/tool-names.ts"() {
+    "use strict";
+    TOOL_FACADES = {
+      Memory: { recall: "RecallMemory", save: "SaveMemory", forget: "ForgetMemory", save_project_fact: "RememberWorkspaceFact" },
+      Knowledge: {
+        search: "SearchKnowledge",
+        read: "ReadKnowledge",
+        save: "SaveKnowledge",
+        save_status: "KnowledgeSaveStatus",
+        wiki_read: "ReadWiki",
+        wiki_edit: "UpdateWiki",
+        wiki_create: "UpdateWiki",
+        wiki_rewrite: "UpdateWiki"
+      },
+      Canvas: { read: "ReadCanvas", update: "UpdateCanvas", run_node: "RunCanvasNode", read_layers: "ReadCanvasLayers", edit_layers: "EditCanvasLayers" },
+      Office: { read: "OfficeRead", search: "OfficeRead", reveal: "OfficeRead", edit: "OfficeEdit", export: "OfficeExport" },
+      Chats: { find: "FindSessions", read: "ReadSession", send: "SendSessionMessage", reply: "ReplySessionMessage" },
+      Projects: { list: "ListProjects", list_files: "ListProjectFiles", read_file: "ReadProjectFile" },
+      Connectors: { search_catalog: "SearchMcpCatalog", install: "InstallMcp", list_tools: "ListMcpTools", call: "CallMcpTool", list_resources: "ListMcpResourcesTool", read_resource: "ReadMcpResourceTool" },
+      Environment: { check: "CheckDependencies", install: "InstallDependency", install_document_runtime: "InstallDocumentRuntime" },
+      // 旧的 TodoRead / TodoWrite 不再提供，进度清单只用这一套
+      Tasks: { create: "TaskCreate", update: "TaskUpdate", get: "TaskGet", list: "TaskList" },
+      WorkspaceIndex: { scan: "WorkspaceScan", record_file: "RecordFileInfo", record_relation: "RecordFileRelation", query: "QueryWorkspaceGraph" }
+    };
+    FACADE_OF = new Map(Object.entries(TOOL_FACADES).flatMap(([facade, actions]) => Object.values(actions).map((name) => [name, facade])));
+  }
+});
+
 // ../../packages/shared/src/utils/index.ts
 var init_utils = __esm({
   "../../packages/shared/src/utils/index.ts"() {
@@ -2398,6 +2458,7 @@ var init_utils = __esm({
     init_im_text();
     init_mcp_app_csp();
     init_provider_cards();
+    init_tool_names();
   }
 });
 
@@ -2449,8 +2510,13 @@ function writeJsonFileAtomic(filePath, data, skipBackup = false) {
   const bakPath = filePath + ".bak";
   if (!skipBackup && (0, import_node_fs.existsSync)(filePath)) {
     try {
+      JSON.parse((0, import_node_fs.readFileSync)(filePath, "utf-8"));
       (0, import_node_fs.copyFileSync)(filePath, bakPath);
     } catch {
+      try {
+        (0, import_node_fs.copyFileSync)(filePath, `${filePath}.corrupt-${Date.now()}`);
+      } catch {
+      }
     }
   }
   (0, import_node_fs.writeFileSync)(tmpPath, JSON.stringify(data, null, 2), "utf-8");
@@ -4652,9 +4718,9 @@ var init_config_paths = __esm({
   }
 });
 
-// ../../node_modules/undici/lib/core/symbols.js
+// ../electron/node_modules/undici/lib/core/symbols.js
 var require_symbols = __commonJS({
-  "../../node_modules/undici/lib/core/symbols.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kClose: Symbol("close"),
@@ -4732,9 +4798,9 @@ var require_symbols = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/timers.js
+// ../electron/node_modules/undici/lib/util/timers.js
 var require_timers = __commonJS({
-  "../../node_modules/undici/lib/util/timers.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/timers.js"(exports2, module2) {
     "use strict";
     var fastNow = 0;
     var RESOLUTION_MS = 1e3;
@@ -4961,9 +5027,9 @@ var require_timers = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/errors.js
+// ../electron/node_modules/undici/lib/core/errors.js
 var require_errors = __commonJS({
-  "../../node_modules/undici/lib/core/errors.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/errors.js"(exports2, module2) {
     "use strict";
     var kUndiciError = Symbol.for("undici.error.UND_ERR");
     var UndiciError = class extends Error {
@@ -5370,9 +5436,9 @@ var require_errors = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/constants.js
+// ../electron/node_modules/undici/lib/core/constants.js
 var require_constants = __commonJS({
-  "../../node_modules/undici/lib/core/constants.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/constants.js"(exports2, module2) {
     "use strict";
     var wellknownHeaderNames = (
       /** @type {const} */
@@ -5498,9 +5564,9 @@ var require_constants = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/tree.js
+// ../electron/node_modules/undici/lib/core/tree.js
 var require_tree = __commonJS({
-  "../../node_modules/undici/lib/core/tree.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/tree.js"(exports2, module2) {
     "use strict";
     var {
       wellknownHeaderNames,
@@ -5640,9 +5706,9 @@ var require_tree = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/util.js
+// ../electron/node_modules/undici/lib/core/util.js
 var require_util = __commonJS({
-  "../../node_modules/undici/lib/core/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kDestroyed, kBodyUsed, kListeners, kBody } = require_symbols();
@@ -6461,9 +6527,9 @@ var require_util = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/stats.js
+// ../electron/node_modules/undici/lib/util/stats.js
 var require_stats = __commonJS({
-  "../../node_modules/undici/lib/util/stats.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/stats.js"(exports2, module2) {
     "use strict";
     var {
       kConnected,
@@ -6495,9 +6561,9 @@ var require_stats = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/diagnostics.js
+// ../electron/node_modules/undici/lib/core/diagnostics.js
 var require_diagnostics = __commonJS({
-  "../../node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/diagnostics.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require("node:util");
@@ -6712,9 +6778,9 @@ var require_diagnostics = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/request.js
+// ../electron/node_modules/undici/lib/core/request.js
 var require_request = __commonJS({
-  "../../node_modules/undici/lib/core/request.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/request.js"(exports2, module2) {
     "use strict";
     var {
       InvalidArgumentError,
@@ -7108,9 +7174,9 @@ var require_request = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/wrap-handler.js
+// ../electron/node_modules/undici/lib/handler/wrap-handler.js
 var require_wrap_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/wrap-handler.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     module2.exports = class WrapHandler {
@@ -7191,9 +7257,9 @@ var require_wrap_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/dispatcher.js
+// ../electron/node_modules/undici/lib/dispatcher/dispatcher.js
 var require_dispatcher = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/dispatcher.js"(exports2, module2) {
     "use strict";
     var EventEmitter2 = require("node:events");
     var WrapHandler = require_wrap_handler();
@@ -7233,9 +7299,9 @@ var require_dispatcher = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/unwrap-handler.js
+// ../electron/node_modules/undici/lib/handler/unwrap-handler.js
 var require_unwrap_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/unwrap-handler.js"(exports2, module2) {
     "use strict";
     var { parseHeaders } = require_util();
     var { InvalidArgumentError } = require_errors();
@@ -7321,9 +7387,9 @@ var require_unwrap_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/dispatcher-base.js
+// ../electron/node_modules/undici/lib/dispatcher/dispatcher-base.js
 var require_dispatcher_base = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/dispatcher-base.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var UnwrapHandler = require_unwrap_handler();
@@ -7473,9 +7539,9 @@ var require_dispatcher_base = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/connect.js
+// ../electron/node_modules/undici/lib/core/connect.js
 var require_connect = __commonJS({
-  "../../node_modules/undici/lib/core/connect.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/connect.js"(exports2, module2) {
     "use strict";
     var net = require("node:net");
     var assert = require("node:assert");
@@ -7599,9 +7665,9 @@ var require_connect = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/llhttp/utils.js
+// ../electron/node_modules/undici/lib/llhttp/utils.js
 var require_utils = __commonJS({
-  "../../node_modules/undici/lib/llhttp/utils.js"(exports2) {
+  "../electron/node_modules/undici/lib/llhttp/utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.enumToMap = enumToMap;
@@ -7615,9 +7681,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/llhttp/constants.js
+// ../electron/node_modules/undici/lib/llhttp/constants.js
 var require_constants2 = __commonJS({
-  "../../node_modules/undici/lib/llhttp/constants.js"(exports2) {
+  "../electron/node_modules/undici/lib/llhttp/constants.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SPECIAL_HEADERS = exports2.MINOR = exports2.MAJOR = exports2.HTAB_SP_VCHAR_OBS_TEXT = exports2.QUOTED_STRING = exports2.CONNECTION_TOKEN_CHARS = exports2.HEADER_CHARS = exports2.TOKEN = exports2.HEX = exports2.URL_CHAR = exports2.USERINFO_CHARS = exports2.MARK = exports2.ALPHANUM = exports2.NUM = exports2.HEX_MAP = exports2.NUM_MAP = exports2.ALPHA = exports2.STATUSES_HTTP = exports2.H_METHOD_MAP = exports2.METHOD_MAP = exports2.METHODS_RTSP = exports2.METHODS_ICE = exports2.METHODS_HTTP = exports2.HEADER_STATE = exports2.FINISH = exports2.STATUSES = exports2.METHODS = exports2.LENIENT_FLAGS = exports2.FLAGS = exports2.TYPE = exports2.ERROR = void 0;
@@ -8238,9 +8304,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/llhttp/llhttp-wasm.js
+// ../electron/node_modules/undici/lib/llhttp/llhttp-wasm.js
 var require_llhttp_wasm = __commonJS({
-  "../../node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/llhttp/llhttp-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRw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AXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgL5YUCAgd/A34gASACaiEEAkAgACIDKAIMIgANACADKAIEBEAgAyABNgIECyMAQRBrIgkkAAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAgAygCHCICQQJrDvwBAfkBAgMEBQYHCAkKCwwNDg8QERL4ARP3ARQV9gEWF/UBGBkaGxwdHh8g/QH7ASH0ASIjJCUmJygpKivzASwtLi8wMTLyAfEBMzTwAe8BNTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5P+gFQUVJT7gHtAVTsAVXrAVZXWFla6gFbXF1eX2BhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gAGBAYIBgwGEAYUBhgGHAYgBiQGKAYsBjAGNAY4BjwGQAZEBkgGTAZQBlQGWAZcBmAGZAZoBmwGcAZ0BngGfAaABoQGiAaMBpAGlAaYBpwGoAakBqgGrAawBrQGuAa8BsAGxAbIBswG0AbUBtgG3AbgBuQG6AbsBvAG9Ab4BvwHAAcEBwgHDAcQBxQHGAccByAHJAcoBywHMAc0BzgHpAegBzwHnAdAB5gHRAdIB0wHUAeUB1QHWAdcB2AHZAdoB2wHcAd0B3gHfAeAB4QHiAeMBAPwBC0EADOMBC0EODOIBC0ENDOEBC0EPDOABC0EQDN8BC0ETDN4BC0EUDN0BC0EVDNwBC0EWDNsBC0EXDNoBC0EYDNkBC0EZDNgBC0EaDNcBC0EbDNYBC0EcDNUBC0EdDNQBC0EeDNMBC0EfDNIBC0EgDNEBC0EhDNABC0EIDM8BC0EiDM4BC0EkDM0BC0EjDMwBC0EHDMsBC0ElDMoBC0EmDMkBC0EnDMgBC0EoDMcBC0ESDMYBC0ERDMUBC0EpDMQBC0EqDMMBC0ErDMIBC0EsDMEBC0HeAQzAAQtBLgy/AQtBLwy+AQtBMAy9AQtBMQy8AQtBMgy7AQtBMwy6AQtBNAy5AQtB3wEMuAELQTUMtwELQTkMtgELQQwMtQELQTYMtAELQTcMswELQTgMsgELQT4MsQELQToMsAELQeABDK8BC0ELDK4BC0E/DK0BC0E7DKwBC0EKDKsBC0E8DKoBC0E9DKkBC0HhAQyoAQtBwQAMpwELQcAADKYBC0HCAAylAQtBCQykAQtBLQyjAQtBwwAMogELQcQADKEBC0HFAAygAQtBxgAMnwELQccADJ4BC0HIAAydAQtByQAMnAELQcoADJsBC0HLAAyaAQtBzAAMmQELQc0ADJgBC0HOAAyXAQtBzwAMlgELQdAADJUBC0HRAAyUAQtB0gAMkwELQdMADJIBC0HVAAyRAQtB1AAMkAELQdYADI8BC0HXAAyOAQtB2AAMjQELQdkADIwBC0HaAAyLAQtB2wAMigELQdwADIkBC0HdAAyIAQtB3gAMhwELQd8ADIYBC0HgAAyFAQtB4QAMhAELQeIADIMBC0HjAAyCAQtB5AAMgQELQeUADIABC0HiAQx/C0HmAAx+C0HnAAx9C0EGDHwLQegADHsLQQUMegtB6QAMeQtBBAx4C0HqAAx3C0HrAAx2C0HsAAx1C0HtAAx0C0EDDHMLQe4ADHILQe8ADHELQfAADHALQfIADG8LQfEADG4LQfMADG0LQfQADGwLQfUADGsLQfYADGoLQQIMaQtB9wAMaAtB+AAMZwtB+QAMZgtB+gAMZQtB+wAMZAtB/AAMYwtB/QAMYgtB/gAMYQtB/wAMYAtBgAEMXwtBgQEMXgtBggEMXQtBgwEMXAtBhAEMWwtBhQEMWgtBhgEMWQtBhwEMWAtBiAEMVwtBiQEMVgtBigEMVQtBiwEMVAtBjAEMUwtBjQEMUgtBjgEMUQtBjwEMUAtBkAEMTwtBkQEMTgtBkgEMTQtBkwEMTAtBlAEMSwtBlQEMSgtBlgEMSQtBlwEMSAtBmAEMRwtBmQEMRgtBmgEMRQtBmwEMRAtBnAEMQwtBnQEMQgtBngEMQQtBnwEMQAtBoAEMPwtBoQEMPgtBogEMPQtBowEMPAtBpAEMOwtBpQEMOgtBpgEMOQtBpwEMOAtBqAEMNwtBqQEMNgtBqgEMNQtBqwEMNAtBrAEMMwtBrQEMMgtBrgEMMQtBrwEMMAtBsAEMLwtBsQEMLgtBsgEMLQtBswEMLAtBtAEMKwtBtQEMKgtBtgEMKQtBtwEMKAtBuAEMJwtBuQEMJgtBugEMJQtBuwEMJAtBvAEMIwtBvQEMIgtBvgEMIQtBvwEMIAtBwAEMHwtBwQEMHgtBwgEMHQtBAQwcC0HDAQwbC0HEAQwaC0HFAQwZC0HGAQwYC0HHAQwXC0HIAQwWC0HJAQwVC0HKAQwUC0HLAQwTC0HMAQwSC0HNAQwRC0HOAQwQC0HPAQwPC0HQAQwOC0HRAQwNC0HSAQwMC0HTAQwLC0HUAQwKC0HVAQwJC0HWAQwIC0HjAQwHC0HXAQwGC0HYAQwFC0HZAQwEC0HaAQwDC0HbAQwCC0HdAQwBC0HcAQshAgNAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQCADAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQAJ/AkACQAJAAn8CQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAg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ogKiAqICogKiAqICogKiAqICogKiAqICogIAogILIAQgAUEBaiIBRw0AC0HJACECDOwCCyABQQFqIQEgA0Evai0AAEEBcQ2lAiADQQA2AhwgAyABNgIUIANBlxA2AhAgA0EKNgIMQQAhAgzrAgsgASAERwRAA0AgAS0AAEEgRw0VIAQgAUEBaiIBRw0AC0H4ACECDOsCC0H4ACECDOoCCyADQQI6ACgMOAtBACECIANBADYCHCADQb8LNgIQIANBAjYCDCADIAFBAWo2AhQM6AILQQAhAgzOAgtBDSECDM0CC0ETIQIMzAILQRUhAgzLAgtBFiECDMoCC0EYIQIMyQILQRkhAgzIAgtBGiECDMcCC0EbIQIMxgILQRwhAgzFAgtBHSECDMQCC0EeIQIMwwILQR8hAgzCAgtBICECDMECC0EiIQIMwAILQSMhAgy/AgtBJSECDL4CC0HlACECDL0CCyADQT02AhwgAyABNgIUIAMgADYCDEEAIQIM1QILIANBGzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDNQCCyADQSA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzTAgsgA0ETNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0gILIANBCzYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNECCyADQRA2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzQAgsgA0EgNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzwILIANBCzYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM4CCyADQQw2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzNAgtBACECIANBADYCHCADIAE2AhQgA0HdDjYCECADQRI2AgwMzAILAkADQAJAIAEtAABBCmsOBAACAgACCyAEIAFBAWoiAUcNAAtB/QEhAgzMAgsCQAJAIAMtADZBAUcNAEEAIQACQCADKAI4IgJFDQAgAigCYCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUcNASADQfwBNgIcIAMgATYCFCADQdwZNgIQIANBFTYCDEEAIQIMzQILQdwBIQIMswILIANBADYCHCADIAE2AhQgA0H5CzYCECADQR82AgxBACECDMsCCwJAAkAgAy0AKEEBaw4CBAEAC0HbASECDLICC0HUASECDLECCyADQQI6ADFBACEAAkAgAygCOCICRQ0AIAIoAgAiAkUNACADIAIRAAAhAAsgAEUEQEHdASECDLECCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQbQMNgIQIANBEDYCDEEAIQIMygILIANB+wE2AhwgAyABNgIUIANBgRo2AhAgA0EVNgIMQQAhAgzJAgsgASAERgRAQfoBIQIMyQILIAEtAABByABGDQEgA0EBOgAoC0HAASECDK4CC0HaASECDK0CCyABIARHBEAgA0EMNgIIIAMgATYCBEHZASECDK0CC0H5ASECDMUCCyABIARGBEBB+AEhAgzFAgsgAS0AAEHIAEcNBCABQQFqIQFB2AEhAgyrAgsgASAERgRAQfcBIQIMxAILAkACQCABLQAAQcUAaw4QAAUFBQUFBQUFBQUFBQUFAQULIAFBAWohAUHWASECDKsCCyABQQFqIQFB1wEhAgyqAgtB9gEhAiABIARGDcICIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbrVAGotAABHDQMgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMMCCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIARQRAQeMBIQIMqgILIANB9QE2AhwgAyABNgIUIAMgADYCDEEAIQIMwgILQfQBIQIgASAERg3BAiADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEG41QBqLQAARw0CIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzCAgsgA0GBBDsBKCADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQLiIADQMMAgsgA0EANgIAC0EAIQIgA0EANgIcIAMgATYCFCADQeUfNgIQIANBCDYCDAy/AgtB1QEhAgylAgsgA0HzATYCHCADIAE2AhQgAyAANgIMQQAhAgy9AgtBACEAAkAgAygCOCICRQ0AIAIoAkAiAkUNACADIAIRAAAhAAsgAEUNbiAAQRVHBEAgA0EANgIcIAMgATYCFCADQYIPNgIQIANBIDYCDEEAIQIMvQILIANBjwE2AhwgAyABNgIUIANB7Bs2AhAgA0EVNgIMQQAhAgy8AgsgASAERwRAIANBDTYCCCADIAE2AgRB0wEhAgyjAgtB8gEhAgy7AgsgASAERgRAQfEBIQIMuwILAkACQAJAIAEtAABByABrDgsAAQgICAgICAgIAggLIAFBAWohAUHQASECDKMCCyABQQFqIQFB0QEhAgyiAgsgAUEBaiEBQdIBIQIMoQILQfABIQIgASAERg25AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBtdUAai0AAEcNBCAAQQJGDQMgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuQILQe8BIQIgASAERg24AiADKAIAIgAgBCABa2ohBiABIABrQQFqIQUDQCABLQAAIABBs9UAai0AAEcNAyAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMuAILQe4BIQIgASAERg23AiADKAIAIgAgBCABa2ohBiABIABrQQJqIQUDQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAY2AgAMtwILIAMoAgQhACADQgA3AwAgAyAAIAVBAWoiARArIgBFDQIgA0HsATYCHCADIAE2AhQgAyAANgIMQQAhAgy2AgsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNnAIgA0HtATYCHCADIAE2AhQgAyAANgIMQQAhAgy0AgtBzwEhAgyaAgtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDLQCC0HOASECDJoCCyADQesBNgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMsgILIAEgBEYEQEHrASECDLICCyABLQAAQS9GBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GyODYCECADQQg2AgxBACECDLECC0HNASECDJcCCyABIARHBEAgA0EONgIIIAMgATYCBEHMASECDJcCC0HqASECDK8CCyABIARGBEBB6QEhAgyvAgsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFBywEhAgyWAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZcCIANB6AE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAEgBEYEQEHnASECDK4CCwJAIAEtAABBLkYEQCABQQFqIQEMAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5gE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILQcoBIQIMlAILIAEgBEYEQEHlASECDK0CC0EAIQBBASEFQQEhB0EAIQICQAJAAkACQAJAAn8CQAJAAkACQAJAAkACQCABLQAAQTBrDgoKCQABAgMEBQYICwtBAgwGC0EDDAULQQQMBAtBBQwDC0EGDAILQQcMAQtBCAshAkEAIQVBACEHDAILQQkhAkEBIQBBACEFQQAhBwwBC0EAIQVBASECCyADIAI6ACsgAUEBaiEBAkACQCADLQAuQRBxDQACQAJAAkAgAy0AKg4DAQACBAsgB0UNAwwCCyAADQEMAgsgBUUNAQsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDQIgA0HiATYCHCADIAE2AhQgAyAANgIMQQAhAgyvAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZoCIANB4wE2AhwgAyABNgIUIAMgADYCDEEAIQIMrgILIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ2YAiADQeQBNgIcIAMgATYCFCADIAA2AgwMrQILQckBIQIMkwILQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANBpA02AhAgA0EhNgIMQQAhAgytAgtByAEhAgyTAgsgA0HhATYCHCADIAE2AhQgA0HQGjYCECADQRU2AgxBACECDKsCCyABIARGBEBB4QEhAgyrAgsCQCABLQAAQSBGBEAgA0EAOwE0IAFBAWohAQwBCyADQQA2AhwgAyABNgIUIANBmRE2AhAgA0EJNgIMQQAhAgyrAgtBxwEhAgyRAgsgASAERgRAQeABIQIMqgILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyrAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqgILQcYBIQIMkAILIAEgBEYEQEHfASECDKkCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqgILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKkCC0HFASECDI8CCyABIARGBEBB3gEhAgyoAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKkCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyoAgtBxAEhAgyOAgsgASAERgRAQd0BIQIMpwILAkACQAJAAkAgAS0AAEEKaw4XAgMDAAMDAwMDAwMDAwMDAwMDAwMDAwEDCyABQQFqDAULIAFBAWohAUHDASECDI8CCyABQQFqIQEgA0Evai0AAEEBcQ0IIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKcCCyADQQA2AhwgAyABNgIUIANBjQs2AhAgA0ENNgIMQQAhAgymAgsgASAERwRAIANBDzYCCCADIAE2AgRBASECDI0CC0HcASECDKUCCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtB2wEhAgymAgsgAygCBCEAIANBADYCBCADIAAgARAtIgBFBEAgAUEBaiEBDAQLIANB2gE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMpQILIAMoAgQhACADQQA2AgQgAyAAIAEQLSIADQEgAUEBagshAUHBASECDIoCCyADQdkBNgIcIAMgADYCDCADIAFBAWo2AhRBACECDKICC0HCASECDIgCCyADQS9qLQAAQQFxDQEgA0EANgIcIAMgATYCFCADQeQcNgIQIANBGTYCDEEAIQIMoAILIAEgBEYEQEHZASECDKACCwJAAkACQCABLQAAQQprDgQBAgIAAgsgAUEBaiEBDAILIAFBAWohAQwBCyADLQAuQcAAcUUNAQtBACEAAkAgAygCOCICRQ0AIAIoAjwiAkUNACADIAIRAAAhAAsgAEUNoAEgAEEVRgRAIANB2QA2AhwgAyABNgIUIANBtxo2AhAgA0EVNgIMQQAhAgyfAgsgA0EANgIcIAMgATYCFCADQYANNgIQIANBGzYCDEEAIQIMngILIANBADYCHCADIAE2AhQgA0HcKDYCECADQQI2AgxBACECDJ0CCyABIARHBEAgA0EMNgIIIAMgATYCBEG/ASECDIQCC0HYASECDJwCCyABIARGBEBB1wEhAgycAgsCQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAEtAABBwQBrDhUAAQIDWgQFBlpaWgcICQoLDA0ODxBaCyABQQFqIQFB+wAhAgySAgsgAUEBaiEBQfwAIQIMkQILIAFBAWohAUGBASECDJACCyABQQFqIQFBhQEhAgyPAgsgAUEBaiEBQYYBIQIMjgILIAFBAWohAUGJASECDI0CCyABQQFqIQFBigEhAgyMAgsgAUEBaiEBQY0BIQIMiwILIAFBAWohAUGWASECDIoCCyABQQFqIQFBlwEhAgyJAgsgAUEBaiEBQZgBIQIMiAILIAFBAWohAUGlASECDIcCCyABQQFqIQFBpgEhAgyGAgsgAUEBaiEBQawBIQIMhQILIAFBAWohAUG0ASECDIQCCyABQQFqIQFBtwEhAgyDAgsgAUEBaiEBQb4BIQIMggILIAEgBEYEQEHWASECDJsCCyABLQAAQc4ARw1IIAFBAWohAUG9ASECDIECCyABIARGBEBB1QEhAgyaAgsCQAJAAkAgAS0AAEHCAGsOEgBKSkpKSkpKSkoBSkpKSkpKAkoLIAFBAWohAUG4ASECDIICCyABQQFqIQFBuwEhAgyBAgsgAUEBaiEBQbwBIQIMgAILQdQBIQIgASAERg2YAiADKAIAIgAgBCABa2ohBSABIABrQQdqIQYCQANAIAEtAAAgAEGo1QBqLQAARw1FIABBB0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyZAgsgA0EANgIAIAZBAWohAUEbDEULIAEgBEYEQEHTASECDJgCCwJAAkAgAS0AAEHJAGsOBwBHR0dHRwFHCyABQQFqIQFBuQEhAgz/AQsgAUEBaiEBQboBIQIM/gELQdIBIQIgASAERg2WAiADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGm1QBqLQAARw1DIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyXAgsgA0EANgIAIAZBAWohAUEPDEMLQdEBIQIgASAERg2VAiADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGk1QBqLQAARw1CIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyWAgsgA0EANgIAIAZBAWohAUEgDEILQdABIQIgASAERg2UAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGh1QBqLQAARw1BIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyVAgsgA0EANgIAIAZBAWohAUESDEELIAEgBEYEQEHPASECDJQCCwJAAkAgAS0AAEHFAGsODgBDQ0NDQ0NDQ0NDQ0MBQwsgAUEBaiEBQbUBIQIM+wELIAFBAWohAUG2ASECDPoBC0HOASECIAEgBEYNkgIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBntUAai0AAEcNPyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMkwILIANBADYCACAGQQFqIQFBBww/C0HNASECIAEgBEYNkQIgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBmNUAai0AAEcNPiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMkgILIANBADYCACAGQQFqIQFBKAw+CyABIARGBEBBzAEhAgyRAgsCQAJAAkAgAS0AAEHFAGsOEQBBQUFBQUFBQUEBQUFBQUECQQsgAUEBaiEBQbEBIQIM+QELIAFBAWohAUGyASECDPgBCyABQQFqIQFBswEhAgz3AQtBywEhAiABIARGDY8CIAMoAgAiACAEIAFraiEFIAEgAGtBBmohBgJAA0AgAS0AACAAQZHVAGotAABHDTwgAEEGRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJACCyADQQA2AgAgBkEBaiEBQRoMPAtBygEhAiABIARGDY4CIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQY3VAGotAABHDTsgAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADI8CCyADQQA2AgAgBkEBaiEBQSEMOwsgASAERgRAQckBIQIMjgILAkACQCABLQAAQcEAaw4UAD09PT09PT09PT09PT09PT09PQE9CyABQQFqIQFBrQEhAgz1AQsgAUEBaiEBQbABIQIM9AELIAEgBEYEQEHIASECDI0CCwJAAkAgAS0AAEHVAGsOCwA8PDw8PDw8PDwBPAsgAUEBaiEBQa4BIQIM9AELIAFBAWohAUGvASECDPMBC0HHASECIAEgBEYNiwIgAygCACIAIAQgAWtqIQUgASAAa0EIaiEGAkADQCABLQAAIABBhNUAai0AAEcNOCAAQQhGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMjAILIANBADYCACAGQQFqIQFBKgw4CyABIARGBEBBxgEhAgyLAgsgAS0AAEHQAEcNOCABQQFqIQFBJQw3C0HFASECIAEgBEYNiQIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBgdUAai0AAEcNNiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMigILIANBADYCACAGQQFqIQFBDgw2CyABIARGBEBBxAEhAgyJAgsgAS0AAEHFAEcNNiABQQFqIQFBqwEhAgzvAQsgASAERgRAQcMBIQIMiAILAkACQAJAAkAgAS0AAEHCAGsODwABAjk5OTk5OTk5OTk5AzkLIAFBAWohAUGnASECDPEBCyABQQFqIQFBqAEhAgzwAQsgAUEBaiEBQakBIQIM7wELIAFBAWohAUGqASECDO4BC0HCASECIAEgBEYNhgIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABB/tQAai0AAEcNMyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMhwILIANBADYCACAGQQFqIQFBFAwzC0HBASECIAEgBEYNhQIgAygCACIAIAQgAWtqIQUgASAAa0EEaiEGAkADQCABLQAAIABB+dQAai0AAEcNMiAAQQRGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMhgILIANBADYCACAGQQFqIQFBKwwyC0HAASECIAEgBEYNhAIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABB9tQAai0AAEcNMSAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMhQILIANBADYCACAGQQFqIQFBLAwxC0G/ASECIAEgBEYNgwIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBodUAai0AAEcNMCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMhAILIANBADYCACAGQQFqIQFBEQwwC0G+ASECIAEgBEYNggIgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABB8tQAai0AAEcNLyAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMgwILIANBADYCACAGQQFqIQFBLgwvCyABIARGBEBBvQEhAgyCAgsCQAJAAkACQAJAIAEtAABBwQBrDhUANDQ0NDQ0NDQ0NAE0NAI0NAM0NAQ0CyABQQFqIQFBmwEhAgzsAQsgAUEBaiEBQZwBIQIM6wELIAFBAWohAUGdASECDOoBCyABQQFqIQFBogEhAgzpAQsgAUEBaiEBQaQBIQIM6AELIAEgBEYEQEG8ASECDIECCwJAAkAgAS0AAEHSAGsOAwAwATALIAFBAWohAUGjASECDOgBCyABQQFqIQFBBAwtC0G7ASECIAEgBEYN/wEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABB8NQAai0AAEcNLCAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMgAILIANBADYCACAGQQFqIQFBHQwsCyABIARGBEBBugEhAgz/AQsCQAJAIAEtAABByQBrDgcBLi4uLi4ALgsgAUEBaiEBQaEBIQIM5gELIAFBAWohAUEiDCsLIAEgBEYEQEG5ASECDP4BCyABLQAAQdAARw0rIAFBAWohAUGgASECDOQBCyABIARGBEBBuAEhAgz9AQsCQAJAIAEtAABBxgBrDgsALCwsLCwsLCwsASwLIAFBAWohAUGeASECDOQBCyABQQFqIQFBnwEhAgzjAQtBtwEhAiABIARGDfsBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQezUAGotAABHDSggAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPwBCyADQQA2AgAgBkEBaiEBQQ0MKAtBtgEhAiABIARGDfoBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDScgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPsBCyADQQA2AgAgBkEBaiEBQQwMJwtBtQEhAiABIARGDfkBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQerUAGotAABHDSYgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPoBCyADQQA2AgAgBkEBaiEBQQMMJgtBtAEhAiABIARGDfgBIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQejUAGotAABHDSUgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADPkBCyADQQA2AgAgBkEBaiEBQSYMJQsgASAERgRAQbMBIQIM+AELAkACQCABLQAAQdQAaw4CAAEnCyABQQFqIQFBmQEhAgzfAQsgAUEBaiEBQZoBIQIM3gELQbIBIQIgASAERg32ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHm1ABqLQAARw0jIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz3AQsgA0EANgIAIAZBAWohAUEnDCMLQbEBIQIgASAERg31ASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHk1ABqLQAARw0iIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz2AQsgA0EANgIAIAZBAWohAUEcDCILQbABIQIgASAERg30ASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHe1ABqLQAARw0hIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz1AQsgA0EANgIAIAZBAWohAUEGDCELQa8BIQIgASAERg3zASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEHZ1ABqLQAARw0gIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAz0AQsgA0EANgIAIAZBAWohAUEZDCALIAEgBEYEQEGuASECDPMBCwJAAkACQAJAIAEtAABBLWsOIwAkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJAEkJCQkJAIkJCQDJAsgAUEBaiEBQY4BIQIM3AELIAFBAWohAUGPASECDNsBCyABQQFqIQFBlAEhAgzaAQsgAUEBaiEBQZUBIQIM2QELQa0BIQIgASAERg3xASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEHX1ABqLQAARw0eIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzyAQsgA0EANgIAIAZBAWohAUELDB4LIAEgBEYEQEGsASECDPEBCwJAAkAgAS0AAEHBAGsOAwAgASALIAFBAWohAUGQASECDNgBCyABQQFqIQFBkwEhAgzXAQsgASAERgRAQasBIQIM8AELAkACQCABLQAAQcEAaw4PAB8fHx8fHx8fHx8fHx8BHwsgAUEBaiEBQZEBIQIM1wELIAFBAWohAUGSASECDNYBCyABIARGBEBBqgEhAgzvAQsgAS0AAEHMAEcNHCABQQFqIQFBCgwbC0GpASECIAEgBEYN7QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABB0dQAai0AAEcNGiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7gELIANBADYCACAGQQFqIQFBHgwaC0GoASECIAEgBEYN7AEgAygCACIAIAQgAWtqIQUgASAAa0EGaiEGAkADQCABLQAAIABBytQAai0AAEcNGSAAQQZGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7QELIANBADYCACAGQQFqIQFBFQwZC0GnASECIAEgBEYN6wEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBx9QAai0AAEcNGCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM7AELIANBADYCACAGQQFqIQFBFwwYC0GmASECIAEgBEYN6gEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBwdQAai0AAEcNFyAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6wELIANBADYCACAGQQFqIQFBGAwXCyABIARGBEBBpQEhAgzqAQsCQAJAIAEtAABByQBrDgcAGRkZGRkBGQsgAUEBaiEBQYsBIQIM0QELIAFBAWohAUGMASECDNABC0GkASECIAEgBEYN6AEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBptUAai0AAEcNFSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6QELIANBADYCACAGQQFqIQFBCQwVC0GjASECIAEgBEYN5wEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBpNUAai0AAEcNFCAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM6AELIANBADYCACAGQQFqIQFBHwwUC0GiASECIAEgBEYN5gEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBvtQAai0AAEcNEyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5wELIANBADYCACAGQQFqIQFBAgwTC0GhASECIAEgBEYN5QEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGA0AgAS0AACAAQbzUAGotAABHDREgAEEBRg0CIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADOUBCyABIARGBEBBoAEhAgzlAQtBASABLQAAQd8ARw0RGiABQQFqIQFBhwEhAgzLAQsgA0EANgIAIAZBAWohAUGIASECDMoBC0GfASECIAEgBEYN4gEgAygCACIAIAQgAWtqIQUgASAAa0EIaiEGAkADQCABLQAAIABBhNUAai0AAEcNDyAAQQhGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4wELIANBADYCACAGQQFqIQFBKQwPC0GeASECIAEgBEYN4QEgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBuNQAai0AAEcNDiAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM4gELIANBADYCACAGQQFqIQFBLQwOCyABIARGBEBBnQEhAgzhAQsgAS0AAEHFAEcNDiABQQFqIQFBhAEhAgzHAQsgASAERgRAQZwBIQIM4AELAkACQCABLQAAQcwAaw4IAA8PDw8PDwEPCyABQQFqIQFBggEhAgzHAQsgAUEBaiEBQYMBIQIMxgELQZsBIQIgASAERg3eASADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANAIAEtAAAgAEGz1ABqLQAARw0LIABBBEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzfAQsgA0EANgIAIAZBAWohAUEjDAsLQZoBIQIgASAERg3dASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGw1ABqLQAARw0KIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzeAQsgA0EANgIAIAZBAWohAUEADAoLIAEgBEYEQEGZASECDN0BCwJAAkAgAS0AAEHIAGsOCAAMDAwMDAwBDAsgAUEBaiEBQf0AIQIMxAELIAFBAWohAUGAASECDMMBCyABIARGBEBBmAEhAgzcAQsCQAJAIAEtAABBzgBrDgMACwELCyABQQFqIQFB/gAhAgzDAQsgAUEBaiEBQf8AIQIMwgELIAEgBEYEQEGXASECDNsBCyABLQAAQdkARw0IIAFBAWohAUEIDAcLQZYBIQIgASAERg3ZASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEGs1ABqLQAARw0GIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzaAQsgA0EANgIAIAZBAWohAUEFDAYLQZUBIQIgASAERg3YASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEGm1ABqLQAARw0FIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzZAQsgA0EANgIAIAZBAWohAUEWDAULQZQBIQIgASAERg3XASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGh1QBqLQAARw0EIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzYAQsgA0EANgIAIAZBAWohAUEQDAQLIAEgBEYEQEGTASECDNcBCwJAAkAgAS0AAEHDAGsODAAGBgYGBgYGBgYGAQYLIAFBAWohAUH5ACECDL4BCyABQQFqIQFB+gAhAgy9AQtBkgEhAiABIARGDdUBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQaDUAGotAABHDQIgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNYBCyADQQA2AgAgBkEBaiEBQSQMAgsgA0EANgIADAILIAEgBEYEQEGRASECDNQBCyABLQAAQcwARw0BIAFBAWohAUETCzoAKSADKAIEIQAgA0EANgIEIAMgACABEC4iAA0CDAELQQAhAiADQQA2AhwgAyABNgIUIANB/h82AhAgA0EGNgIMDNEBC0H4ACECDLcBCyADQZABNgIcIAMgATYCFCADIAA2AgxBACECDM8BC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ0AIABBFUYNASADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgzOAQtB9wAhAgy0AQsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDMwBCyABIARGBEBBjwEhAgzMAQsCQCABLQAAQSBGBEAgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GbHzYCECADQQY2AgxBACECDMwBC0ECIQIMsgELA0AgAS0AAEEgRw0CIAQgAUEBaiIBRw0AC0GOASECDMoBCyABIARGBEBBjQEhAgzKAQsCQCABLQAAQQlrDgRKAABKAAtB9QAhAgywAQsgAy0AKUEFRgRAQfYAIQIMsAELQfQAIQIMrwELIAEgBEYEQEGMASECDMgBCyADQRA2AgggAyABNgIEDAoLIAEgBEYEQEGLASECDMcBCwJAIAEtAABBCWsOBEcAAEcAC0HzACECDK0BCyABIARHBEAgA0EQNgIIIAMgATYCBEHxACECDK0BC0GKASECDMUBCwJAIAEgBEcEQANAIAEtAABBoNAAai0AACIAQQNHBEACQCAAQQFrDgJJAAQLQfAAIQIMrwELIAQgAUEBaiIBRw0AC0GIASEC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BCABQQFqIgFHDQALQfsAIQIMpwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMpgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMpQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0DIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMpAELIANBADYCHCADIAE2AhQgA0G8CjYCECADQQc2AgxBACECDKMBC0HPACECDIkBC0HRACECDIgBC0HnACECDIcBCyABIARGBEBB+gAhAgygAQsCQCABLQAAQQlrDgQgAAAgAAsgAUEBaiEBQeYAIQIMhgELIAEgBEYEQEH5ACECDJ8BCwJAIAEtAABBCWsOBB8AAB8AC0EAIQACQCADKAI4IgJFDQAgAigCOCICRQ0AIAMgAhEAACEACyAARQRAQeIBIQIMhgELIABBFUcEQCADQQA2AhwgAyABNgIUIANByQ02AhAgA0EaNgIMQQAhAgyfAQsgA0H4ADYCHCADIAE2AhQgA0HqGjYCECADQRU2AgxBACECDJ4BCyABIARHBEAgA0ENNgIIIAMgATYCBEHkACECDIUBC0H3ACECDJ0BCyABIARGBEBB9gAhAgydAQsCQAJAAkAgAS0AAEHIAGsOCwABCwsLCwsLCwsCCwsgAUEBaiEBQd0AIQIMhQELIAFBAWohAUHgACECDIQBCyABQQFqIQFB4wAhAgyDAQtB9QAhAiABIARGDZsBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbXVAGotAABHDQggAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJwBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIABEAgA0H0ADYCHCADIAE2AhQgAyAANgIMQQAhAgycAQtB4gAhAgyCAQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJwBC0HhACECDIIBCyADQfMANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMmgELIAMtACkiAEEja0ELSQ0JAkAgAEEGSw0AQQEgAHRBygBxRQ0ADAoLQQAhAiADQQA2AhwgAyABNgIUIANB7Qk2AhAgA0EINgIMDJkBC0HyACECIAEgBEYNmAEgAygCACIAIAQgAWtqIQUgASAAa0EBaiEGAkADQCABLQAAIABBs9UAai0AAEcNBSAAQQFGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMmQELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfEANgIcIAMgATYCFCADIAA2AgxBACECDJkBC0HfACECDH8LQQAhAAJAIAMoAjgiAkUNACACKAI0IgJFDQAgAyACEQAAIQALAkAgAARAIABBFUYNASADQQA2AhwgAyABNgIUIANB6g02AhAgA0EmNgIMQQAhAgyZAQtB3gAhAgx/CyADQfAANgIcIAMgATYCFCADQYAbNgIQIANBFTYCDEEAIQIMlwELIAMtAClBIUYNBiADQQA2AhwgAyABNgIUIANBkQo2AhAgA0EINgIMQQAhAgyWAQtB7wAhAiABIARGDZUBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDVAGotAABHDQIgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADJYBCyADKAIEIQAgA0IANwMAIAMgACAGQQFqIgEQKyIARQ0CIANB7QA2AhwgAyABNgIUIAMgADYCDEEAIQIMlQELIANBADYCAAsgAygCBCEAIANBADYCBCADIAAgARArIgBFDYABIANB7gA2AhwgAyABNgIUIAMgADYCDEEAIQIMkwELQdwAIQIMeQtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJMBC0HbACECDHkLIANB7AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyRAQsgAy0AKSIAQSNJDQAgAEEuRg0AIANBADYCHCADIAE2AhQgA0HJCTYCECADQQg2AgxBACECDJABC0HaACECDHYLIAEgBEYEQEHrACECDI8BCwJAIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMjwELQdkAIQIMdQsgASAERwRAIANBDjYCCCADIAE2AgRB2AAhAgx1C0HqACECDI0BCyABIARGBEBB6QAhAgyNAQsgAS0AAEEwayIAQf8BcUEKSQRAIAMgADoAKiABQQFqIQFB1wAhAgx0CyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeiADQegANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyABIARGBEBB5wAhAgyMAQsCQCABLQAAQS5GBEAgAUEBaiEBDAELIAMoAgQhACADQQA2AgQgAyAAIAEQLyIARQ17IANB5gA2AhwgAyABNgIUIAMgADYCDEEAIQIMjAELQdYAIQIMcgsgASAERgRAQeUAIQIMiwELQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIANgIcIAMgATYCFCADIAA2AgxBACECDI0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNfSADQeMANgIcIAMgATYCFCADIAA2AgxBACECDIwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNeyADQeQANgIcIAMgATYCFCADIAA2AgwMiwELQdQAIQIMcQsgAy0AKUEiRg2GAUHTACECDHALQQAhAAJAIAMoAjgiAkUNACACKAJEIgJFDQAgAyACEQAAIQALIABFBEBB1QAhAgxwCyAAQRVHBEAgA0EANgIcIAMgATYCFCADQaQNNgIQIANBITYCDEEAIQIMiQELIANB4QA2AhwgAyABNgIUIANB0Bo2AhAgA0EVNgIMQQAhAgyIAQsgASAERgRAQeAAIQIMiAELAkACQAJAAkACQCABLQAAQQprDgQBBAQABAsgAUEBaiEBDAELIAFBAWohASADQS9qLQAAQQFxRQ0BC0HSACECDHALIANBADYCHCADIAE2AhQgA0G2ETYCECADQQk2AgxBACECDIgBCyADQQA2AhwgAyABNgIUIANBthE2AhAgA0EJNgIMQQAhAgyHAQsgASAERgRAQd8AIQIMhwELIAEtAABBCkYEQCABQQFqIQEMCQsgAy0ALkHAAHENCCADQQA2AhwgAyABNgIUIANBthE2AhAgA0ECNgIMQQAhAgyGAQsgASAERgRAQd0AIQIMhgELIAEtAAAiAkENRgRAIAFBAWohAUHQACECDG0LIAEhACACQQlrDgQFAQEFAQsgBCABIgBGBEBB3AAhAgyFAQsgAC0AAEEKRw0AIABBAWoMAgtBACECIANBADYCHCADIAA2AhQgA0HKLTYCECADQQc2AgwMgwELIAEgBEYEQEHbACECDIMBCwJAIAEtAABBCWsOBAMAAAMACyABQQFqCyEBQc4AIQIMaAsgASAERgRAQdoAIQIMgQELIAEtAABBCWsOBAABAQABC0EAIQIgA0EANgIcIANBmhI2AhAgA0EHNgIMIAMgAUEBajYCFAx/CyADQYASOwEqQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB2QA2AhwgAyABNgIUIANB6ho2AhAgA0EVNgIMQQAhAgx+C0HNACECDGQLIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDHwLIAEgBEYEQEHZACECDHwLIAEtAABBIEcNPSABQQFqIQEgAy0ALkEBcQ09IANBADYCHCADIAE2AhQgA0HCHDYCECADQR42AgxBACECDHsLIAEgBEYEQEHYACECDHsLAkACQAJAAkACQCABLQAAIgBBCmsOBAIDAwABCyABQQFqIQFBLCECDGULIABBOkcNASADQQA2AhwgAyABNgIUIANB5xE2AhAgA0EKNgIMQQAhAgx9CyABQQFqIQEgA0Evai0AAEEBcUUNcyADLQAyQYABcUUEQCADQTJqIQIgAxA1QQAhAAJAIAMoAjgiBkUNACAGKAIoIgZFDQAgAyAGEQAAIQALAkACQCAADhZNTEsBAQEBAQEBAQEBAQEBAQEBAQEAAQsgA0EpNgIcIAMgATYCFCADQawZNgIQIANBFTYCDEEAIQIMfgsg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c3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -8253,9 +8319,9 @@ var require_llhttp_wasm = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
+// ../electron/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js
 var require_llhttp_simd_wasm = __commonJS({
-  "../../node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/llhttp/llhttp_simd-wasm.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var wasmBase64 = "AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAn9/AGABfwBgBH9/f38Bf2AAAGADf39/AALLAQgDZW52GHdhc21fb25faGVhZGVyc19jb21wbGV0ZQAEA2VudhV3YXNtX29uX21lc3NhZ2VfYmVnaW4AAANlbnYLd2FzbV9vbl91cmwAAQNlbnYOd2FzbV9vbl9zdGF0dXMAAQNlbnYUd2FzbV9vbl9oZWFkZXJfZmllbGQAAQNlbnYUd2FzbV9vbl9oZWFkZXJfdmFsdWUAAQNlbnYMd2FzbV9vbl9ib2R5AAEDZW52GHdhc21fb25fbWVzc2FnZV9jb21wbGV0ZQAAAzU0BQYAAAMAAAAAAAADAQMAAwMDAAACAAAAAAICAgICAgICAgIBAQEBAQEBAQEBAwAAAwAAAAQFAXABExMFAwEAAgYIAX8BQcDZBAsHxQcoBm1lbW9yeQIAC19pbml0aWFsaXplAAgZX19pbmRpcmVjdF9mdW5jdGlvbl90YWJsZQEAC2xsaHR0cF9pbml0AAkYbGxodHRwX3Nob3VsZF9rZWVwX2FsaXZlADcMbGxodHRwX2FsbG9jAAsGbWFsbG9jADkLbGxodHRwX2ZyZWUADARmcmVlAAwPbGxodHRwX2dldF90eXBlAA0VbGxodHRwX2dldF9odHRwX21ham9yAA4VbGxodHRwX2dldF9odHRwX21pbm9yAA8RbGxodHRwX2dldF9tZXRob2QAEBZsbGh0dHBfZ2V0X3N0YXR1c19jb2RlABESbGxodHRwX2dldF91cGdyYWRlABIMbGxodHRwX3Jlc2V0ABMObGxodHRwX2V4ZWN1dGUAFBRsbGh0dHBfc2V0dGluZ3NfaW5pdAAVDWxsaHR0cF9maW5pc2gAFgxsbGh0dHBfcGF1c2UAFw1sbGh0dHBfcmVzdW1lABgbbGxodHRwX3Jlc3VtZV9hZnRlcl91cGdyYWRlABkQbGxodHRwX2dldF9lcnJubwAaF2xsaHR0cF9nZXRfZXJyb3JfcmVhc29uABsXbGxodHRwX3NldF9lcnJvcl9yZWFzb24AHBRsbGh0dHBfZ2V0X2Vycm9yX3BvcwAdEWxsaHR0cF9lcnJub19uYW1lAB4SbGxodHRwX21ldGhvZF9uYW1lAB8SbGxodHRwX3N0YXR1c19uYW1lACAabGxodHRw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AXRrQT5qIQILIAEgAjYCHCABQgA3AhAgAkECdEH01wBqIQACQEHI1QAoAgAiA0EBIAJ0IgdxRQRAIAAgATYCAEHI1QAgAyAHcjYCACABIAA2AhggASABNgIIIAEgATYCDAwBCyAEQRkgAkEBdmtBACACQR9HG3QhAiAAKAIAIQACQANAIAAiAygCBEF4cSAERg0BIAJBHXYhACACQQF0IQIgAyAAQQRxakEQaiIHKAIAIgANAAsgByABNgIAIAEgAzYCGCABIAE2AgwgASABNgIIDAELIAMoAggiACABNgIMIAMgATYCCCABQQA2AhggASADNgIMIAEgADYCCAtB5NUAQeTVACgCAEEBayIAQX8gABs2AgALCwcAIAAtACgLBwAgAC0AKgsHACAALQArCwcAIAAtACkLBwAgAC8BNAsHACAALQAwC0ABBH8gACgCGCEBIAAvAS4hAiAALQAoIQMgACgCOCEEIAAQOCAAIAQ2AjggACADOgAoIAAgAjsBLiAAIAE2AhgLhocCAwd/A34BeyABIAJqIQQCQCAAIgMoAgwiAA0AIAMoAgQEQCADIAE2AgQLIwBBEGsiCSQAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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DAgLQeMBDAcLQdcBDAYLQdgBDAULQdkBDAQLQdoBDAMLQdsBDAILQd0BDAELQdwBCyECA0ACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAIAMCfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAAn8CQAJAAkACfwJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAgAwJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJ/AkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkAC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A0EXNgIcIAMgADYCDCADIAFBAWo2AhQM+AILIABBFUYNI0EAIQIgA0EANgIcIAMgATYCFCADQdYMNgIQIANBIzYCDAz3AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQwdCyADQRk2AhwgAyAANgIMIAMgAUEBajYCFAz2AgsgAygCBCEAQQAhAiADQQA2AgQgAyAAIAEQNCIARQRAIAFBAWohAQzvAgsgA0EaNgIcIAMgADYCDCADIAFBAWo2AhQM9QILIABBFUYNH0EAIQIgA0EANgIcIAMgATYCFCADQdAPNgIQIANBIjYCDAz0AgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDBsLIANBHDYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgzzAgsgAygCBCEAIANBADYCBCADIAAgARAzIgBFBEAgAUEBaiEBDOsCCyADQR02AhwgAyAANgIMIAMgAUEBajYCFEEAIQIM8gILIABBO0cNASABQQFqIQELQSYhAgzXAgtBACECIANBADYCHCADIAE2AhQgA0GfFTYCECADQQw2AgwM7wILIAEgBEcEQANAIAEtAABBIEcNhAIgBCABQQFqIgFHDQALQSwhAgzvAgtBLCECDO4CCyABIARGBEBBNCECDO4CCwJAAkADQAJAIAEtAABBCmsOBAIAAAMACyAEIAFBAWoiAUcNAAtBNCECDO8CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUNnwIgA0EyNgIcIAMgATYCFCADIAA2AgxBACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABEDEiAEUEQCABQQFqIQEMnwILIANBMjYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgztAgsgASAERwRAAkADQCABLQAAQTBrIgBB/wFxQQpPBEBBOiECDNcCCyADKQMgIgtCmbPmzJmz5swZVg0BIAMgC0IKfiIKNwMgIAogAK1C/wGDIgtCf4VWDQEgAyAKIAt8NwMgIAQgAUEBaiIBRw0AC0HAACECDO4CCyADKAIEIQAgA0EANgIEIAMgACABQQFqIgEQMSIADRcM4gILQcAAIQIM7AILIAEgBEYEQEHJACECDOwCCwJAA0ACQCABLQAAQQlrDhgAAqICogKpAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAqICogKiAgCiAgsgBCABQQFqIgFHDQALQckAIQIM7AILIAFBAWohASADQS9qLQAAQQFxDaUCIANBADYCHCADIAE2AhQgA0GXEDYCECADQQo2AgxBACECDOsCCyABIARHBEADQCABLQAAQSBHDRUgBCABQQFqIgFHDQALQfgAIQIM6wILQfgAIQIM6gILIANBAjoAKAw4C0EAIQIgA0EANgIcIANBvws2AhAgA0ECNgIMIAMgAUEBajYCFAzoAgtBACECDM4CC0ENIQIMzQILQRMhAgzMAgtBFSECDMsCC0EWIQIMygILQRghAgzJAgtBGSECDMgCC0EaIQIMxwILQRshAgzGAgtBHCECDMUCC0EdIQIMxAILQR4hAgzDAgtBHyECDMICC0EgIQIMwQILQSIhAgzAAgtBIyECDL8CC0ElIQIMvgILQeUAIQIMvQILIANBPTYCHCADIAE2AhQgAyAANgIMQQAhAgzVAgsgA0EbNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIM1AILIANBIDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNMCCyADQRM2AhwgAyABNgIUIANBmBo2AhAgA0EVNgIMQQAhAgzSAgsgA0ELNgIcIAMgATYCFCADQZgaNgIQIANBFTYCDEEAIQIM0QILIANBEDYCHCADIAE2AhQgA0GYGjYCECADQRU2AgxBACECDNACCyADQSA2AhwgAyABNgIUIANBpBw2AhAgA0EVNgIMQQAhAgzPAgsgA0ELNgIcIAMgATYCFCADQaQcNgIQIANBFTYCDEEAIQIMzgILIANBDDYCHCADIAE2AhQgA0GkHDYCECADQRU2AgxBACECDM0CC0EAIQIgA0EANgIcIAMgATYCFCADQd0ONgIQIANBEjYCDAzMAgsCQANAAkAgAS0AAEEKaw4EAAICAAILIAQgAUEBaiIBRw0AC0H9ASECDMwCCwJAAkAgAy0ANkEBRw0AQQAhAAJAIAMoAjgiAkUNACACKAJgIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRw0BIANB/AE2AhwgAyABNgIUIANB3Bk2AhAgA0EVNgIMQQAhAgzNAgtB3AEhAgyzAgsgA0EANgIcIAMgATYCFCADQfkLNgIQIANBHzYCDEEAIQIMywILAkACQCADLQAoQQFrDgIEAQALQdsBIQIMsgILQdQBIQIMsQILIANBAjoAMUEAIQACQCADKAI4IgJFDQAgAigCACICRQ0AIAMgAhEAACEACyAARQRAQd0BIQIMsQILIABBFUcEQCADQQA2AhwgAyABNgIUIANBtAw2AhAgA0EQNgIMQQAhAgzKAgsgA0H7ATYCHCADIAE2AhQgA0GBGjYCECADQRU2AgxBACECDMkCCyABIARGBEBB+gEhAgzJAgsgAS0AAEHIAEYNASADQQE6ACgLQcABIQIMrgILQdoBIQIMrQILIAEgBEcEQCADQQw2AgggAyABNgIEQdkBIQIMrQILQfkBIQIMxQILIAEgBEYEQEH4ASECDMUCCyABLQAAQcgARw0EIAFBAWohAUHYASECDKsCCyABIARGBEBB9wEhAgzEAgsCQAJAIAEtAABBxQBrDhAABQUFBQUFBQUFBQUFBQUBBQsgAUEBaiEBQdYBIQIMqwILIAFBAWohAUHXASECDKoCC0H2ASECIAEgBEYNwgIgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABButUAai0AAEcNAyAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMwwILIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgBFBEBB4wEhAgyqAgsgA0H1ATYCHCADIAE2AhQgAyAANgIMQQAhAgzCAgtB9AEhAiABIARGDcECIAMoAgAiACAEIAFraiEFIAEgAGtBAWohBgJAA0AgAS0AACAAQbjVAGotAABHDQIgAEEBRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADMICCyADQYEEOwEoIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARAuIgANAwwCCyADQQA2AgALQQAhAiADQQA2AhwgAyABNgIUIANB5R82AhAgA0EINgIMDL8CC0HVASECDKUCCyADQfMBNgIcIAMgATYCFCADIAA2AgxBACECDL0CC0EAIQACQCADKAI4IgJFDQAgAigCQCICRQ0AIAMgAhEAACEACyAARQ1uIABBFUcEQCADQQA2AhwgAyABNgIUIANBgg82AhAgA0EgNgIMQQAhAgy9AgsgA0GPATYCHCADIAE2AhQgA0HsGzYCECADQRU2AgxBACECDLwCCyABIARHBEAgA0ENNgIIIAMgATYCBEHTASECDKMCC0HyASECDLsCCyABIARGBEBB8QEhAgy7AgsCQAJAAkAgAS0AAEHIAGsOCwABCAgICAgICAgCCAsgAUEBaiEBQdABIQIMowILIAFBAWohAUHRASECDKICCyABQQFqIQFB0gEhAgyhAgtB8AEhAiABIARGDbkCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEG11QBqLQAARw0EIABBAkYNAyAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy5AgtB7wEhAiABIARGDbgCIAMoAgAiACAEIAFraiEGIAEgAGtBAWohBQNAIAEtAAAgAEGz1QBqLQAARw0DIABBAUYNAiAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy4AgtB7gEhAiABIARGDbcCIAMoAgAiACAEIAFraiEGIAEgAGtBAmohBQNAIAEtAAAgAEGw1QBqLQAARw0CIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBjYCAAy3AgsgAygCBCEAIANCADcDACADIAAgBUEBaiIBECsiAEUNAiADQewBNgIcIAMgATYCFCADIAA2AgxBACECDLYCCyADQQA2AgALIAMoAgQhACADQQA2AgQgAyAAIAEQKyIARQ2cAiADQe0BNgIcIAMgATYCFCADIAA2AgxBACECDLQCC0HPASECDJoCC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMtAILQc4BIQIMmgILIANB6wE2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyyAgsgASAERgRAQesBIQIMsgILIAEtAABBL0YEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQbI4NgIQIANBCDYCDEEAIQIMsQILQc0BIQIMlwILIAEgBEcEQCADQQ42AgggAyABNgIEQcwBIQIMlwILQeoBIQIMrwILIAEgBEYEQEHpASECDK8CCyABLQAAQTBrIgBB/wFxQQpJBEAgAyAAOgAqIAFBAWohAUHLASECDJYCCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNlwIgA0HoATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgASAERgRAQecBIQIMrgILAkAgAS0AAEEuRgRAIAFBAWohAQwBCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmAIgA0HmATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgtBygEhAgyUAgsgASAERgRAQeUBIQIMrQILQQAhAEEBIQVBASEHQQAhAgJAAkACQAJAAkACfwJAAkACQAJAAkACQAJAIAEtAABBMGsOCgoJAAECAwQFBggLC0ECDAYLQQMMBQtBBAwEC0EFDAMLQQYMAgtBBwwBC0EICyECQQAhBUEAIQcMAgtBCSECQQEhAEEAIQVBACEHDAELQQAhBUEBIQILIAMgAjoAKyABQQFqIQECQAJAIAMtAC5BEHENAAJAAkACQCADLQAqDgMBAAIECyAHRQ0DDAILIAANAQwCCyAFRQ0BCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNAiADQeIBNgIcIAMgATYCFCADIAA2AgxBACECDK8CCyADKAIEIQAgA0EANgIEIAMgACABEC8iAEUNmgIgA0HjATYCHCADIAE2AhQgAyAANgIMQQAhAgyuAgsgAygCBCEAIANBADYCBCADIAAgARAvIgBFDZgCIANB5AE2AhwgAyABNgIUIAMgADYCDAytAgtByQEhAgyTAgtBACEAAkAgAygCOCICRQ0AIAIoAkQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GkDTYCECADQSE2AgxBACECDK0CC0HIASECDJMCCyADQeEBNgIcIAMgATYCFCADQdAaNgIQIANBFTYCDEEAIQIMqwILIAEgBEYEQEHhASECDKsCCwJAIAEtAABBIEYEQCADQQA7ATQgAUEBaiEBDAELIANBADYCHCADIAE2AhQgA0GZETYCECADQQk2AgxBACECDKsCC0HHASECDJECCyABIARGBEBB4AEhAgyqAgsCQCABLQAAQTBrQf8BcSICQQpJBEAgAUEBaiEBAkAgAy8BNCIAQZkzSw0AIAMgAEEKbCIAOwE0IABB/v8DcSACQf//A3NLDQAgAyAAIAJqOwE0DAILQQAhAiADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMDKsCCyADQQA2AhwgAyABNgIUIANBlR42AhAgA0ENNgIMQQAhAgyqAgtBxgEhAgyQAgsgASAERgRAQd8BIQIMqQILAkAgAS0AAEEwa0H/AXEiAkEKSQRAIAFBAWohAQJAIAMvATQiAEGZM0sNACADIABBCmwiADsBNCAAQf7/A3EgAkH//wNzSw0AIAMgACACajsBNAwCC0EAIQIgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDAyqAgsgA0EANgIcIAMgATYCFCADQZUeNgIQIANBDTYCDEEAIQIMqQILQcUBIQIMjwILIAEgBEYEQEHeASECDKgCCwJAIAEtAABBMGtB/wFxIgJBCkkEQCABQQFqIQECQCADLwE0IgBBmTNLDQAgAyAAQQpsIgA7ATQgAEH+/wNxIAJB//8Dc0sNACADIAAgAmo7ATQMAgtBACECIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgwMqQILIANBADYCHCADIAE2AhQgA0GVHjYCECADQQ02AgxBACECDKgCC0HEASECDI4CCyABIARGBEBB3QEhAgynAgsCQAJAAkACQCABLQAAQQprDhcCAwMAAwMDAwMDAwMDAwMDAwMDAwMDAQMLIAFBAWoMBQsgAUEBaiEBQcMBIQIMjwILIAFBAWohASADQS9qLQAAQQFxDQggA0EANgIcIAMgATYCFCADQY0LNgIQIANBDTYCDEEAIQIMpwILIANBADYCHCADIAE2AhQgA0GNCzYCECADQQ02AgxBACECDKYCCyABIARHBEAgA0EPNgIIIAMgATYCBEEBIQIMjQILQdwBIQIMpQILAkACQANAAkAgAS0AAEEKaw4EAgAAAwALIAQgAUEBaiIBRw0AC0HbASECDKYCCyADKAIEIQAgA0EANgIEIAMgACABEC0iAEUEQCABQQFqIQEMBAsgA0HaATYCHCADIAA2AgwgAyABQQFqNgIUQQAhAgylAgsgAygCBCEAIANBADYCBCADIAAgARAtIgANASABQQFqCyEBQcEBIQIMigILIANB2QE2AhwgAyAANgIMIAMgAUEBajYCFEEAIQIMogILQcIBIQIMiAILIANBL2otAABBAXENASADQQA2AhwgAyABNgIUIANB5Bw2AhAgA0EZNgIMQQAhAgygAgsgASAERgRAQdkB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CyADIAU2AgAMkAILIANBADYCACAGQQFqIQFBGgw8C0HKASECIAEgBEYNjgIgAygCACIAIAQgAWtqIQUgASAAa0EDaiEGAkADQCABLQAAIABBjdUAai0AAEcNOyAAQQNGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMjwILIANBADYCACAGQQFqIQFBIQw7CyABIARGBEBByQEhAgyOAgsCQAJAIAEtAABBwQBrDhQAPT09PT09PT09PT09PT09PT09AT0LIAFBAWohAUGtASECDPUBCyABQQFqIQFBsAEhAgz0AQsgASAERgRAQcgBIQIMjQILAkACQCABLQAAQdUAaw4LADw8PDw8PDw8PAE8CyABQQFqIQFBrgEhAgz0AQsgAUEBaiEBQa8BIQIM8wELQccBIQIgASAERg2LAiADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw04IABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyMAgsgA0EANgIAIAZBAWohAUEqDDgLIAEgBEYEQEHGASECDIsCCyABLQAAQdAARw04IAFBAWohAUElDDcLQcUBIQIgASAERg2JAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEGB1QBqLQAARw02IABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyKAgsgA0EANgIAIAZBAWohAUEODDYLIAEgBEYEQEHEASECDIkCCyABLQAAQcUARw02IAFBAWohAUGrASECDO8BCyABIARGBEBBwwEhAgyIAgsCQAJAAkACQCABLQAAQcIAaw4PAAECOTk5OTk5OTk5OTkDOQsgAUEBaiEBQacBIQIM8QELIAFBAWohAUGoASECDPABCyABQQFqIQFBqQEhAgzvAQsgAUEBaiEBQaoBIQIM7gELQcIBIQIgASAERg2GAiADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEH+1ABqLQAARw0zIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyHAgsgA0EANgIAIAZBAWohAUEUDDMLQcEBIQIgASAERg2FAiADKAIAIgAgBCABa2ohBSABIABrQQRqIQYCQANA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BTYCAAzsAQsgA0EANgIAIAZBAWohAUEXDBgLQaYBIQIgASAERg3qASADKAIAIgAgBCABa2ohBSABIABrQQVqIQYCQANAIAEtAAAgAEHB1ABqLQAARw0XIABBBUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzrAQsgA0EANgIAIAZBAWohAUEYDBcLIAEgBEYEQEGlASECDOoBCwJAAkAgAS0AAEHJAGsOBwAZGRkZGQEZCyABQQFqIQFBiwEhAgzRAQsgAUEBaiEBQYwBIQIM0AELQaQBIQIgASAERg3oASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGm1QBqLQAARw0VIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzpAQsgA0EANgIAIAZBAWohAUEJDBULQaMBIQIgASAERg3nASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGk1QBqLQAARw0UIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzoAQsgA0EANgIAIAZBAWohAUEfDBQLQaIBIQIgASAERg3mASADKAIAIgAgBCABa2ohBSABIABrQQJqIQYCQANAIAEtAAAgAEG+1ABqLQAARw0TIABBAkYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAznAQsgA0EANgIAIAZBAWohAUECDBMLQaEBIQIgASAERg3lASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYDQCABLQAAIABBvNQAai0AAEcNESAAQQFGDQIgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM5QELIAEgBEYEQEGgASECDOUBC0EBIAEtAABB3wBHDREaIAFBAWohAUGHASECDMsBCyADQQA2AgAgBkEBaiEBQYgBIQIMygELQZ8BIQIgASAERg3iASADKAIAIgAgBCABa2ohBSABIABrQQhqIQYCQANAIAEtAAAgAEGE1QBqLQAARw0PIABBCEYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAzjAQsgA0EANgIAIAZBAWohAUEpDA8LQZ4BIQIgASAERg3hASADKAIAIgAgBCABa2ohBSABIABrQQNqIQYCQANAIAEtAAAgAEG41ABqLQAARw0OIABBA0YNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAziAQsgA0EANgIAIAZBAWohAUEtDA4LIAEgBEYEQEGdASECDOEBCyABLQAAQcUARw0OIAFBAWohAUGEASECDMcBCyABIARGBEBBnAEhAgzgAQsCQAJAIAEtAABBzABrDggADw8PDw8PAQ8LIAFBAWohAUGCASECDMcBCyABQQFqIQFBgwEhAgzGAQtBmwEhAiABIARGDd4BIAMoAgAiACAEIAFraiEFIAEgAGtBBGohBgJAA0AgAS0AACAAQbPUAGotAABHDQsgAEEERg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN8BCyADQQA2AgAgBkEBaiEBQSMMCwtBmgEhAiABIARGDd0BIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQbDUAGotAABHDQogAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADN4BCyADQQA2AgAgBkEBaiEBQQAMCgsgASAERgRAQZkBIQIM3QELAkACQCABLQAAQcgAaw4IAAwMDAwMDAEMCyABQQFqIQFB/QAhAgzEAQsgAUEBaiEBQYABIQIMwwELIAEgBEYEQEGYASECDNwBCwJAAkAgAS0AAEHOAGsOAwALAQsLIAFBAWohAUH+ACECDMMBCyABQQFqIQFB/wAhAgzCAQsgASAERgRAQZcBIQIM2wELIAEtAABB2QBHDQggAUEBaiEBQQgMBwtBlgEhAiABIARGDdkBIAMoAgAiACAEIAFraiEFIAEgAGtBA2ohBgJAA0AgAS0AACAAQazUAGotAABHDQYgAEEDRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNoBCyADQQA2AgAgBkEBaiEBQQUMBgtBlQEhAiABIARGDdgBIAMoAgAiACAEIAFraiEFIAEgAGtBBWohBgJAA0AgAS0AACAAQabUAGotAABHDQUgAEEFRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNkBCyADQQA2AgAgBkEBaiEBQRYMBQtBlAEhAiABIARGDdcBIAMoAgAiACAEIAFraiEFIAEgAGtBAmohBgJAA0AgAS0AACAAQaHVAGotAABHDQQgAEECRg0BIABBAWohACAEIAFBAWoiAUcNAAsgAyAFNgIADNgBCyADQQA2AgAgBkEBaiEBQRAMBAsgASAERgRAQZMBIQIM1wELAkACQCABLQAAQcMAaw4MAAYGBgYGBgYGBgYBBgsgAUEBaiEBQfkAIQIMvgELIAFBAWohAUH6ACECDL0BC0GSASECIAEgBEYN1QEgAygCACIAIAQgAWtqIQUgASAAa0EFaiEGAkADQCABLQAAIABBoNQAai0AAEcNAiAAQQVGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAM1gELIANBADYCACAGQQFqIQFBJAwCCyADQQA2AgAMAgsgASAERgRAQZEBIQIM1AELIAEtAABBzABHDQEgAUEBaiEBQRMLOgApIAMoAgQhACADQQA2AgQgAyAAIAEQLiIADQIMAQtBACECIANBADYCHCADIAE2AhQgA0H+HzYCECADQQY2AgwM0QELQfgAIQIMtwELIANBkAE2AhwgAyABNgIUIAMgADYCDEEAIQIMzwELQQAhAAJAIAMoAjgiAkUNACACKAJAIgJFDQAgAyACEQAAIQALIABFDQAgAEEVRg0BIANBADYCHCADIAE2AhQgA0GCDzYCECADQSA2AgxBACECDM4BC0H3ACECDLQBCyADQY8BNgIcIAMgATYCFCADQewbNgIQIANBFTYCDEEAIQIMzAELIAEgBEYEQEGPASECDMwBCwJAIAEtAABBIEYEQCABQQFqIQEMAQsgA0EANgIcIAMgATYCFCADQZsfNgIQIANBBjYCDEEAIQIMzAELQQIhAgyyAQsDQCABLQAAQSBHDQIgBCABQQFqIgFHDQALQY4BIQIMygELIAEgBEYEQEGNASECDMoBCwJAIAEtAABBCWsOBEoAAEoAC0H1ACECDLABCyADLQApQQVGBEBB9gAhAgywAQtB9AAhAgyvAQsgASAERgRAQYwBIQIMyAELIANBEDYCCCADIAE2AgQMCgsgASAERgRAQYsBIQIMxwELAkAgAS0AAEEJaw4ERwAARwALQfMAIQIMrQELIAEgBEcEQCADQRA2AgggAyABNgIEQfEAIQIMrQELQYoBIQIMxQELAkAgASAERwRAA0AgAS0AAEGg0ABqLQAAIgBBA0cEQAJAIABBAWsOAkkABAtB8AAhAgyvAQsgBCABQQFqIgFHDQALQYgBIQIMxgELQYgBIQIMxQELIANBADYCHCADIAE2AhQgA0HbIDYCECADQQc2AgxBACECDMQBCyABIARGBEBBiQEhAgzEAQsCQAJAAkAgAS0AAEGg0gBqLQAAQQFrDgNGAgABC0HyACECDKwBCyADQQA2AhwgAyABNgIUIANBtBI2AhAgA0EHNgIMQQAhAgzEAQtB6gAhAgyqAQsgASAERwRAIAFBAWohAUHvACECDKoBC0GHASECDMIBCyAEIAEiAEYEQEGGASECDMIBCyAALQAAIgFBL0YEQCAAQQFqIQFB7gAhAgypAQsgAUEJayICQRdLDQEgACEBQQEgAnRBm4CABHENQQwBCyAEIAEiAEYEQEGFASECDMEBCyAALQAAQS9HDQAgAEEBaiEBDAMLQQAhAiADQQA2AhwgAyAANgIUIANB2yA2AhAgA0EHNgIMDL8BCwJAAkACQAJAAkADQCABLQAAQaDOAGotAAAiAEEFRwRAAkACQCAAQQFrDghHBQYHCAAEAQgLQesAIQIMrQELIAFBAWohAUHtACECDKwBCyAEIAFBAWoiAUcNAAtBhAEhAgzDAQsgAUEBagwUCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDMEBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDMABCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNHiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDL8BCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy+AQsgASAERgRAQYMBIQIMvgELAkAgAS0AAEGgzgBqLQAAQQFrDgg+BAUGAAgCAwcLIAFBAWohAQtBAyECDKMBCyABQQFqDA0LQQAhAiADQQA2AhwgA0HREjYCECADQQc2AgwgAyABQQFqNgIUDLoBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQdsANgIcIAMgATYCFCADIAA2AgxBACECDLkBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQd0ANgIcIAMgATYCFCADIAA2AgxBACECDLgBCyADKAIEIQAgA0EANgIEIAMgACABECwiAEUNFiADQfoANgIcIAMgATYCFCADIAA2AgxBACECDLcBCyADQQA2AhwgAyABNgIUIANB+Q82AhAgA0EHNgIMQQAhAgy2AQtB7AAhAgycAQsgASAERgRAQYIBIQIMtQELIAFBAWoMAgsgASAERgRAQYEBIQIMtAELIAFBAWoMAQsgASAERg0BIAFBAWoLIQFBBCECDJgBC0GAASECDLABCwNAIAEtAABBoMwAai0AACIAQQJHBEAgAEEBRwRAQekAIQIMmQELDDELIAQgAUEBaiIBRw0AC0H/ACECDK8BCyABIARGBEBB/gAhAgyvAQsCQCABLQAAQQlrDjcvAwYvBAYGBgYGBgYGBgYGBgYGBgYGBgUGBgIGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYABgsgAUEBagshAUEFIQIMlAELIAFBAWoMBgsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgyrAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgyqAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQggA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgypAQsgA0EANgIcIAMgATYCFCADQY0UNgIQIANBBzYCDEEAIQIMqAELAkACQAJAAkADQCABLQAAQaDKAGotAAAiAEEFRwRAAkAgAEEBaw4GLgMEBQYABgtB6AAhAgyUAQsgBCABQQFqIgFHDQALQf0AIQIMqwELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB2wA2AhwgAyABNgIUIAMgADYCDEEAIQIMqgELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB3QA2AhwgAyABNgIUIAMgADYCDEEAIQIMqQELIAMoAgQhACADQQA2AgQgAyAAIAEQLCIARQ0HIANB+gA2AhwgAyABNgIUIAMgADYCDEEAIQIMqAELIANBADYCHCADIAE2AhQgA0HkCDYCECADQQc2AgxBACECDKcBCyABIARGDQEgAUEBagshAUEGIQIMjAELQfwAIQIMpAELAkACQAJAAkADQCABLQAAQaDIAGotAAAiAEEFRwRAIABBAWsOBCkCAwQFCyAEIAFBAWoiAUcNAAtB+wAhAgynAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HbADYCHCADIAE2AhQgAyAANgIMQQAhAgymAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0HdADYCHCADIAE2AhQgAyAANgIMQQAhAgylAQsgAygCBCEAIANBADYCBCADIAAgARAsIgBFDQMgA0H6ADYCHCADIAE2AhQgAyAANgIMQQAhAgykAQsgA0EANgIcIAMgATYCFCADQbwKNgIQIANBBzYCDEEAIQIMowELQc8AIQIMiQELQdEAIQIMiAELQecAIQIMhwELIAEgBEYEQEH6ACECDKABCwJAIAEtAABBCWsOBCAAACAACyABQQFqIQFB5gAhAgyGAQsgASAERgRAQfkAIQIMnwELAkAgAS0AAEEJaw4EHwAAHwALQQAhAAJAIAMoAjgiAkUNACACKAI4IgJFDQAgAyACEQAAIQALIABFBEBB4gEhAgyGAQsgAEEVRwRAIANBADYCHCADIAE2AhQgA0HJDTYCECADQRo2AgxBACECDJ8BCyADQfgANgIcIAMgATYCFCADQeoaNgIQIANBFTYCDEEAIQIMngELIAEgBEcEQCADQQ02AgggAyABNgIEQeQAIQIMhQELQfcAIQIMnQELIAEgBEYEQEH2ACECDJ0BCwJAAkACQCABLQAAQcgAaw4LAAELCwsLCwsLCwILCyABQQFqIQFB3QAhAgyFAQsgAUEBaiEBQeAAIQIMhAELIAFBAWohAUHjACECDIMBC0H1ACECIAEgBEYNmwEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBtdUAai0AAEcNCCAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMnAELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgAEQCADQfQANgIcIAMgATYCFCADIAA2AgxBACECDJwBC0HiACECDIIBC0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMnAELQeEAIQIMggELIANB8wA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyaAQsgAy0AKSIAQSNrQQtJDQkCQCAAQQZLDQBBASAAdEHKAHFFDQAMCgtBACECIANBADYCHCADIAE2AhQgA0HtCTYCECADQQg2AgwMmQELQfIAIQIgASAERg2YASADKAIAIgAgBCABa2ohBSABIABrQQFqIQYCQANAIAEtAAAgAEGz1QBqLQAARw0FIABBAUYNASAAQQFqIQAgBCABQQFqIgFHDQALIAMgBTYCAAyZAQsgAygCBCEAIANCADcDACADIAAgBkEBaiIBECsiAARAIANB8QA2AhwgAyABNgIUIAMgADYCDEEAIQIMmQELQd8AIQIMfwtBACEAAkAgAygCOCICRQ0AIAIoAjQiAkUNACADIAIRAAAhAAsCQCAABEAgAEEVRg0BIANBADYCHCADIAE2AhQgA0HqDTYCECADQSY2AgxBACECDJkBC0HeACECDH8LIANB8AA2AhwgAyABNgIUIANBgBs2AhAgA0EVNgIMQQAhAgyXAQsgAy0AKUEhRg0GIANBADYCHCADIAE2AhQgA0GRCjYCECADQQg2AgxBACECDJYBC0HvACECIAEgBEYNlQEgAygCACIAIAQgAWtqIQUgASAAa0ECaiEGAkADQCABLQAAIABBsNUAai0AAEcNAiAAQQJGDQEgAEEBaiEAIAQgAUEBaiIBRw0ACyADIAU2AgAMlgELIAMoAgQhACADQgA3AwAgAyAAIAZBAWoiARArIgBFDQIgA0HtADYCHCADIAE2AhQgAyAANgIMQQAhAgyVAQsgA0EANgIACyADKAIEIQAgA0EANgIEIAMgACABECsiAEUNgAEgA0HuADYCHCADIAE2AhQgAyAANgIMQQAhAgyTAQtB3AAhAgx5C0EAIQACQCADKAI4IgJFDQAgAigCNCICRQ0AIAMgAhEAACEACwJAIAAEQCAAQRVGDQEgA0EANgIcIAMgATYCFCADQeoNNgIQIANBJjYCDEEAIQIMkwELQdsAIQIMeQsgA0HsADYCHCADIAE2AhQgA0GAGzYCECADQRU2AgxBACECDJEBCyADLQApIgBBI0kNACAAQS5GDQAgA0EANgIcIAMgATYCFCADQckJNgIQIANBCDYCDEEAIQIMkAELQdoAIQIMdgsgASAERgRAQesAIQIMjwELAkAgAS0AAEEvRgRAIAFBAWohAQwBCyAD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ciBIVFRQL3gueCByZXF1ZXN0AEludmFsaWQgbWV0aG9kIGZvciBSVFNQL3gueCByZXF1ZXN0AEV4cGVjdGVkIFNPVVJDRSBtZXRob2QgZm9yIElDRS94LnggcmVxdWVzdABJbnZhbGlkIGNoYXIgaW4gdXJsIGZyYWdtZW50IHN0YXJ0AEV4cGVjdGVkIGRvdABTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3N0YXR1cwBJbnZhbGlkIHJlc3BvbnNlIHN0YXR1cwBFeHBlY3RlZCBMRiBhZnRlciBoZWFkZXJzAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMAVXNlciBjYWxsYmFjayBlcnJvcgBgb25fcmVzZXRgIGNhbGxiYWNrIGVycm9yAGBvbl9jaHVua19oZWFkZXJgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2JlZ2luYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX3ZhbHVlYCBjYWxsYmFjayBlcnJvcgBgb25fc3RhdHVzX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fdmVyc2lvbl9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3VybF9jb21wbGV0ZWAgY2FsbGJhY2sgZXJyb3IAYG9uX3Byb3RvY29sX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9oZWFkZXJfdmFsdWVfY29tcGxldGVgIGNhbGxiYWNrIGVycm9yAGBvbl9tZXNzYWdlX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fbWV0aG9kX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25faGVhZGVyX2ZpZWxkX2NvbXBsZXRlYCBjYWxsYmFjayBlcnJvcgBgb25fY2h1bmtfZXh0ZW5zaW9uX25hbWVgIGNhbGxiYWNrIGVycm9yAFVuZXhwZWN0ZWQgY2hhciBpbiB1cmwgc2VydmVyAEludmFsaWQgaGVhZGVyIHZhbHVlIGNoYXIASW52YWxpZCBoZWFkZXIgZmllbGQgY2hhcgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3ZlcnNpb24ASW52YWxpZCBtaW5vciB2ZXJzaW9uAEludmFsaWQgbWFqb3IgdmVyc2lvbgBFeHBlY3RlZCBzcGFjZSBhZnRlciB2ZXJzaW9uAEV4cGVjdGVkIENSTEYgYWZ0ZXIgdmVyc2lvbgBJbnZhbGlkIEhUVFAgdmVyc2lvbgBJbnZhbGlkIGhlYWRlciB0b2tlbgBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX3VybABJbnZhbGlkIGNoYXJhY3RlcnMgaW4gdXJsAFVuZXhwZWN0ZWQgc3RhcnQgY2hhciBpbiB1cmwARG91YmxlIEAgaW4gdXJsAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fcHJvdG9jb2wARW1wdHkgQ29udGVudC1MZW5ndGgASW52YWxpZCBjaGFyYWN0ZXIgaW4gQ29udGVudC1MZW5ndGgAVHJhbnNmZXItRW5jb2RpbmcgY2FuJ3QgYmUgcHJlc2VudCB3aXRoIENvbnRlbnQtTGVuZ3RoAER1cGxpY2F0ZSBDb250ZW50LUxlbmd0aABJbnZhbGlkIGNoYXIgaW4gdXJsIHBhdGgAQ29udGVudC1MZW5ndGggY2FuJ3QgYmUgcHJlc2VudCB3aXRoIFRyYW5zZmVyLUVuY29kaW5nAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgc2l6ZQBFeHBlY3RlZCBMRiBhZnRlciBjaHVuayBzaXplAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIHNpemUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfdmFsdWUAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9jaHVua19leHRlbnNpb25fdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyB2YWx1ZQBVbmV4cGVjdGVkIHdoaXRlc3BhY2UgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgaGVhZGVyIHZhbHVlAE1pc3NpbmcgZXhwZWN0ZWQgTEYgYWZ0ZXIgaGVhZGVyIHZhbHVlAEludmFsaWQgYFRyYW5zZmVyLUVuY29kaW5nYCBoZWFkZXIgdmFsdWUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciBjaHVuayBleHRlbnNpb24gdmFsdWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBxdW90ZSB2YWx1ZQBJbnZhbGlkIHF1b3RlZC1wYWlyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAEludmFsaWQgY2hhcmFjdGVyIGluIGNodW5rIGV4dGVuc2lvbnMgcXVvdGVkIHZhbHVlAFBhdXNlZCBieSBvbl9oZWFkZXJzX2NvbXBsZXRlAEludmFsaWQgRU9GIHN0YXRlAG9uX3Jlc2V0IHBhdXNlAG9uX2NodW5rX2hlYWRlciBwYXVzZQBvbl9tZXNzYWdlX2JlZ2luIHBhdXNlAG9uX2NodW5rX2V4dGVuc2lvbl92YWx1ZSBwYXVzZQBvbl9zdGF0dXNfY29tcGxldGUgcGF1c2UAb25fdmVyc2lvbl9jb21wbGV0ZSBwYXVzZQBvbl91cmxfY29tcGxldGUgcGF1c2UAb25fcHJvdG9jb2xfY29tcGxldGUgcGF1c2UAb25fY2h1bmtfY29tcGxldGUgcGF1c2UAb25faGVhZGVyX3ZhbHVlX2NvbXBsZXRlIHBhdXNlAG9uX21lc3NhZ2VfY29tcGxldGUgcGF1c2UAb25fbWV0aG9kX2NvbXBsZXRlIHBhdXNlAG9uX2hlYWRlcl9maWVsZF9jb21wbGV0ZSBwYXVzZQBvbl9jaHVua19leHRlbnNpb25fbmFtZSBwYXVzZQBVbmV4cGVjdGVkIHNwYWNlIGFmdGVyIHN0YXJ0IGxpbmUATWlzc2luZyBleHBlY3RlZCBDUiBhZnRlciByZXNwb25zZSBsaW5lAFNwYW4gY2FsbGJhY2sgZXJyb3IgaW4gb25fY2h1bmtfZXh0ZW5zaW9uX25hbWUASW52YWxpZCBjaGFyYWN0ZXIgaW4gY2h1bmsgZXh0ZW5zaW9ucyBuYW1lAE1pc3NpbmcgZXhwZWN0ZWQgQ1IgYWZ0ZXIgY2h1bmsgZXh0ZW5zaW9uIG5hbWUASW52YWxpZCBzdGF0dXMgY29kZQBQYXVzZSBvbiBDT05ORUNUL1VwZ3JhZGUAUGF1c2Ugb24gUFJJL1VwZ3JhZGUARXhwZWN0ZWQgSFRUUC8yIENvbm5lY3Rpb24gUHJlZmFjZQBTcGFuIGNhbGxiYWNrIGVycm9yIGluIG9uX21ldGhvZABFeHBlY3RlZCBzcGFjZSBhZnRlciBtZXRob2QAU3BhbiBjYWxsYmFjayBlcnJvciBpbiBvbl9oZWFkZXJfZmllbGQAUGF1c2VkAEludmFsaWQgd29yZCBlbmNvdW50ZXJlZABJbnZhbGlkIG1ldGhvZCBlbmNvdW50ZXJlZABNaXNzaW5nIGV4cGVjdGVkIENSIGFmdGVyIGNodW5rIGRhdGEARXhwZWN0ZWQgTEYgYWZ0ZXIgY2h1bmsgZGF0YQBVbmV4cGVjdGVkIGNoYXIgaW4gdXJsIHNjaGVtYQBSZXF1ZXN0IGhhcyBpbnZhbGlkIGBUcmFuc2Zlci1FbmNvZGluZ2AARGF0YSBhZnRlciBgQ29ubmVjdGlvbjogY2xvc2VgAFNXSVRDSF9QUk9YWQBVU0VfUFJPWFkATUtBQ1RJVklUWQBVTlBST0NFU1NBQkxFX0VOVElUWQBRVUVSWQBDT1BZAE1PVkVEX1BFUk1BTkVOVExZAFRPT19FQVJMWQBOT1RJRlkARkFJTEVEX0RFUEVOREVOQ1kAQkFEX0dBVEVXQVkAUExBWQBQVVQAQ0hFQ0tPVVQAR0FURVdBWV9USU1FT1VUAFJFUVVFU1RfVElNRU9VVABORVRXT1JLX0NPTk5FQ1RfVElNRU9VVABDT05ORUNUSU9OX1RJTUVPVVQATE9HSU5fVElNRU9VVABORVRXT1JLX1JFQURfVElNRU9VVABQT1NUAE1JU0RJUkVDVEVEX1JFUVVFU1QAQ0xJRU5UX0NMT1NFRF9SRVFVRVNUAENMSUVOVF9DTE9TRURfTE9BRF9CQUxBTkNFRF9SRVFVRVNUAEJBRF9SRVFVRVNUAEhUVFBfUkVRVUVTVF9TRU5UX1RPX0hUVFBTX1BPUlQAUkVQT1JUAElNX0FfVEVBUE9UAFJFU0VUX0NPTlRFTlQATk9fQ09OVEVOVABQQVJUSUFMX0NPTlRFTlQASFBFX0lOVkFMSURfQ09OU1RBTlQASFBFX0NCX1JFU0VUAEdFVABIUEVfU1RSSUNUAENPTkZMSUNUAFRFTVBPUkFSWV9SRURJUkVDVABQRVJNQU5FTlRfUkVESVJFQ1QAQ09OTkVDVABNVUxUSV9TVEFUVVMASFBFX0lOVkFMSURfU1RBVFVTAFRPT19NQU5ZX1JFUVVFU1RTAEVBUkxZX0hJTlRTAFVOQVZBSUxBQkxFX0ZPUl9MRUdBTF9SRUFTT05TAE9QVElPTlMAU1dJVENISU5HX1BST1RPQ09MUwBWQVJJQU5UX0FMU09fTkVHT1RJQVRFUwBNVUxUSVBMRV9DSE9JQ0VTAElOVEVSTkFMX1NFUlZFUl9FUlJPUgBXRUJfU0VSVkVSX1VOS05PV05fRVJST1IAUkFJTEdVTl9FUlJPUgBJREVOVElUWV9QUk9WSURFUl9BVVRIRU5USUNBVElPTl9FUlJPUgBTU0xfQ0VSVElGSUNBVEVfRVJST1IASU5WQUxJRF9YX0ZPUldBUkRFRF9GT1IAU0VUX1BBUkFNRVRFUgBHRVRfUEFSQU1FVEVSAEhQRV9VU0VSAFNFRV9PVEhFUgBIUEVfQ0JfQ0hVTktfSEVBREVSAEV4cGVjdGVkIExGIGFmdGVyIENSAE1LQ0FMRU5EQVIAU0VUVVAAV0VCX1NFUlZFUl9JU19ET1dOAFRFQVJET1dOAEhQRV9DTE9TRURfQ09OTkVDVElPTgBIRVVSSVNUSUNfRVhQSVJBVElPTgBESVNDT05ORUNURURfT1BFUkFUSU9OAE5PTl9BVVRIT1JJVEFUSVZFX0lORk9STUFUSU9OAEhQRV9JTlZBTElEX1ZFUlNJT04ASFBFX0NCX01FU1NBR0VfQkVHSU4AU0lURV9JU19GUk9aRU4ASFBFX0lOVkFMSURfSEVBREVSX1RPS0VOAElOVkFMSURfVE9LRU4ARk9SQklEREVOAEVOSEFOQ0VfWU9VUl9DQUxNAEhQRV9JTlZBTElEX1VSTABCTE9DS0VEX0JZX1BBUkVOVEFMX0NPTlRST0wATUtDT0wAQUNMAEhQRV9JTlRFUk5BTABSRVFVRVNUX0hFQURFUl9GSUVMRFNfVE9PX0xBUkdFX1VOT0ZGSUNJQUwASFBFX09LAFVOTElOSwBVTkxPQ0sAUFJJAFJFVFJZX1dJVEgASFBFX0lOVkFMSURfQ09OVEVOVF9MRU5HVEgASFBFX1VORVhQRUNURURfQ09OVEVOVF9MRU5HVEgARkxVU0gAUFJPUFBBVENIAE0tU0VBUkNIAFVSSV9UT09fTE9ORwBQUk9DRVNTSU5HAE1JU0NFTExBTkVPVVNfUEVSU0lTVEVOVF9XQVJOSU5HAE1JU0NFTExBTkVPVVNfV0FSTklORwBIUEVfSU5WQUxJRF9UUkFOU0ZFUl9FTkNPRElORwBFeHBlY3RlZCBDUkxGAEhQRV9JTlZBTElEX0NIVU5LX1NJWkUATU9WRQBDT05USU5VRQBIUEVfQ0JfU1RBVFVTX0NPTVBMRVRFAEhQRV9DQl9IRUFERVJTX0NPTVBMRVRFAEhQRV9DQl9WRVJTSU9OX0NPTVBMRVRFAEhQRV9DQl9VUkxfQ09NUExFVEUASFBFX0NCX1BST1RPQ09MX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19DT01QTEVURQBIUEVfQ0JfSEVBREVSX1ZBTFVFX0NPTVBMRVRFAEhQRV9DQl9DSFVOS19FWFRFTlNJT05fVkFMVUVfQ09NUExFVEUASFBFX0NCX0NIVU5LX0VYVEVOU0lPTl9OQU1FX0NPTVBMRVRFAEhQRV9DQl9NRVNTQUdFX0NPTVBMRVRFAEhQRV9DQl9NRVRIT0RfQ09NUExFVEUASFBFX0NCX0hFQURFUl9GSUVMRF9DT01QTEVURQBERUxFVEUASFBFX0lOVkFMSURfRU9GX1NUQVRFAElOVkFMSURfU1NMX0NFUlRJRklDQVRFAFBBVVNFAE5PX1JFU1BPTlNFAFVOU1VQUE9SVEVEX01FRElBX1RZUEUAR09ORQBOT1RfQUNDRVBUQUJMRQBTRVJWSUNFX1VOQVZBSUxBQkxFAFJBTkdFX05PVF9TQVRJU0ZJQUJMRQBPUklHSU5fSVNfVU5SRUFDSEFCTEUAUkVTUE9OU0VfSVNfU1RBTEUAUFVSR0UATUVSR0UAUkVRVUVTVF9IRUFERVJfRklFTERTX1RPT19MQVJHRQBSRVFVRVNUX0hFQURFUl9UT09fTEFSR0UAUEFZTE9BRF9UT09fTEFSR0UASU5TVUZGSUNJRU5UX1NUT1JBR0UASFBFX1BBVVNFRF9VUEdSQURFAEhQRV9QQVVTRURfSDJfVVBHUkFERQBTT1VSQ0UAQU5OT1VOQ0UAVFJBQ0UASFBFX1VORVhQRUNURURfU1BBQ0UAREVTQ1JJQkUAVU5TVUJTQ1JJQkUAUkVDT1JEAEhQRV9JTlZBTElEX01FVEhPRABOT1RfRk9VTkQAUFJPUEZJTkQAVU5CSU5EAFJFQklORABVTkFVVEhPUklaRUQATUVUSE9EX05PVF9BTExPV0VEAEhUVFBfVkVSU0lPTl9OT1RfU1VQUE9SVEVEAEFMUkVBRFlfUkVQT1JURUQAQUNDRVBURUQATk9UX0lNUExFTUVOVEVEAExPT1BfREVURUNURUQASFBFX0NSX0VYUEVDVEVEAEhQRV9MRl9FWFBFQ1RFRABDUkVBVEVEAElNX1VTRUQASFBFX1BBVVNFRABUSU1FT1VUX09DQ1VSRUQAUEFZTUVOVF9SRVFVSVJFRABQUkVDT05ESVRJT05fUkVRVUlSRUQAUFJPWFlfQVVUSEVOVElDQVRJT05fUkVRVUlSRUQATkVUV09SS19BVVRIRU5USUNBVElPTl9SRVFVSVJFRABMRU5HVEhfUkVRVUlSRUQAU1NMX0NFUlRJRklDQVRFX1JFUVVJUkVEAFVQR1JBREVfUkVRVUlSRUQAUEFHRV9FWFBJUkVEAFBSRUNPTkRJVElPTl9GQUlMRUQARVhQRUNUQVRJT05fRkFJTEVEAFJFVkFMSURBVElPTl9GQUlMRUQAU1NMX0hBTkRTSEFLRV9GQUlMRUQATE9DS0VEAFRSQU5TRk9STUFUSU9OX0FQUExJRUQATk9UX01PRElGSUVEAE5PVF9FWFRFTkRFRABCQU5EV0lEVEhfTElNSVRfRVhDRUVERUQAU0lURV9JU19PVkVSTE9BREVEAEhFQUQARXhwZWN0ZWQgSFRUUC8sIFJUU1AvIG9yIElDRS8A5xUAAK8VAACkEgAAkhoAACYWAACeFAAA2xkAAHkVAAB+EgAA/hQAADYVAAALFgAA2BYAAPMSAABCGAAArBYAABIVAAAUFwAA7xcAAEgUAABxFwAAshoAAGsZAAB+GQAANRQAAIIaAABEFwAA/RYAAB4YAACHFwAAqhkAAJMSAAAHGAAALBcAAMoXAACkFwAA5xUAAOcVAABYFwAAOxgAAKASAAAtHAAAwxEAAEgRAADeEgAAQhMAAKQZAAD9EAAA9xUAAKUVAADvFgAA+BkAAEoWAABWFgAA9RUAAAoaAAAIGgAAARoAAKsVAABCEgAA1xAAAEwRAAAFGQAAVBYAAB4RAADKGQAAyBkAAE4WAAD/GAAAcRQAAPAVAADuFQAAlBkAAPwVAAC/GQAAmxkAAHwUAABDEQAAcBgAAJUUAAAnFAAAGRQAANUSAADUGQAARBYAAPcQAEG5OwsBAQBB0DsL4AEBAQIBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBuj0LBAEAAAIAQdE9C14DBAMDAwMDAAADAwADAwADAwMDAwMDAwMDAAUAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAwADAEG6PwsEAQAAAgBB0T8LXgMAAwMDAwMAAAMDAAMDAAMDAwMDAwMDAwMABAAFAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwADAAMAQbDBAAsNbG9zZWVlcC1hbGl2ZQBBycEACwEBAEHgwQAL4AEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBBycMACwEBAEHgwwAL5wEBAQEBAQEBAQEBAQECAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAWNodW5rZWQAQfHFAAteAQABAQEBAQAAAQEAAQEAAQEBAQEBAQEBAQAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAEAAQBB0McACyFlY3Rpb25lbnQtbGVuZ3Rob25yb3h5LWNvbm5lY3Rpb24AQYDIAAsgcmFuc2Zlci1lbmNvZGluZ3BncmFkZQ0KDQpTTQ0KDQoAQanIAAsFAQIAAQMAQcDIAAtfBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanKAAsFAQIAAQMAQcDKAAtfBAUFBgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAQanMAAsEAQAAAQBBwcwAC14CAgACAgICAgICAgICAgICAgICAgICAgICAgICAgIAAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAEGpzgALBQECAAEDAEHAzgALXwQFAAAFBQUFBQUFBQUFBQYFBQUFBQUFBQUFBQUABQAHCAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQAFAAUABQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUAAAAFAEGp0AALBQEBAAEBAEHA0AALAQEAQdrQAAtBAgAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAQanSAAsFAQEAAQEAQcDSAAsBAQBBytIACwYCAAAAAAIAQeHSAAs6AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBBoNQAC50BTk9VTkNFRUNLT1VUTkVDVEVURUNSSUJFTFVTSEVURUFEU0VBUkNIUkdFQ1RJVklUWUxFTkRBUlZFT1RJRllQVElPTlNDSFNFQVlTVEFUQ0hHRVVFUllPUkRJUkVDVE9SVFJDSFBBUkFNRVRFUlVSQ0VCU0NSSUJFQVJET1dOQUNFSU5ETktDS1VCU0NSSUJFVFRQQ0VUU1BBRFRQLw==";
@@ -8268,9 +8334,9 @@ var require_llhttp_simd_wasm = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/constants.js
+// ../electron/node_modules/undici/lib/web/fetch/constants.js
 var require_constants3 = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/constants.js"(exports2, module2) {
     "use strict";
     var corsSafeListedMethods = (
       /** @type {const} */
@@ -8492,9 +8558,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/global.js
+// ../electron/node_modules/undici/lib/web/fetch/global.js
 var require_global = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/global.js"(exports2, module2) {
     "use strict";
     var globalOrigin = Symbol.for("undici.globalOrigin.1");
     function getGlobalOrigin() {
@@ -8528,9 +8594,9 @@ var require_global = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/encoding/index.js
+// ../electron/node_modules/undici/lib/encoding/index.js
 var require_encoding = __commonJS({
-  "../../node_modules/undici/lib/encoding/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/encoding/index.js"(exports2, module2) {
     "use strict";
     var textDecoder = new TextDecoder();
     function utf8DecodeBytes(buffer) {
@@ -8549,9 +8615,9 @@ var require_encoding = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/infra/index.js
+// ../electron/node_modules/undici/lib/web/infra/index.js
 var require_infra = __commonJS({
-  "../../node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/infra/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { utf8DecodeBytes } = require_encoding();
@@ -8662,9 +8728,9 @@ var require_infra = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/data-url.js
+// ../electron/node_modules/undici/lib/web/fetch/data-url.js
 var require_data_url = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/data-url.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { forgivingBase64, collectASequenceOfCodePoints, collectASequenceOfCodePointsFast, isomorphicDecode, removeASCIIWhitespace, removeChars } = require_infra();
@@ -8941,9 +9007,9 @@ var require_data_url = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/runtime-features.js
+// ../electron/node_modules/undici/lib/util/runtime-features.js
 var require_runtime_features = __commonJS({
-  "../../node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/runtime-features.js"(exports2, module2) {
     "use strict";
     var lazyLoaders = {
       __proto__: null,
@@ -9043,9 +9109,9 @@ var require_runtime_features = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/webidl/index.js
+// ../electron/node_modules/undici/lib/web/webidl/index.js
 var require_webidl = __commonJS({
-  "../../node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/webidl/index.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { types, inspect } = require("node:util");
@@ -9645,9 +9711,9 @@ var require_webidl = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/util.js
+// ../electron/node_modules/undici/lib/web/fetch/util.js
 var require_util2 = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/util.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var zlib = require("node:zlib");
@@ -10412,9 +10478,9 @@ var require_util2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/formdata.js
+// ../electron/node_modules/undici/lib/web/fetch/formdata.js
 var require_formdata = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/formdata.js"(exports2, module2) {
     "use strict";
     var { iteratorMixin } = require_util2();
     var { kEnumerableProperty } = require_util();
@@ -10574,9 +10640,9 @@ var require_formdata = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/formdata-parser.js
+// ../electron/node_modules/undici/lib/web/fetch/formdata-parser.js
 var require_formdata_parser = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/formdata-parser.js"(exports2, module2) {
     "use strict";
     var { bufferToLowerCasedHeaderName } = require_util();
     var { HTTP_TOKEN_CODEPOINTS } = require_data_url();
@@ -10904,9 +10970,9 @@ var require_formdata_parser = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/promise.js
+// ../electron/node_modules/undici/lib/util/promise.js
 var require_promise = __commonJS({
-  "../../node_modules/undici/lib/util/promise.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/promise.js"(exports2, module2) {
     "use strict";
     function createDeferredPromise() {
       let res;
@@ -10923,9 +10989,9 @@ var require_promise = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/body.js
+// ../electron/node_modules/undici/lib/web/fetch/body.js
 var require_body = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/body.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -11206,9 +11272,9 @@ Content-Type: ${value.type || "application/octet-stream"}\r
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/client-h1.js
+// ../electron/node_modules/undici/lib/dispatcher/client-h1.js
 var require_client_h1 = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/client-h1.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var util = require_util();
@@ -12481,9 +12547,9 @@ ${len.toString(16)}\r
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/client-h2.js
+// ../electron/node_modules/undici/lib/dispatcher/client-h2.js
 var require_client_h2 = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { pipeline } = require("node:stream");
@@ -13249,9 +13315,9 @@ var require_client_h2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/client.js
+// ../electron/node_modules/undici/lib/dispatcher/client.js
 var require_client = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/client.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var net = require("node:net");
@@ -13780,9 +13846,9 @@ var require_client = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/fixed-queue.js
+// ../electron/node_modules/undici/lib/dispatcher/fixed-queue.js
 var require_fixed_queue = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/fixed-queue.js"(exports2, module2) {
     "use strict";
     var kSize = 2048;
     var kMask = kSize - 1;
@@ -13851,9 +13917,9 @@ var require_fixed_queue = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/pool-base.js
+// ../electron/node_modules/undici/lib/dispatcher/pool-base.js
 var require_pool_base = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/pool-base.js"(exports2, module2) {
     "use strict";
     var { PoolStats } = require_stats();
     var DispatcherBase = require_dispatcher_base();
@@ -14027,9 +14093,9 @@ var require_pool_base = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/pool.js
+// ../electron/node_modules/undici/lib/dispatcher/pool.js
 var require_pool = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -14129,9 +14195,9 @@ var require_pool = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/balanced-pool.js
+// ../electron/node_modules/undici/lib/dispatcher/balanced-pool.js
 var require_balanced_pool = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/balanced-pool.js"(exports2, module2) {
     "use strict";
     var {
       BalancedPoolMissingUpstreamError,
@@ -14279,9 +14345,9 @@ var require_balanced_pool = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/round-robin-pool.js
+// ../electron/node_modules/undici/lib/dispatcher/round-robin-pool.js
 var require_round_robin_pool = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/round-robin-pool.js"(exports2, module2) {
     "use strict";
     var {
       PoolBase,
@@ -14396,9 +14462,9 @@ var require_round_robin_pool = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/agent.js
+// ../electron/node_modules/undici/lib/dispatcher/agent.js
 var require_agent = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/agent.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, MaxOriginsReachedError } = require_errors();
     var { kClients, kRunning, kClose, kDestroy, kDispatch, kUrl } = require_symbols();
@@ -14529,9 +14595,9 @@ var require_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/socks5-utils.js
+// ../electron/node_modules/undici/lib/core/socks5-utils.js
 var require_socks5_utils = __commonJS({
-  "../../node_modules/undici/lib/core/socks5-utils.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/socks5-utils.js"(exports2, module2) {
     "use strict";
     var { Buffer: Buffer2 } = require("node:buffer");
     var net = require("node:net");
@@ -14690,9 +14756,9 @@ var require_socks5_utils = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/core/socks5-client.js
+// ../electron/node_modules/undici/lib/core/socks5-client.js
 var require_socks5_client = __commonJS({
-  "../../node_modules/undici/lib/core/socks5-client.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/core/socks5-client.js"(exports2, module2) {
     "use strict";
     var { EventEmitter: EventEmitter2 } = require("node:events");
     var { Buffer: Buffer2 } = require("node:buffer");
@@ -15023,9 +15089,9 @@ var require_socks5_client = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/socks5-proxy-agent.js
+// ../electron/node_modules/undici/lib/dispatcher/socks5-proxy-agent.js
 var require_socks5_proxy_agent = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/socks5-proxy-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/socks5-proxy-agent.js"(exports2, module2) {
     "use strict";
     var { URL: URL2 } = require("node:url");
     var tls;
@@ -15226,9 +15292,9 @@ var require_socks5_proxy_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/proxy-agent.js
+// ../electron/node_modules/undici/lib/dispatcher/proxy-agent.js
 var require_proxy_agent = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/proxy-agent.js"(exports2, module2) {
     "use strict";
     var { kProxy, kClose, kDestroy, kDispatch } = require_symbols();
     var Agent2 = require_agent();
@@ -15483,9 +15549,9 @@ var require_proxy_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
+// ../electron/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js
 var require_env_http_proxy_agent = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/env-http-proxy-agent.js"(exports2, module2) {
     "use strict";
     var DispatcherBase = require_dispatcher_base();
     var { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = require_symbols();
@@ -15606,9 +15672,9 @@ var require_env_http_proxy_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/retry-handler.js
+// ../electron/node_modules/undici/lib/handler/retry-handler.js
 var require_retry_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/retry-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kRetryHandlerDefaultRetry } = require_symbols();
@@ -16011,9 +16077,9 @@ var require_retry_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/retry-agent.js
+// ../electron/node_modules/undici/lib/dispatcher/retry-agent.js
 var require_retry_agent = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/retry-agent.js"(exports2, module2) {
     "use strict";
     var Dispatcher = require_dispatcher();
     var RetryHandler = require_retry_handler();
@@ -16046,9 +16112,9 @@ var require_retry_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/dispatcher/h2c-client.js
+// ../electron/node_modules/undici/lib/dispatcher/h2c-client.js
 var require_h2c_client = __commonJS({
-  "../../node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/dispatcher/h2c-client.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var Client = require_client();
@@ -16089,9 +16155,9 @@ var require_h2c_client = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/readable.js
+// ../electron/node_modules/undici/lib/api/readable.js
 var require_readable = __commonJS({
-  "../../node_modules/undici/lib/api/readable.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/readable.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -16491,9 +16557,9 @@ var require_readable = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/api-request.js
+// ../electron/node_modules/undici/lib/api/api-request.js
 var require_api_request = __commonJS({
-  "../../node_modules/undici/lib/api/api-request.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/api-request.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -16669,9 +16735,9 @@ var require_api_request = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/abort-signal.js
+// ../electron/node_modules/undici/lib/api/abort-signal.js
 var require_abort_signal = __commonJS({
-  "../../node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/abort-signal.js"(exports2, module2) {
     "use strict";
     var { addAbortListener } = require_util();
     var { RequestAbortedError } = require_errors();
@@ -16721,9 +16787,9 @@ var require_abort_signal = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/api-stream.js
+// ../electron/node_modules/undici/lib/api/api-stream.js
 var require_api_stream = __commonJS({
-  "../../node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { finished } = require("node:stream");
@@ -16882,9 +16948,9 @@ var require_api_stream = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/api-pipeline.js
+// ../electron/node_modules/undici/lib/api/api-pipeline.js
 var require_api_pipeline = __commonJS({
-  "../../node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/api-pipeline.js"(exports2, module2) {
     "use strict";
     var {
       Readable,
@@ -17083,9 +17149,9 @@ var require_api_pipeline = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/api-upgrade.js
+// ../electron/node_modules/undici/lib/api/api-upgrade.js
 var require_api_upgrade = __commonJS({
-  "../../node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/api-upgrade.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, SocketError } = require_errors();
     var { AsyncResource } = require("node:async_hooks");
@@ -17177,9 +17243,9 @@ var require_api_upgrade = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/api-connect.js
+// ../electron/node_modules/undici/lib/api/api-connect.js
 var require_api_connect = __commonJS({
-  "../../node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/api-connect.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { AsyncResource } = require("node:async_hooks");
@@ -17268,9 +17334,9 @@ var require_api_connect = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/api/index.js
+// ../electron/node_modules/undici/lib/api/index.js
 var require_api = __commonJS({
-  "../../node_modules/undici/lib/api/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/api/index.js"(exports2, module2) {
     "use strict";
     module2.exports.request = require_api_request();
     module2.exports.stream = require_api_stream();
@@ -17280,9 +17346,9 @@ var require_api = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-errors.js
+// ../electron/node_modules/undici/lib/mock/mock-errors.js
 var require_mock_errors = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-errors.js"(exports2, module2) {
     "use strict";
     var { UndiciError } = require_errors();
     var kMockNotMatchedError = Symbol.for("undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED");
@@ -17306,9 +17372,9 @@ var require_mock_errors = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-symbols.js
+// ../electron/node_modules/undici/lib/mock/mock-symbols.js
 var require_mock_symbols = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-symbols.js"(exports2, module2) {
     "use strict";
     module2.exports = {
       kAgent: Symbol("agent"),
@@ -17343,9 +17409,9 @@ var require_mock_symbols = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-utils.js
+// ../electron/node_modules/undici/lib/mock/mock-utils.js
 var require_mock_utils = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-utils.js"(exports2, module2) {
     "use strict";
     var { MockNotMatchedError } = require_mock_errors();
     var {
@@ -17720,9 +17786,9 @@ var require_mock_utils = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-interceptor.js
+// ../electron/node_modules/undici/lib/mock/mock-interceptor.js
 var require_mock_interceptor = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-interceptor.js"(exports2, module2) {
     "use strict";
     var { getResponseData, buildKey, addMockDispatch } = require_mock_utils();
     var {
@@ -17884,9 +17950,9 @@ var require_mock_interceptor = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-client.js
+// ../electron/node_modules/undici/lib/mock/mock-client.js
 var require_mock_client = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-client.js"(exports2, module2) {
     "use strict";
     var { promisify: promisify3 } = require("node:util");
     var Client = require_client();
@@ -17945,9 +18011,9 @@ var require_mock_client = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-call-history.js
+// ../electron/node_modules/undici/lib/mock/mock-call-history.js
 var require_mock_call_history = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-call-history.js"(exports2, module2) {
     "use strict";
     var { kMockCallHistoryAddLog } = require_mock_symbols();
     var { InvalidArgumentError } = require_errors();
@@ -18145,9 +18211,9 @@ var require_mock_call_history = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-pool.js
+// ../electron/node_modules/undici/lib/mock/mock-pool.js
 var require_mock_pool = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-pool.js"(exports2, module2) {
     "use strict";
     var { promisify: promisify3 } = require("node:util");
     var Pool = require_pool();
@@ -18206,9 +18272,9 @@ var require_mock_pool = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/pending-interceptors-formatter.js
+// ../electron/node_modules/undici/lib/mock/pending-interceptors-formatter.js
 var require_pending_interceptors_formatter = __commonJS({
-  "../../node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/pending-interceptors-formatter.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { Console } = require("node:console");
@@ -18247,9 +18313,9 @@ var require_pending_interceptors_formatter = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/mock-agent.js
+// ../electron/node_modules/undici/lib/mock/mock-agent.js
 var require_mock_agent = __commonJS({
-  "../../node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/mock-agent.js"(exports2, module2) {
     "use strict";
     var { kClients } = require_symbols();
     var Agent2 = require_agent();
@@ -18431,9 +18497,9 @@ ${pendingInterceptorsFormatter.format(pending)}`.trim()
   }
 });
 
-// ../../node_modules/undici/lib/mock/snapshot-utils.js
+// ../electron/node_modules/undici/lib/mock/snapshot-utils.js
 var require_snapshot_utils = __commonJS({
-  "../../node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/snapshot-utils.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError } = require_errors();
     var { runtimeFeatures } = require_runtime_features();
@@ -18517,9 +18583,9 @@ var require_snapshot_utils = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/snapshot-recorder.js
+// ../electron/node_modules/undici/lib/mock/snapshot-recorder.js
 var require_snapshot_recorder = __commonJS({
-  "../../node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/snapshot-recorder.js"(exports2, module2) {
     "use strict";
     var { writeFile, readFile, mkdir } = require("node:fs/promises");
     var { dirname: dirname6, resolve: resolve7 } = require("node:path");
@@ -18893,9 +18959,9 @@ var require_snapshot_recorder = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/mock/snapshot-agent.js
+// ../electron/node_modules/undici/lib/mock/snapshot-agent.js
 var require_snapshot_agent = __commonJS({
-  "../../node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/mock/snapshot-agent.js"(exports2, module2) {
     "use strict";
     var Agent2 = require_agent();
     var MockAgent = require_mock_agent();
@@ -19180,9 +19246,9 @@ var require_snapshot_agent = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/global.js
+// ../electron/node_modules/undici/lib/global.js
 var require_global2 = __commonJS({
-  "../../node_modules/undici/lib/global.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/global.js"(exports2, module2) {
     "use strict";
     var globalDispatcher = Symbol.for("undici.globalDispatcher.2");
     var legacyGlobalDispatcher = Symbol.for("undici.globalDispatcher.1");
@@ -19234,9 +19300,9 @@ var require_global2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/decorator-handler.js
+// ../electron/node_modules/undici/lib/handler/decorator-handler.js
 var require_decorator_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/decorator-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var WrapHandler = require_wrap_handler();
@@ -19290,9 +19356,9 @@ var require_decorator_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/redirect-handler.js
+// ../electron/node_modules/undici/lib/handler/redirect-handler.js
 var require_redirect_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/redirect-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var { kBodyUsed } = require_symbols();
@@ -19450,9 +19516,9 @@ var require_redirect_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/redirect.js
+// ../electron/node_modules/undici/lib/interceptor/redirect.js
 var require_redirect = __commonJS({
-  "../../node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/redirect.js"(exports2, module2) {
     "use strict";
     var RedirectHandler = require_redirect_handler();
     function createRedirectInterceptor({ maxRedirections: defaultMaxRedirections } = {}) {
@@ -19472,9 +19538,9 @@ var require_redirect = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/response-error.js
+// ../electron/node_modules/undici/lib/interceptor/response-error.js
 var require_response_error = __commonJS({
-  "../../node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/response-error.js"(exports2, module2) {
     "use strict";
     var DecoratorHandler = require_decorator_handler();
     var { ResponseError } = require_errors();
@@ -19554,9 +19620,9 @@ var require_response_error = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/retry.js
+// ../electron/node_modules/undici/lib/interceptor/retry.js
 var require_retry = __commonJS({
-  "../../node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/retry.js"(exports2, module2) {
     "use strict";
     var RetryHandler = require_retry_handler();
     module2.exports = (globalOpts) => {
@@ -19578,9 +19644,9 @@ var require_retry = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/dump.js
+// ../electron/node_modules/undici/lib/interceptor/dump.js
 var require_dump = __commonJS({
-  "../../node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/dump.js"(exports2, module2) {
     "use strict";
     var { InvalidArgumentError, RequestAbortedError } = require_errors();
     var DecoratorHandler = require_decorator_handler();
@@ -19655,9 +19721,9 @@ var require_dump = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/dns.js
+// ../electron/node_modules/undici/lib/interceptor/dns.js
 var require_dns = __commonJS({
-  "../../node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/dns.js"(exports2, module2) {
     "use strict";
     var { isIP: isIP2 } = require("node:net");
     var { lookup } = require("node:dns");
@@ -20094,9 +20160,9 @@ var require_dns = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/cache.js
+// ../electron/node_modules/undici/lib/util/cache.js
 var require_cache = __commonJS({
-  "../../node_modules/undici/lib/util/cache.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/cache.js"(exports2, module2) {
     "use strict";
     var {
       safeHTTPMethods,
@@ -20579,9 +20645,9 @@ var require_cache = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/util/date.js
+// ../electron/node_modules/undici/lib/util/date.js
 var require_date = __commonJS({
-  "../../node_modules/undici/lib/util/date.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/util/date.js"(exports2, module2) {
     "use strict";
     function parseHttpDate(date) {
       switch (date[3]) {
@@ -21079,9 +21145,9 @@ var require_date = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/cache-handler.js
+// ../electron/node_modules/undici/lib/handler/cache-handler.js
 var require_cache_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/cache-handler.js"(exports2, module2) {
     "use strict";
     var util = require_util();
     var {
@@ -21602,9 +21668,9 @@ var require_cache_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/cache/memory-cache-store.js
+// ../electron/node_modules/undici/lib/cache/memory-cache-store.js
 var require_memory_cache_store = __commonJS({
-  "../../node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/cache/memory-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { EventEmitter: EventEmitter2 } = require("node:events");
@@ -21810,9 +21876,9 @@ var require_memory_cache_store = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/cache-revalidation-handler.js
+// ../electron/node_modules/undici/lib/handler/cache-revalidation-handler.js
 var require_cache_revalidation_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/cache-revalidation-handler.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var CacheRevalidationHandler = class {
@@ -21897,9 +21963,9 @@ var require_cache_revalidation_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/cache.js
+// ../electron/node_modules/undici/lib/interceptor/cache.js
 var require_cache2 = __commonJS({
-  "../../node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { Readable } = require("node:stream");
@@ -22315,9 +22381,9 @@ var require_cache2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/decompress.js
+// ../electron/node_modules/undici/lib/interceptor/decompress.js
 var require_decompress = __commonJS({
-  "../../node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/decompress.js"(exports2, module2) {
     "use strict";
     var { createInflate, createGunzip, createBrotliDecompress, createZstdDecompress } = require("node:zlib");
     var { pipeline, Transform: TransformStream2 } = require("node:stream");
@@ -22781,9 +22847,9 @@ var require_decompress = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/handler/deduplication-handler.js
+// ../electron/node_modules/undici/lib/handler/deduplication-handler.js
 var require_deduplication_handler = __commonJS({
-  "../../node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/handler/deduplication-handler.js"(exports2, module2) {
     "use strict";
     var { RequestAbortedError } = require_errors();
     var DEFAULT_MAX_BUFFER_SIZE = 5 * 1024 * 1024;
@@ -23140,9 +23206,9 @@ var require_deduplication_handler = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/interceptor/deduplicate.js
+// ../electron/node_modules/undici/lib/interceptor/deduplicate.js
 var require_deduplicate = __commonJS({
-  "../../node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/interceptor/deduplicate.js"(exports2, module2) {
     "use strict";
     var diagnosticsChannel = require("node:diagnostics_channel");
     var util = require_util();
@@ -23225,9 +23291,9 @@ var require_deduplicate = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/cache/sqlite-cache-store.js
+// ../electron/node_modules/undici/lib/cache/sqlite-cache-store.js
 var require_sqlite_cache_store = __commonJS({
-  "../../node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/cache/sqlite-cache-store.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var { assertCacheKey, assertCacheValue } = require_cache();
@@ -23589,9 +23655,9 @@ var require_sqlite_cache_store = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/headers.js
+// ../electron/node_modules/undici/lib/web/fetch/headers.js
 var require_headers = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/headers.js"(exports2, module2) {
     "use strict";
     var { kConstruct } = require_symbols();
     var { kEnumerableProperty } = require_util();
@@ -24050,9 +24116,9 @@ var require_headers = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/response.js
+// ../electron/node_modules/undici/lib/web/fetch/response.js
 var require_response = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/response.js"(exports2, module2) {
     "use strict";
     var { Headers: Headers2, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = require_headers();
     var { extractBody, cloneBody, mixinBody, streamRegistry, bodyUnusable } = require_body();
@@ -24472,9 +24538,9 @@ var require_response = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/request.js
+// ../electron/node_modules/undici/lib/web/fetch/request.js
 var require_request2 = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/request.js"(exports2, module2) {
     "use strict";
     var { extractBody, mixinBody, cloneBody, bodyUnusable } = require_body();
     var { Headers: Headers2, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = require_headers();
@@ -25228,9 +25294,9 @@ var require_request2 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
+// ../electron/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js
 var require_subresource_integrity = __commonJS({
-  "../../node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
@@ -25367,9 +25433,9 @@ var require_subresource_integrity = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/fetch/index.js
+// ../electron/node_modules/undici/lib/web/fetch/index.js
 var require_fetch = __commonJS({
-  "../../node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/fetch/index.js"(exports2, module2) {
     "use strict";
     var {
       makeNetworkError,
@@ -26511,9 +26577,9 @@ var require_fetch = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cache/util.js
+// ../electron/node_modules/undici/lib/web/cache/util.js
 var require_util3 = __commonJS({
-  "../../node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cache/util.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { URLSerializer } = require_data_url();
@@ -26541,9 +26607,9 @@ var require_util3 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cache/cache.js
+// ../electron/node_modules/undici/lib/web/cache/cache.js
 var require_cache3 = __commonJS({
-  "../../node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cache/cache.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
     var { kConstruct } = require_symbols();
@@ -27090,9 +27156,9 @@ var require_cache3 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cache/cachestorage.js
+// ../electron/node_modules/undici/lib/web/cache/cachestorage.js
 var require_cachestorage = __commonJS({
-  "../../node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cache/cachestorage.js"(exports2, module2) {
     "use strict";
     var { Cache } = require_cache3();
     var { webidl } = require_webidl();
@@ -27200,9 +27266,9 @@ var require_cachestorage = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cookies/constants.js
+// ../electron/node_modules/undici/lib/web/cookies/constants.js
 var require_constants4 = __commonJS({
-  "../../node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cookies/constants.js"(exports2, module2) {
     "use strict";
     var maxAttributeValueSize = 1024;
     var maxNameValuePairSize = 4096;
@@ -27213,9 +27279,9 @@ var require_constants4 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cookies/util.js
+// ../electron/node_modules/undici/lib/web/cookies/util.js
 var require_util4 = __commonJS({
-  "../../node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cookies/util.js"(exports2, module2) {
     "use strict";
     function isCTLExcludingHtab(value) {
       for (let i = 0; i < value.length; ++i) {
@@ -27421,9 +27487,9 @@ var require_util4 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cookies/parse.js
+// ../electron/node_modules/undici/lib/web/cookies/parse.js
 var require_parse = __commonJS({
-  "../../node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cookies/parse.js"(exports2, module2) {
     "use strict";
     var { collectASequenceOfCodePointsFast } = require_infra();
     var { maxNameValuePairSize, maxAttributeValueSize } = require_constants4();
@@ -27557,9 +27623,9 @@ var require_parse = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/cookies/index.js
+// ../electron/node_modules/undici/lib/web/cookies/index.js
 var require_cookies = __commonJS({
-  "../../node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/cookies/index.js"(exports2, module2) {
     "use strict";
     var { parseSetCookie } = require_parse();
     var { stringify } = require_util4();
@@ -27692,9 +27758,9 @@ var require_cookies = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/events.js
+// ../electron/node_modules/undici/lib/web/websocket/events.js
 var require_events = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/events.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { kEnumerableProperty } = require_util();
@@ -27960,9 +28026,9 @@ var require_events = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/constants.js
+// ../electron/node_modules/undici/lib/web/websocket/constants.js
 var require_constants5 = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/constants.js"(exports2, module2) {
     "use strict";
     var uid2 = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     var staticPropertyDescriptors = {
@@ -28016,9 +28082,9 @@ var require_constants5 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/util.js
+// ../electron/node_modules/undici/lib/web/websocket/util.js
 var require_util5 = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/util.js"(exports2, module2) {
     "use strict";
     var { states, opcodes } = require_constants5();
     var { isUtf8 } = require("node:buffer");
@@ -28193,9 +28259,9 @@ var require_util5 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/frame.js
+// ../electron/node_modules/undici/lib/web/websocket/frame.js
 var require_frame = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { runtimeFeatures } = require_runtime_features();
     var { maxUnsigned16Bit, opcodes } = require_constants5();
@@ -28298,9 +28364,9 @@ var require_frame = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/connection.js
+// ../electron/node_modules/undici/lib/web/websocket/connection.js
 var require_connection = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/connection.js"(exports2, module2) {
     "use strict";
     var { uid: uid2, states, sentCloseFrameState, emptyBuffer, opcodes } = require_constants5();
     var { parseExtensions, isClosed, isClosing, isEstablished, isConnecting, validateCloseCodeAndReason } = require_util5();
@@ -28460,9 +28526,9 @@ var require_connection = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/permessage-deflate.js
+// ../electron/node_modules/undici/lib/web/websocket/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/permessage-deflate.js"(exports2, module2) {
     "use strict";
     var { createInflateRaw, Z_DEFAULT_WINDOWBITS } = require("node:zlib");
     var { isValidClientWindowBits } = require_util5();
@@ -28542,9 +28608,9 @@ var require_permessage_deflate = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/receiver.js
+// ../electron/node_modules/undici/lib/web/websocket/receiver.js
 var require_receiver = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/receiver.js"(exports2, module2) {
     "use strict";
     var { Writable: Writable2 } = require("node:stream");
     var assert = require("node:assert");
@@ -28901,9 +28967,9 @@ var require_receiver = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/sender.js
+// ../electron/node_modules/undici/lib/web/websocket/sender.js
 var require_sender = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/sender.js"(exports2, module2) {
     "use strict";
     var { WebsocketFrameSend } = require_frame();
     var { opcodes, sendHints } = require_constants5();
@@ -28988,9 +29054,9 @@ var require_sender = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/websocket.js
+// ../electron/node_modules/undici/lib/web/websocket/websocket.js
 var require_websocket = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/websocket.js"(exports2, module2) {
     "use strict";
     var { isArrayBuffer } = require("node:util/types");
     var { webidl } = require_webidl();
@@ -29478,9 +29544,9 @@ var require_websocket = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/stream/websocketerror.js
+// ../electron/node_modules/undici/lib/web/websocket/stream/websocketerror.js
 var require_websocketerror = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/stream/websocketerror.js"(exports2, module2) {
     "use strict";
     var { webidl } = require_webidl();
     var { validateCloseCodeAndReason } = require_util5();
@@ -29558,9 +29624,9 @@ var require_websocketerror = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/websocket/stream/websocketstream.js
+// ../electron/node_modules/undici/lib/web/websocket/stream/websocketstream.js
 var require_websocketstream = __commonJS({
-  "../../node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/websocket/stream/websocketstream.js"(exports2, module2) {
     "use strict";
     var { createDeferredPromise } = require_promise();
     var { environmentSettingsObject } = require_util2();
@@ -29869,9 +29935,9 @@ var require_websocketstream = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/eventsource/util.js
+// ../electron/node_modules/undici/lib/web/eventsource/util.js
 var require_util6 = __commonJS({
-  "../../node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/eventsource/util.js"(exports2, module2) {
     "use strict";
     function isValidLastEventId(value) {
       return value.indexOf("\0") === -1;
@@ -29890,9 +29956,9 @@ var require_util6 = __commonJS({
   }
 });
 
-// ../../node_modules/undici/lib/web/eventsource/eventsource-stream.js
+// ../electron/node_modules/undici/lib/web/eventsource/eventsource-stream.js
 var require_eventsource_stream = __commonJS({
-  "../../node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/eventsource/eventsource-stream.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("node:stream");
     var { isASCIINumber, isValidLastEventId } = require_util6();
@@ -30231,9 +30297,9 @@ ${value}`;
   }
 });
 
-// ../../node_modules/undici/lib/web/eventsource/eventsource.js
+// ../electron/node_modules/undici/lib/web/eventsource/eventsource.js
 var require_eventsource = __commonJS({
-  "../../node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
+  "../electron/node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module2) {
     "use strict";
     var { pipeline } = require("node:stream");
     var { fetching } = require_fetch();
@@ -30548,9 +30614,9 @@ var require_eventsource = __commonJS({
   }
 });
 
-// ../../node_modules/undici/index.js
+// ../electron/node_modules/undici/index.js
 var require_undici = __commonJS({
-  "../../node_modules/undici/index.js"(exports2, module2) {
+  "../electron/node_modules/undici/index.js"(exports2, module2) {
     "use strict";
     var Client = require_client();
     var Dispatcher = require_dispatcher();
@@ -31106,7 +31172,7 @@ async function getProxySettings(quiet = false) {
 async function saveProxySettings(config) {
   const configPath = getProxySettingsPath();
   try {
-    (0, import_node_fs11.writeFileSync)(configPath, JSON.stringify(config, null, 2), "utf-8");
+    writeJsonFileAtomic(configPath, config);
     console.log("[\u4EE3\u7406\u914D\u7F6E] \u914D\u7F6E\u5DF2\u4FDD\u5B58:", config);
   } catch (error) {
     console.error("[\u4EE3\u7406\u914D\u7F6E] \u4FDD\u5B58\u914D\u7F6E\u5931\u8D25:", error);
@@ -31138,6 +31204,7 @@ var init_proxy_settings_service = __esm({
   "../electron/src/main/lib/proxy-settings-service.ts"() {
     "use strict";
     import_node_fs11 = require("node:fs");
+    init_safe_file();
     init_config_paths();
     init_system_proxy_detector();
     init_env_proxy();
@@ -31203,6 +31270,7 @@ var init_chat_tool_config = __esm({
   "../electron/src/main/lib/chat-tool-config.ts"() {
     "use strict";
     import_node_fs12 = require("node:fs");
+    init_safe_file();
     init_config_paths();
     init_desktop_host();
     init_src();
@@ -31276,7 +31344,7 @@ var init_agent_tool_token_estimator = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/guard/string.mjs
+// ../electron/node_modules/typebox/build/guard/string.mjs
 function IsBetween(value, min, max) {
   return value >= min && value <= max;
 }
@@ -31382,11 +31450,11 @@ function IsMaxLengthFast(value, maxLength) {
   return true;
 }
 var init_string = __esm({
-  "../../node_modules/typebox/build/guard/string.mjs"() {
+  "../electron/node_modules/typebox/build/guard/string.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/guard/guard.mjs
+// ../electron/node_modules/typebox/build/guard/guard.mjs
 var guard_exports = {};
 __export(guard_exports, {
   Entries: () => Entries,
@@ -31578,19 +31646,19 @@ function IsDeepEqual(left, right) {
   return IsArray(left) ? DeepEqualArray(left, right) : IsObject(left) ? DeepEqualObject(left, right) : IsEqual(left, right);
 }
 var init_guard = __esm({
-  "../../node_modules/typebox/build/guard/guard.mjs"() {
+  "../electron/node_modules/typebox/build/guard/guard.mjs"() {
     init_string();
   }
 });
 
-// ../../node_modules/typebox/build/guard/emit.mjs
+// ../electron/node_modules/typebox/build/guard/emit.mjs
 var init_emit = __esm({
-  "../../node_modules/typebox/build/guard/emit.mjs"() {
+  "../electron/node_modules/typebox/build/guard/emit.mjs"() {
     init_guard();
   }
 });
 
-// ../../node_modules/typebox/build/guard/globals.mjs
+// ../electron/node_modules/typebox/build/guard/globals.mjs
 var globals_exports = {};
 __export(globals_exports, {
   IsBigInt64Array: () => IsBigInt64Array,
@@ -31671,20 +31739,20 @@ function IsMap(value) {
   return value instanceof globalThis.Map;
 }
 var init_globals = __esm({
-  "../../node_modules/typebox/build/guard/globals.mjs"() {
+  "../electron/node_modules/typebox/build/guard/globals.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/guard/native.mjs
+// ../electron/node_modules/typebox/build/guard/native.mjs
 var init_native = __esm({
-  "../../node_modules/typebox/build/guard/native.mjs"() {
+  "../electron/node_modules/typebox/build/guard/native.mjs"() {
     init_guard();
   }
 });
 
-// ../../node_modules/typebox/build/guard/index.mjs
+// ../electron/node_modules/typebox/build/guard/index.mjs
 var init_guard2 = __esm({
-  "../../node_modules/typebox/build/guard/index.mjs"() {
+  "../electron/node_modules/typebox/build/guard/index.mjs"() {
     init_emit();
     init_globals();
     init_native();
@@ -31693,7 +31761,7 @@ var init_guard2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/_guard.mjs
+// ../electron/node_modules/typebox/build/schema/types/_guard.mjs
 function IsGuardInterface(value) {
   return guard_exports.IsObject(value) && guard_exports.HasPropertyKey(value, "check") && guard_exports.HasPropertyKey(value, "errors") && guard_exports.IsFunction(value.check) && guard_exports.IsFunction(value.errors);
 }
@@ -31701,22 +31769,22 @@ function IsGuard(value) {
   return guard_exports.HasPropertyKey(value, "~guard") && IsGuardInterface(value["~guard"]);
 }
 var init_guard3 = __esm({
-  "../../node_modules/typebox/build/schema/types/_guard.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/_guard.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/_refine.mjs
+// ../electron/node_modules/typebox/build/schema/types/_refine.mjs
 function IsRefine(value) {
   return guard_exports.HasPropertyKey(value, "~refine") && guard_exports.IsArray(value["~refine"]) && guard_exports.Every(value["~refine"], 0, (value2) => guard_exports.IsObject(value2) && guard_exports.HasPropertyKey(value2, "check") && guard_exports.HasPropertyKey(value2, "error") && guard_exports.IsFunction(value2.check) && guard_exports.IsFunction(value2.error));
 }
 var init_refine = __esm({
-  "../../node_modules/typebox/build/schema/types/_refine.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/_refine.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/schema.mjs
+// ../electron/node_modules/typebox/build/schema/types/schema.mjs
 function IsSchemaObject(value) {
   return guard_exports.IsObject(value) && !guard_exports.IsArray(value);
 }
@@ -31727,240 +31795,240 @@ function IsSchema(value) {
   return IsSchemaObject(value) || IsBooleanSchema(value);
 }
 var init_schema = __esm({
-  "../../node_modules/typebox/build/schema/types/schema.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/schema.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/additionalItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/additionalItems.mjs
 function IsAdditionalItems(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalItems") && IsSchema(schema.additionalItems);
 }
 var init_additionalItems = __esm({
-  "../../node_modules/typebox/build/schema/types/additionalItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/additionalItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/additionalProperties.mjs
+// ../electron/node_modules/typebox/build/schema/types/additionalProperties.mjs
 function IsAdditionalProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "additionalProperties") && IsSchema(schema.additionalProperties);
 }
 var init_additionalProperties = __esm({
-  "../../node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/additionalProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/allOf.mjs
+// ../electron/node_modules/typebox/build/schema/types/allOf.mjs
 function IsAllOf(schema) {
   return guard_exports.HasPropertyKey(schema, "allOf") && guard_exports.IsArray(schema.allOf) && schema.allOf.every((value) => IsSchema(value));
 }
 var init_allOf = __esm({
-  "../../node_modules/typebox/build/schema/types/allOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/allOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/anchor.mjs
+// ../electron/node_modules/typebox/build/schema/types/anchor.mjs
 function IsAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$anchor") && guard_exports.IsString(schema.$anchor);
 }
 var init_anchor = __esm({
-  "../../node_modules/typebox/build/schema/types/anchor.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/anchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/anyOf.mjs
+// ../electron/node_modules/typebox/build/schema/types/anyOf.mjs
 function IsAnyOf(schema) {
   return guard_exports.HasPropertyKey(schema, "anyOf") && guard_exports.IsArray(schema.anyOf) && schema.anyOf.every((value) => IsSchema(value));
 }
 var init_anyOf = __esm({
-  "../../node_modules/typebox/build/schema/types/anyOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/anyOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/const.mjs
+// ../electron/node_modules/typebox/build/schema/types/const.mjs
 function IsConst(value) {
   return guard_exports.HasPropertyKey(value, "const");
 }
 var init_const = __esm({
-  "../../node_modules/typebox/build/schema/types/const.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/const.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/contains.mjs
+// ../electron/node_modules/typebox/build/schema/types/contains.mjs
 function IsContains(schema) {
   return guard_exports.HasPropertyKey(schema, "contains") && IsSchema(schema.contains);
 }
 var init_contains = __esm({
-  "../../node_modules/typebox/build/schema/types/contains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/contains.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/contentEncoding.mjs
+// ../electron/node_modules/typebox/build/schema/types/contentEncoding.mjs
 var init_contentEncoding = __esm({
-  "../../node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/contentEncoding.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/contentMediaType.mjs
+// ../electron/node_modules/typebox/build/schema/types/contentMediaType.mjs
 var init_contentMediaType = __esm({
-  "../../node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/contentMediaType.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/default.mjs
+// ../electron/node_modules/typebox/build/schema/types/default.mjs
 var init_default = __esm({
-  "../../node_modules/typebox/build/schema/types/default.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/default.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/defs.mjs
+// ../electron/node_modules/typebox/build/schema/types/defs.mjs
 var init_defs = __esm({
-  "../../node_modules/typebox/build/schema/types/defs.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/defs.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/dependencies.mjs
+// ../electron/node_modules/typebox/build/schema/types/dependencies.mjs
 function IsDependencies(schema) {
   return guard_exports.HasPropertyKey(schema, "dependencies") && guard_exports.IsObject(schema.dependencies) && Object.values(schema.dependencies).every((value) => IsSchema(value) || guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependencies = __esm({
-  "../../node_modules/typebox/build/schema/types/dependencies.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/dependencies.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/dependentRequired.mjs
+// ../electron/node_modules/typebox/build/schema/types/dependentRequired.mjs
 function IsDependentRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentRequired") && guard_exports.IsObject(schema.dependentRequired) && Object.values(schema.dependentRequired).every((value) => guard_exports.IsArray(value) && value.every((value2) => guard_exports.IsString(value2)));
 }
 var init_dependentRequired = __esm({
-  "../../node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/dependentSchemas.mjs
+// ../electron/node_modules/typebox/build/schema/types/dependentSchemas.mjs
 function IsDependentSchemas(schema) {
   return guard_exports.HasPropertyKey(schema, "dependentSchemas") && guard_exports.IsObject(schema.dependentSchemas) && Object.values(schema.dependentSchemas).every((value) => IsSchema(value));
 }
 var init_dependentSchemas = __esm({
-  "../../node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/dependentSchemas.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/dynamicAnchor.mjs
+// ../electron/node_modules/typebox/build/schema/types/dynamicAnchor.mjs
 function IsDynamicAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicAnchor") && guard_exports.IsString(schema.$dynamicAnchor);
 }
 var init_dynamicAnchor = __esm({
-  "../../node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/dynamicAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/dynamicRef.mjs
+// ../electron/node_modules/typebox/build/schema/types/dynamicRef.mjs
 function IsDynamicRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$dynamicRef") && guard_exports.IsString(schema.$dynamicRef);
 }
 var init_dynamicRef = __esm({
-  "../../node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/dynamicRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/else.mjs
+// ../electron/node_modules/typebox/build/schema/types/else.mjs
 function IsElse(schema) {
   return guard_exports.HasPropertyKey(schema, "else") && IsSchema(schema.else);
 }
 var init_else = __esm({
-  "../../node_modules/typebox/build/schema/types/else.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/else.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/enum.mjs
+// ../electron/node_modules/typebox/build/schema/types/enum.mjs
 function IsEnum(schema) {
   return guard_exports.HasPropertyKey(schema, "enum") && guard_exports.IsArray(schema.enum);
 }
 var init_enum = __esm({
-  "../../node_modules/typebox/build/schema/types/enum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/enum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
+// ../electron/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs
 function IsExclusiveMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMaximum") && (guard_exports.IsNumber(schema.exclusiveMaximum) || guard_exports.IsBigInt(schema.exclusiveMaximum));
 }
 var init_exclusiveMaximum = __esm({
-  "../../node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
+// ../electron/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs
 function IsExclusiveMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "exclusiveMinimum") && (guard_exports.IsNumber(schema.exclusiveMinimum) || guard_exports.IsBigInt(schema.exclusiveMinimum));
 }
 var init_exclusiveMinimum = __esm({
-  "../../node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/format.mjs
+// ../electron/node_modules/typebox/build/schema/types/format.mjs
 function IsFormat(schema) {
   return guard_exports.HasPropertyKey(schema, "format") && guard_exports.IsString(schema.format);
 }
 var init_format = __esm({
-  "../../node_modules/typebox/build/schema/types/format.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/format.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/id.mjs
+// ../electron/node_modules/typebox/build/schema/types/id.mjs
 function IsId(schema) {
   return guard_exports.HasPropertyKey(schema, "$id") && guard_exports.IsString(schema.$id);
 }
 var init_id = __esm({
-  "../../node_modules/typebox/build/schema/types/id.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/id.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/if.mjs
+// ../electron/node_modules/typebox/build/schema/types/if.mjs
 function IsIf(schema) {
   return guard_exports.HasPropertyKey(schema, "if") && IsSchema(schema.if);
 }
 var init_if = __esm({
-  "../../node_modules/typebox/build/schema/types/if.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/if.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/items.mjs
+// ../electron/node_modules/typebox/build/schema/types/items.mjs
 function IsItems(schema) {
   return guard_exports.HasPropertyKey(schema, "items") && (IsSchema(schema.items) || guard_exports.IsArray(schema.items) && schema.items.every((value) => {
     return IsSchema(value);
@@ -31970,199 +32038,199 @@ function IsItemsSized(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
 var init_items = __esm({
-  "../../node_modules/typebox/build/schema/types/items.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/items.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/maximum.mjs
+// ../electron/node_modules/typebox/build/schema/types/maximum.mjs
 function IsMaximum(schema) {
   return guard_exports.HasPropertyKey(schema, "maximum") && (guard_exports.IsNumber(schema.maximum) || guard_exports.IsBigInt(schema.maximum));
 }
 var init_maximum = __esm({
-  "../../node_modules/typebox/build/schema/types/maximum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/maxContains.mjs
+// ../electron/node_modules/typebox/build/schema/types/maxContains.mjs
 function IsMaxContains(schema) {
   return guard_exports.HasPropertyKey(schema, "maxContains") && guard_exports.IsNumber(schema.maxContains);
 }
 var init_maxContains = __esm({
-  "../../node_modules/typebox/build/schema/types/maxContains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/maxContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/maxItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/maxItems.mjs
 function IsMaxItems(schema) {
   return guard_exports.HasPropertyKey(schema, "maxItems") && guard_exports.IsNumber(schema.maxItems);
 }
 var init_maxItems = __esm({
-  "../../node_modules/typebox/build/schema/types/maxItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/maxLength.mjs
+// ../electron/node_modules/typebox/build/schema/types/maxLength.mjs
 function IsMaxLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "maxLength") && guard_exports.IsNumber(schema.maxLength);
 }
 var init_maxLength = __esm({
-  "../../node_modules/typebox/build/schema/types/maxLength.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/maxProperties.mjs
+// ../electron/node_modules/typebox/build/schema/types/maxProperties.mjs
 function IsMaxProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "maxProperties") && guard_exports.IsNumber(schema.maxProperties);
 }
 var init_maxProperties = __esm({
-  "../../node_modules/typebox/build/schema/types/maxProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/minimum.mjs
+// ../electron/node_modules/typebox/build/schema/types/minimum.mjs
 function IsMinimum(schema) {
   return guard_exports.HasPropertyKey(schema, "minimum") && (guard_exports.IsNumber(schema.minimum) || guard_exports.IsBigInt(schema.minimum));
 }
 var init_minimum = __esm({
-  "../../node_modules/typebox/build/schema/types/minimum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/minContains.mjs
+// ../electron/node_modules/typebox/build/schema/types/minContains.mjs
 function IsMinContains(schema) {
   return guard_exports.HasPropertyKey(schema, "minContains") && guard_exports.IsNumber(schema.minContains);
 }
 var init_minContains = __esm({
-  "../../node_modules/typebox/build/schema/types/minContains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/minContains.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/minItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/minItems.mjs
 function IsMinItems(schema) {
   return guard_exports.HasPropertyKey(schema, "minItems") && guard_exports.IsNumber(schema.minItems);
 }
 var init_minItems = __esm({
-  "../../node_modules/typebox/build/schema/types/minItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/minLength.mjs
+// ../electron/node_modules/typebox/build/schema/types/minLength.mjs
 function IsMinLength3(schema) {
   return guard_exports.HasPropertyKey(schema, "minLength") && guard_exports.IsNumber(schema.minLength);
 }
 var init_minLength = __esm({
-  "../../node_modules/typebox/build/schema/types/minLength.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/minProperties.mjs
+// ../electron/node_modules/typebox/build/schema/types/minProperties.mjs
 function IsMinProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "minProperties") && guard_exports.IsNumber(schema.minProperties);
 }
 var init_minProperties = __esm({
-  "../../node_modules/typebox/build/schema/types/minProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/multipleOf.mjs
+// ../electron/node_modules/typebox/build/schema/types/multipleOf.mjs
 function IsMultipleOf2(schema) {
   return guard_exports.HasPropertyKey(schema, "multipleOf") && (guard_exports.IsNumber(schema.multipleOf) || guard_exports.IsBigInt(schema.multipleOf));
 }
 var init_multipleOf = __esm({
-  "../../node_modules/typebox/build/schema/types/multipleOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/not.mjs
+// ../electron/node_modules/typebox/build/schema/types/not.mjs
 function IsNot(schema) {
   return guard_exports.HasPropertyKey(schema, "not") && IsSchema(schema.not);
 }
 var init_not = __esm({
-  "../../node_modules/typebox/build/schema/types/not.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/not.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/oneOf.mjs
+// ../electron/node_modules/typebox/build/schema/types/oneOf.mjs
 function IsOneOf(schema) {
   return guard_exports.HasPropertyKey(schema, "oneOf") && guard_exports.IsArray(schema.oneOf) && schema.oneOf.every((value) => IsSchema(value));
 }
 var init_oneOf = __esm({
-  "../../node_modules/typebox/build/schema/types/oneOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/oneOf.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/pattern.mjs
+// ../electron/node_modules/typebox/build/schema/types/pattern.mjs
 function IsPattern(schema) {
   return guard_exports.HasPropertyKey(schema, "pattern") && (guard_exports.IsString(schema.pattern) || schema.pattern instanceof RegExp);
 }
 var init_pattern = __esm({
-  "../../node_modules/typebox/build/schema/types/pattern.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/pattern.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/patternProperties.mjs
+// ../electron/node_modules/typebox/build/schema/types/patternProperties.mjs
 function IsPatternProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "patternProperties") && guard_exports.IsObject(schema.patternProperties) && Object.values(schema.patternProperties).every((value) => IsSchema(value));
 }
 var init_patternProperties = __esm({
-  "../../node_modules/typebox/build/schema/types/patternProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/patternProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/prefixItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/prefixItems.mjs
 function IsPrefixItems(schema) {
   return guard_exports.HasPropertyKey(schema, "prefixItems") && guard_exports.IsArray(schema.prefixItems) && schema.prefixItems.every((schema2) => IsSchema(schema2));
 }
 var init_prefixItems = __esm({
-  "../../node_modules/typebox/build/schema/types/prefixItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/prefixItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/properties.mjs
+// ../electron/node_modules/typebox/build/schema/types/properties.mjs
 function IsProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "properties") && guard_exports.IsObject(schema.properties) && Object.values(schema.properties).every((value) => IsSchema(value));
 }
 var init_properties = __esm({
-  "../../node_modules/typebox/build/schema/types/properties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/properties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/propertyNames.mjs
+// ../electron/node_modules/typebox/build/schema/types/propertyNames.mjs
 function IsPropertyNames(schema) {
   return guard_exports.HasPropertyKey(schema, "propertyNames") && (guard_exports.IsObject(schema.propertyNames) || IsSchema(schema.propertyNames));
 }
 var init_propertyNames = __esm({
-  "../../node_modules/typebox/build/schema/types/propertyNames.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/propertyNames.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/recursiveAnchor.mjs
+// ../electron/node_modules/typebox/build/schema/types/recursiveAnchor.mjs
 function IsRecursiveAnchor(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveAnchor") && guard_exports.IsBoolean(schema.$recursiveAnchor);
 }
@@ -32170,97 +32238,97 @@ function IsRecursiveAnchorTrue(schema) {
   return IsRecursiveAnchor(schema) && guard_exports.IsEqual(schema.$recursiveAnchor, true);
 }
 var init_recursiveAnchor = __esm({
-  "../../node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/recursiveAnchor.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/recursiveRef.mjs
+// ../electron/node_modules/typebox/build/schema/types/recursiveRef.mjs
 function IsRecursiveRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$recursiveRef") && guard_exports.IsString(schema.$recursiveRef);
 }
 var init_recursiveRef = __esm({
-  "../../node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/recursiveRef.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/ref.mjs
+// ../electron/node_modules/typebox/build/schema/types/ref.mjs
 function IsRef(schema) {
   return guard_exports.HasPropertyKey(schema, "$ref") && guard_exports.IsString(schema.$ref);
 }
 var init_ref = __esm({
-  "../../node_modules/typebox/build/schema/types/ref.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/ref.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/required.mjs
+// ../electron/node_modules/typebox/build/schema/types/required.mjs
 function IsRequired(schema) {
   return guard_exports.HasPropertyKey(schema, "required") && guard_exports.IsArray(schema.required) && schema.required.every((value) => guard_exports.IsString(value));
 }
 var init_required = __esm({
-  "../../node_modules/typebox/build/schema/types/required.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/then.mjs
+// ../electron/node_modules/typebox/build/schema/types/then.mjs
 function IsThen(schema) {
   return guard_exports.HasPropertyKey(schema, "then") && IsSchema(schema.then);
 }
 var init_then = __esm({
-  "../../node_modules/typebox/build/schema/types/then.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/then.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/type.mjs
+// ../electron/node_modules/typebox/build/schema/types/type.mjs
 function IsType(schema) {
   return guard_exports.HasPropertyKey(schema, "type") && (guard_exports.IsString(schema.type) || guard_exports.IsArray(schema.type) && schema.type.every((value) => guard_exports.IsString(value)));
 }
 var init_type = __esm({
-  "../../node_modules/typebox/build/schema/types/type.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/uniqueItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/uniqueItems.mjs
 function IsUniqueItems(schema) {
   return guard_exports.HasPropertyKey(schema, "uniqueItems") && guard_exports.IsBoolean(schema.uniqueItems);
 }
 var init_uniqueItems = __esm({
-  "../../node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/uniqueItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/unevaluatedItems.mjs
+// ../electron/node_modules/typebox/build/schema/types/unevaluatedItems.mjs
 function IsUnevaluatedItems(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedItems") && IsSchema(schema.unevaluatedItems);
 }
 var init_unevaluatedItems = __esm({
-  "../../node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/unevaluatedItems.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
+// ../electron/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs
 function IsUnevaluatedProperties(schema) {
   return guard_exports.HasPropertyKey(schema, "unevaluatedProperties") && IsSchema(schema.unevaluatedProperties);
 }
 var init_unevaluatedProperties = __esm({
-  "../../node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/unevaluatedProperties.mjs"() {
     init_guard2();
     init_schema();
   }
 });
 
-// ../../node_modules/typebox/build/schema/types/index.mjs
+// ../electron/node_modules/typebox/build/schema/types/index.mjs
 var init_types3 = __esm({
-  "../../node_modules/typebox/build/schema/types/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/types/index.mjs"() {
     init_guard3();
     init_refine();
     init_additionalItems();
@@ -32318,10 +32386,10 @@ var init_types3 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_context.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_context.mjs
 var CheckContext;
 var init_context = __esm({
-  "../../node_modules/typebox/build/schema/engine/_context.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_context.mjs"() {
     init_types3();
     init_guard2();
     CheckContext = class {
@@ -32373,40 +32441,40 @@ var init_context = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_externals.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_externals.mjs
 var init_externals = __esm({
-  "../../node_modules/typebox/build/schema/engine/_externals.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_externals.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_guard.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_guard.mjs
 function CheckGuard(_stack, _context, schema, value) {
   return schema["~guard"].check(value);
 }
 var init_guard4 = __esm({
-  "../../node_modules/typebox/build/schema/engine/_guard.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_guard.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/system/unreachable/unreachable.mjs
+// ../electron/node_modules/typebox/build/system/unreachable/unreachable.mjs
 function Unreachable() {
   throw new Error("Unreachable");
 }
 var init_unreachable = __esm({
-  "../../node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
+  "../electron/node_modules/typebox/build/system/unreachable/unreachable.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/system/unreachable/index.mjs
+// ../electron/node_modules/typebox/build/system/unreachable/index.mjs
 var init_unreachable2 = __esm({
-  "../../node_modules/typebox/build/system/unreachable/index.mjs"() {
+  "../electron/node_modules/typebox/build/system/unreachable/index.mjs"() {
     init_unreachable();
   }
 });
 
-// ../../node_modules/typebox/build/system/hashing/hash.mjs
+// ../electron/node_modules/typebox/build/system/hashing/hash.mjs
 var hash_exports = {};
 __export(hash_exports, {
   Hash: () => Hash,
@@ -32519,7 +32587,7 @@ function Hash(value) {
 }
 var ByteMarker, Accumulator, Prime, Size, Bytes, F64, F64In, F64Out, encoder;
 var init_hash = __esm({
-  "../../node_modules/typebox/build/system/hashing/hash.mjs"() {
+  "../electron/node_modules/typebox/build/system/hashing/hash.mjs"() {
     init_unreachable2();
     init_guard2();
     (function(ByteMarker2) {
@@ -32551,31 +32619,31 @@ var init_hash = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/system/hashing/index.mjs
+// ../electron/node_modules/typebox/build/system/hashing/index.mjs
 var init_hashing = __esm({
-  "../../node_modules/typebox/build/system/hashing/index.mjs"() {
+  "../electron/node_modules/typebox/build/system/hashing/index.mjs"() {
     init_hash();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_refine.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_refine.mjs
 function CheckRefine(_stack, _context, schema, value) {
   return guard_exports.Every(schema["~refine"], 0, (refinement, _) => refinement.check(value));
 }
 var init_refine2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/_refine.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_refine.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_unique.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_unique.mjs
 var init_unique = __esm({
-  "../../node_modules/typebox/build/schema/engine/_unique.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_unique.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/additionalItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/additionalItems.mjs
 function IsValid(schema) {
   return IsItems(schema) && guard_exports.IsArray(schema.items);
 }
@@ -32588,7 +32656,7 @@ function CheckAdditionalItems(stack, context, schema, value) {
   return isAdditionalItems;
 }
 var init_additionalItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/additionalItems.mjs"() {
     init_types3();
     init_unique();
     init_guard2();
@@ -32596,7 +32664,7 @@ var init_additionalItems2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/additionalProperties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/additionalProperties.mjs
 function GetPropertyKeyAsPattern(key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return `^${escaped}$`;
@@ -32617,7 +32685,7 @@ function CheckAdditionalProperties(stack, context, schema, value) {
   return isAdditionalProperties;
 }
 var init_additionalProperties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/additionalProperties.mjs"() {
     init_types3();
     init_externals();
     init_unique();
@@ -32627,15 +32695,15 @@ var init_additionalProperties2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_reducer.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_reducer.mjs
 var init_reducer = __esm({
-  "../../node_modules/typebox/build/schema/engine/_reducer.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_reducer.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/allOf.mjs
+// ../electron/node_modules/typebox/build/schema/engine/allOf.mjs
 function CheckAllOf(stack, context, schema, value) {
   const results = schema.allOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -32644,7 +32712,7 @@ function CheckAllOf(stack, context, schema, value) {
   return guard_exports.IsEqual(results.length, schema.allOf.length) && context.Merge(results);
 }
 var init_allOf2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/allOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/allOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -32652,7 +32720,7 @@ var init_allOf2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/anyOf.mjs
+// ../electron/node_modules/typebox/build/schema/engine/anyOf.mjs
 function CheckAnyOf(stack, context, schema, value) {
   const results = schema.anyOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -32661,7 +32729,7 @@ function CheckAnyOf(stack, context, schema, value) {
   return guard_exports.IsGreaterThan(results.length, 0) && context.Merge(results);
 }
 var init_anyOf2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/anyOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/anyOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -32669,28 +32737,28 @@ var init_anyOf2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/boolean.mjs
+// ../electron/node_modules/typebox/build/schema/engine/boolean.mjs
 function CheckBooleanSchema(_stack, _context, schema, _value) {
   return schema;
 }
 var init_boolean = __esm({
-  "../../node_modules/typebox/build/schema/engine/boolean.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/boolean.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/const.mjs
+// ../electron/node_modules/typebox/build/schema/engine/const.mjs
 function CheckConst(_stack, _context, schema, value) {
   return guard_exports.IsValueLike(schema.const) ? guard_exports.IsEqual(value, schema.const) : guard_exports.IsDeepEqual(value, schema.const);
 }
 var init_const2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/const.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/const.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/contains.mjs
+// ../electron/node_modules/typebox/build/schema/engine/contains.mjs
 function IsValid2(schema) {
   return !(IsMinContains(schema) && guard_exports.IsEqual(schema.minContains, 0));
 }
@@ -32700,7 +32768,7 @@ function CheckContains(stack, context, schema, value) {
   return !guard_exports.IsEqual(value.length, 0) && value.some((item) => CheckSchema(stack, context, schema.contains, item));
 }
 var init_contains2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/contains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/contains.mjs"() {
     init_types3();
     init_unique();
     init_guard2();
@@ -32708,7 +32776,7 @@ var init_contains2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/dependencies.mjs
+// ../electron/node_modules/typebox/build/schema/engine/dependencies.mjs
 function CheckDependencies(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependencies), 0, ([key, schema2]) => {
@@ -32717,13 +32785,13 @@ function CheckDependencies(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependencies2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/dependencies.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/dependencies.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/dependentRequired.mjs
+// ../electron/node_modules/typebox/build/schema/engine/dependentRequired.mjs
 function CheckDependentRequired(_stack, _context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentRequired), 0, ([key, keys]) => {
@@ -32732,12 +32800,12 @@ function CheckDependentRequired(_stack, _context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentRequired2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/dependentRequired.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/dependentSchemas.mjs
+// ../electron/node_modules/typebox/build/schema/engine/dependentSchemas.mjs
 function CheckDependentSchemas(stack, context, schema, value) {
   const isLength = guard_exports.IsEqual(guard_exports.Keys(value).length, 0);
   const isEvery = guard_exports.Every(guard_exports.Entries(schema.dependentSchemas), 0, ([key, schema2]) => {
@@ -32746,57 +32814,57 @@ function CheckDependentSchemas(stack, context, schema, value) {
   return isLength || isEvery;
 }
 var init_dependentSchemas2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/dependentSchemas.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/dynamicRef.mjs
+// ../electron/node_modules/typebox/build/schema/engine/dynamicRef.mjs
 function CheckDynamicRef(stack, context, schema, value) {
   const target = stack.DynamicRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_dynamicRef2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/dynamicRef.mjs"() {
     init_functions();
     init_types3();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/enum.mjs
+// ../electron/node_modules/typebox/build/schema/engine/enum.mjs
 function CheckEnum(_stack, _context, schema, value) {
   return schema.enum.some((option) => guard_exports.IsValueLike(option) ? guard_exports.IsEqual(value, option) : guard_exports.IsDeepEqual(value, option));
 }
 var init_enum2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/enum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/enum.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
+// ../electron/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs
 function CheckExclusiveMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessThan(value, schema.exclusiveMaximum);
 }
 var init_exclusiveMaximum2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/exclusiveMaximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
+// ../electron/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs
 function CheckExclusiveMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterThan(value, schema.exclusiveMinimum);
 }
 var init_exclusiveMinimum2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/exclusiveMinimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/format/date.mjs
+// ../electron/node_modules/typebox/build/format/date.mjs
 function IsLeapYear(year) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
@@ -32811,13 +32879,13 @@ function IsDate2(value) {
 }
 var DAYS, DATE;
 var init_date = __esm({
-  "../../node_modules/typebox/build/format/date.mjs"() {
+  "../electron/node_modules/typebox/build/format/date.mjs"() {
     DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
   }
 });
 
-// ../../node_modules/typebox/build/format/time.mjs
+// ../electron/node_modules/typebox/build/format/time.mjs
 function IsTime(value, strictTimeZone = true) {
   const matches2 = TIME.exec(value);
   if (!matches2)
@@ -32841,46 +32909,46 @@ function IsTime(value, strictTimeZone = true) {
 }
 var TIME;
 var init_time = __esm({
-  "../../node_modules/typebox/build/format/time.mjs"() {
+  "../electron/node_modules/typebox/build/format/time.mjs"() {
     TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/date_time.mjs
+// ../electron/node_modules/typebox/build/format/date_time.mjs
 function IsDateTime(value, strictTimeZone = true) {
   const dateTime = value.split(/T/i);
   return dateTime.length === 2 && IsDate2(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
 }
 var init_date_time = __esm({
-  "../../node_modules/typebox/build/format/date_time.mjs"() {
+  "../electron/node_modules/typebox/build/format/date_time.mjs"() {
     init_date();
     init_time();
   }
 });
 
-// ../../node_modules/typebox/build/format/duration.mjs
+// ../electron/node_modules/typebox/build/format/duration.mjs
 function IsDuration(value) {
   return Duration.test(value);
 }
 var Duration;
 var init_duration = __esm({
-  "../../node_modules/typebox/build/format/duration.mjs"() {
+  "../electron/node_modules/typebox/build/format/duration.mjs"() {
     Duration = /^P((\d+Y(\d+M(\d+D)?)?|\d+M(\d+D)?|\d+D)(T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S))?|T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S)|\d+W)$/;
   }
 });
 
-// ../../node_modules/typebox/build/format/email.mjs
+// ../electron/node_modules/typebox/build/format/email.mjs
 function IsEmail(value) {
   return Email.test(value);
 }
 var Email;
 var init_email = __esm({
-  "../../node_modules/typebox/build/format/email.mjs"() {
+  "../electron/node_modules/typebox/build/format/email.mjs"() {
     Email = /^(?!.*\.\.)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/_puny.mjs
+// ../electron/node_modules/typebox/build/format/_puny.mjs
 function Adapt(delta, numPoints, firstTime) {
   delta = firstTime ? Math.floor(delta / PUNYCODE_DAMP) : delta >> 1;
   delta += Math.floor(delta / numPoints);
@@ -32941,7 +33009,7 @@ function Decode(value) {
 }
 var PUNYCODE_BASE, PUNYCODE_TMIN, PUNYCODE_TMAX, PUNYCODE_SKEW, PUNYCODE_DAMP, PUNYCODE_INITIAL_BIAS, PUNYCODE_INITIAL_N;
 var init_puny = __esm({
-  "../../node_modules/typebox/build/format/_puny.mjs"() {
+  "../electron/node_modules/typebox/build/format/_puny.mjs"() {
     PUNYCODE_BASE = 36;
     PUNYCODE_TMIN = 1;
     PUNYCODE_TMAX = 26;
@@ -32952,7 +33020,7 @@ var init_puny = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/format/_idna.mjs
+// ../electron/node_modules/typebox/build/format/_idna.mjs
 function IsNonspacingMark(cp) {
   return new RegExp("\\p{Mn}", "u").test(String.fromCodePoint(cp));
 }
@@ -33083,7 +33151,7 @@ function IsLabel(value) {
 }
 var RFC5892_DISALLOWED, VIRAMA_CPS;
 var init_idna = __esm({
-  "../../node_modules/typebox/build/format/_idna.mjs"() {
+  "../electron/node_modules/typebox/build/format/_idna.mjs"() {
     init_puny();
     RFC5892_DISALLOWED = /* @__PURE__ */ new Set([
       1600,
@@ -33144,7 +33212,7 @@ var init_idna = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/format/hostname.mjs
+// ../electron/node_modules/typebox/build/format/hostname.mjs
 function IsHostname(value) {
   if (value.length === 0 || value.length > 253)
     return false;
@@ -33157,23 +33225,23 @@ function IsHostname(value) {
   return true;
 }
 var init_hostname = __esm({
-  "../../node_modules/typebox/build/format/hostname.mjs"() {
+  "../electron/node_modules/typebox/build/format/hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../../node_modules/typebox/build/format/idn_email.mjs
+// ../electron/node_modules/typebox/build/format/idn_email.mjs
 function IsIdnEmail(value) {
   return IdnEmail.test(value);
 }
 var IdnEmail;
 var init_idn_email = __esm({
-  "../../node_modules/typebox/build/format/idn_email.mjs"() {
+  "../electron/node_modules/typebox/build/format/idn_email.mjs"() {
     IdnEmail = /^(?!.*\.\.)[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+)*@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
   }
 });
 
-// ../../node_modules/typebox/build/format/idn_hostname.mjs
+// ../electron/node_modules/typebox/build/format/idn_hostname.mjs
 function IsIdnHostname(value) {
   if (value.length === 0 || value.includes(" "))
     return false;
@@ -33187,12 +33255,12 @@ function IsIdnHostname(value) {
   return true;
 }
 var init_idn_hostname = __esm({
-  "../../node_modules/typebox/build/format/idn_hostname.mjs"() {
+  "../electron/node_modules/typebox/build/format/idn_hostname.mjs"() {
     init_idna();
   }
 });
 
-// ../../node_modules/typebox/build/format/ipv4.mjs
+// ../electron/node_modules/typebox/build/format/ipv4.mjs
 function IsIPv4Internal(value, start, end) {
   let dots = 0;
   let num = 0;
@@ -33222,11 +33290,11 @@ function IsIPv4(value) {
   return IsIPv4Internal(value, 0, value.length);
 }
 var init_ipv4 = __esm({
-  "../../node_modules/typebox/build/format/ipv4.mjs"() {
+  "../electron/node_modules/typebox/build/format/ipv4.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/format/ipv6.mjs
+// ../electron/node_modules/typebox/build/format/ipv6.mjs
 function InRange(ch) {
   return ch >= 48 && ch <= 57 || // 0-9
   ch >= 65 && ch <= 70 || // A-F
@@ -33284,12 +33352,12 @@ function IsIPv6(value) {
   return compressed ? groups <= 7 : groups === 8;
 }
 var init_ipv6 = __esm({
-  "../../node_modules/typebox/build/format/ipv6.mjs"() {
+  "../electron/node_modules/typebox/build/format/ipv6.mjs"() {
     init_ipv4();
   }
 });
 
-// ../../node_modules/typebox/build/format/iri_reference.mjs
+// ../electron/node_modules/typebox/build/format/iri_reference.mjs
 function TryUrl(value) {
   try {
     new URL(value, "http://example.com");
@@ -33328,11 +33396,11 @@ function IsIriReference(value) {
   }
 }
 var init_iri_reference = __esm({
-  "../../node_modules/typebox/build/format/iri_reference.mjs"() {
+  "../electron/node_modules/typebox/build/format/iri_reference.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/format/iri.mjs
+// ../electron/node_modules/typebox/build/format/iri.mjs
 function IsIri(value) {
   try {
     new URL(value);
@@ -33342,33 +33410,33 @@ function IsIri(value) {
   }
 }
 var init_iri = __esm({
-  "../../node_modules/typebox/build/format/iri.mjs"() {
+  "../electron/node_modules/typebox/build/format/iri.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
+// ../electron/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
 function IsJsonPointerUriFragment(value) {
   return JsonPointerUriFragment.test(value);
 }
 var JsonPointerUriFragment;
 var init_json_pointer_uri_fragment = __esm({
-  "../../node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
+  "../electron/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs"() {
     JsonPointerUriFragment = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/json_pointer.mjs
+// ../electron/node_modules/typebox/build/format/json_pointer.mjs
 function IsJsonPointer(value) {
   return JsonPointer.test(value);
 }
 var JsonPointer;
 var init_json_pointer = __esm({
-  "../../node_modules/typebox/build/format/json_pointer.mjs"() {
+  "../electron/node_modules/typebox/build/format/json_pointer.mjs"() {
     JsonPointer = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
   }
 });
 
-// ../../node_modules/typebox/build/format/regex.mjs
+// ../electron/node_modules/typebox/build/format/regex.mjs
 function IsRegex(value) {
   if (value.length === 0) {
     return false;
@@ -33381,44 +33449,44 @@ function IsRegex(value) {
   }
 }
 var init_regex = __esm({
-  "../../node_modules/typebox/build/format/regex.mjs"() {
+  "../electron/node_modules/typebox/build/format/regex.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/format/relative_json_pointer.mjs
+// ../electron/node_modules/typebox/build/format/relative_json_pointer.mjs
 function IsRelativeJsonPointer(value) {
   return RelativeJsonPointer.test(value);
 }
 var RelativeJsonPointer;
 var init_relative_json_pointer = __esm({
-  "../../node_modules/typebox/build/format/relative_json_pointer.mjs"() {
+  "../electron/node_modules/typebox/build/format/relative_json_pointer.mjs"() {
     RelativeJsonPointer = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
   }
 });
 
-// ../../node_modules/typebox/build/format/uri_reference.mjs
+// ../electron/node_modules/typebox/build/format/uri_reference.mjs
 function IsUriReference(value) {
   return UriReference.test(value);
 }
 var UriReference;
 var init_uri_reference = __esm({
-  "../../node_modules/typebox/build/format/uri_reference.mjs"() {
+  "../electron/node_modules/typebox/build/format/uri_reference.mjs"() {
     UriReference = /^(?!.*[^\x00-\x7F])(?!.*\\)(?:(?:[a-z][a-z0-9+\-.]*:)?(?:\/\/[^\s[\]{}<>^`|]*)?|[^\s[\]{}<>^`|]*)(?:\?[^\s[\]{}<>^`|]*)?(?:#[^\s[\]{}<>^`|]*)?$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/uri_template.mjs
+// ../electron/node_modules/typebox/build/format/uri_template.mjs
 function IsUriTemplate(value) {
   return UriTemplate.test(value);
 }
 var UriTemplate;
 var init_uri_template = __esm({
-  "../../node_modules/typebox/build/format/uri_template.mjs"() {
+  "../electron/node_modules/typebox/build/format/uri_template.mjs"() {
     UriTemplate = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/uri.mjs
+// ../electron/node_modules/typebox/build/format/uri.mjs
 function IsAlpha(ch) {
   return ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
 }
@@ -33533,33 +33601,33 @@ function IsUri(value) {
   return true;
 }
 var init_uri = __esm({
-  "../../node_modules/typebox/build/format/uri.mjs"() {
+  "../electron/node_modules/typebox/build/format/uri.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/format/url.mjs
+// ../electron/node_modules/typebox/build/format/url.mjs
 function IsUrl(value) {
   return Url.test(value);
 }
 var Url;
 var init_url = __esm({
-  "../../node_modules/typebox/build/format/url.mjs"() {
+  "../electron/node_modules/typebox/build/format/url.mjs"() {
     Url = /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
   }
 });
 
-// ../../node_modules/typebox/build/format/uuid.mjs
+// ../electron/node_modules/typebox/build/format/uuid.mjs
 function IsUuid(value) {
   return Uuid.test(value);
 }
 var Uuid;
 var init_uuid = __esm({
-  "../../node_modules/typebox/build/format/uuid.mjs"() {
+  "../electron/node_modules/typebox/build/format/uuid.mjs"() {
     Uuid = /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
   }
 });
 
-// ../../node_modules/typebox/build/format/_registry.mjs
+// ../electron/node_modules/typebox/build/format/_registry.mjs
 function Clear() {
   formats.clear();
 }
@@ -33604,7 +33672,7 @@ function Reset() {
 }
 var formats;
 var init_registry = __esm({
-  "../../node_modules/typebox/build/format/_registry.mjs"() {
+  "../electron/node_modules/typebox/build/format/_registry.mjs"() {
     init_date_time();
     init_date();
     init_duration();
@@ -33631,7 +33699,7 @@ var init_registry = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/format/format.mjs
+// ../electron/node_modules/typebox/build/format/format.mjs
 var format_exports = {};
 __export(format_exports, {
   Clear: () => Clear,
@@ -33664,7 +33732,7 @@ __export(format_exports, {
   Test: () => Test
 });
 var init_format2 = __esm({
-  "../../node_modules/typebox/build/format/format.mjs"() {
+  "../electron/node_modules/typebox/build/format/format.mjs"() {
     init_registry();
     init_date_time();
     init_date();
@@ -33690,34 +33758,34 @@ var init_format2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/format/index.mjs
+// ../electron/node_modules/typebox/build/format/index.mjs
 var init_format3 = __esm({
-  "../../node_modules/typebox/build/format/index.mjs"() {
+  "../electron/node_modules/typebox/build/format/index.mjs"() {
     init_format2();
     init_format2();
     init_format2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/format.mjs
+// ../electron/node_modules/typebox/build/schema/engine/format.mjs
 function CheckFormat(_stack, _context, schema, value) {
   return format_exports.Test(schema.format, value);
 }
 var init_format4 = __esm({
-  "../../node_modules/typebox/build/schema/engine/format.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/format.mjs"() {
     init_format3();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/if.mjs
+// ../electron/node_modules/typebox/build/schema/engine/if.mjs
 function CheckIf(stack, context, schema, value) {
   const thenSchema = IsThen(schema) ? schema.then : true;
   const elseSchema = IsElse(schema) ? schema.else : true;
   return CheckSchema(stack, context, schema.if, value) ? CheckSchema(stack, context, thenSchema, value) : CheckSchema(stack, context, elseSchema, value);
 }
 var init_if2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/if.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/if.mjs"() {
     init_types3();
     init_context();
     init_guard2();
@@ -33725,7 +33793,7 @@ var init_if2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/items.mjs
+// ../electron/node_modules/typebox/build/schema/engine/items.mjs
 function CheckItemsSized(stack, context, schema, value) {
   return guard_exports.Every(schema.items, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
@@ -33741,14 +33809,14 @@ function CheckItems(stack, context, schema, value) {
   return IsItemsSized(schema) ? CheckItemsSized(stack, context, schema, value) : CheckItemsUnsized(stack, context, schema, value);
 }
 var init_items2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/items.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/items.mjs"() {
     init_types3();
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/maxContains.mjs
+// ../electron/node_modules/typebox/build/schema/engine/maxContains.mjs
 function IsValid3(schema) {
   return IsContains(schema);
 }
@@ -33759,7 +33827,7 @@ function CheckMaxContains(stack, context, schema, value) {
   return guard_exports.IsLessEqualThan(count, schema.maxContains);
 }
 var init_maxContains2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/maxContains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/maxContains.mjs"() {
     init_types3();
     init_unique();
     init_guard2();
@@ -33767,47 +33835,47 @@ var init_maxContains2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/maximum.mjs
+// ../electron/node_modules/typebox/build/schema/engine/maximum.mjs
 function CheckMaximum(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value, schema.maximum);
 }
 var init_maximum2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/maximum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/maximum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/maxItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/maxItems.mjs
 function CheckMaxItems(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(value.length, schema.maxItems);
 }
 var init_maxItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/maxItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/maxItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/maxLength.mjs
+// ../electron/node_modules/typebox/build/schema/engine/maxLength.mjs
 function CheckMaxLength(_stack, _context, schema, value) {
   return guard_exports.IsMaxLength(value, schema.maxLength);
 }
 var init_maxLength2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/maxLength.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/maxLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/maxProperties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/maxProperties.mjs
 function CheckMaxProperties(_stack, _context, schema, value) {
   return guard_exports.IsLessEqualThan(guard_exports.Keys(value).length, schema.maxProperties);
 }
 var init_maxProperties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/maxProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/minContains.mjs
+// ../electron/node_modules/typebox/build/schema/engine/minContains.mjs
 function IsValid4(schema) {
   return IsContains(schema);
 }
@@ -33818,7 +33886,7 @@ function CheckMinContains(stack, context, schema, value) {
   return guard_exports.IsGreaterEqualThan(count, schema.minContains);
 }
 var init_minContains2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/minContains.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/minContains.mjs"() {
     init_types3();
     init_unique();
     init_guard2();
@@ -33826,57 +33894,57 @@ var init_minContains2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/minimum.mjs
+// ../electron/node_modules/typebox/build/schema/engine/minimum.mjs
 function CheckMinimum(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value, schema.minimum);
 }
 var init_minimum2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/minimum.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/minimum.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/minItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/minItems.mjs
 function CheckMinItems(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(value.length, schema.minItems);
 }
 var init_minItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/minItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/minItems.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/minLength.mjs
+// ../electron/node_modules/typebox/build/schema/engine/minLength.mjs
 function CheckMinLength(_stack, _context, schema, value) {
   return guard_exports.IsMinLength(value, schema.minLength);
 }
 var init_minLength2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/minLength.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/minLength.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/minProperties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/minProperties.mjs
 function CheckMinProperties(_stack, _context, schema, value) {
   return guard_exports.IsGreaterEqualThan(guard_exports.Keys(value).length, schema.minProperties);
 }
 var init_minProperties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/minProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/minProperties.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/multipleOf.mjs
+// ../electron/node_modules/typebox/build/schema/engine/multipleOf.mjs
 function CheckMultipleOf(_stack, _context, schema, value) {
   return guard_exports.IsMultipleOf(value, schema.multipleOf);
 }
 var init_multipleOf2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/multipleOf.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/not.mjs
+// ../electron/node_modules/typebox/build/schema/engine/not.mjs
 function CheckNot(stack, context, schema, value) {
   const nextContext = new CheckContext();
   const isSchema = !CheckSchema(stack, nextContext, schema.not, value);
@@ -33884,7 +33952,7 @@ function CheckNot(stack, context, schema, value) {
   return isNot;
 }
 var init_not2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/not.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/not.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -33892,7 +33960,7 @@ var init_not2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/oneOf.mjs
+// ../electron/node_modules/typebox/build/schema/engine/oneOf.mjs
 function CheckOneOf(stack, context, schema, value) {
   const passedContexts = schema.oneOf.reduce((result, schema2) => {
     const nextContext = new CheckContext();
@@ -33901,7 +33969,7 @@ function CheckOneOf(stack, context, schema, value) {
   return guard_exports.IsEqual(passedContexts.length, 1) && context.Merge(passedContexts);
 }
 var init_oneOf2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/oneOf.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/oneOf.mjs"() {
     init_context();
     init_reducer();
     init_guard2();
@@ -33909,19 +33977,19 @@ var init_oneOf2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/pattern.mjs
+// ../electron/node_modules/typebox/build/schema/engine/pattern.mjs
 function CheckPattern(_stack, _context, schema, value) {
   const regexp = guard_exports.IsString(schema.pattern) ? new RegExp(schema.pattern, "u") : schema.pattern;
   return regexp.test(value);
 }
 var init_pattern2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/pattern.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/pattern.mjs"() {
     init_externals();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/patternProperties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/patternProperties.mjs
 function CheckPatternProperties(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Entries(schema.patternProperties), 0, ([pattern, schema2]) => {
     const regexp = new RegExp(pattern, "u");
@@ -33931,7 +33999,7 @@ function CheckPatternProperties(stack, context, schema, value) {
   });
 }
 var init_patternProperties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/patternProperties.mjs"() {
     init_externals();
     init_unique();
     init_guard2();
@@ -33939,20 +34007,20 @@ var init_patternProperties2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/prefixItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/prefixItems.mjs
 function CheckPrefixItems(stack, context, schema, value) {
   return guard_exports.IsEqual(value.length, 0) || guard_exports.Every(schema.prefixItems, 0, (schema2, index) => {
     return guard_exports.IsLessEqualThan(value.length, index) || CheckSchemaPushStack(stack, context, schema2, value[index]) && context.AddIndex(index);
   });
 }
 var init_prefixItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/prefixItems.mjs"() {
     init_guard2();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/system/settings/settings.mjs
+// ../electron/node_modules/typebox/build/system/settings/settings.mjs
 var settings_exports = {};
 __export(settings_exports, {
   Get: () => Get2,
@@ -33980,7 +34048,7 @@ function Get2() {
 }
 var settings;
 var init_settings = __esm({
-  "../../node_modules/typebox/build/system/settings/settings.mjs"() {
+  "../electron/node_modules/typebox/build/system/settings/settings.mjs"() {
     init_guard2();
     settings = {
       immutableTypes: false,
@@ -33993,14 +34061,14 @@ var init_settings = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/system/settings/index.mjs
+// ../electron/node_modules/typebox/build/system/settings/index.mjs
 var init_settings2 = __esm({
-  "../../node_modules/typebox/build/system/settings/index.mjs"() {
+  "../electron/node_modules/typebox/build/system/settings/index.mjs"() {
     init_settings();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_exact_optional.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_exact_optional.mjs
 function IsExactOptional(required, key) {
   return required.includes(key) || settings_exports.Get().exactOptionalPropertyTypes;
 }
@@ -34008,13 +34076,13 @@ function InexactOptionalCheck(value, key) {
   return guard_exports.IsUndefined(value[key]);
 }
 var init_exact_optional = __esm({
-  "../../node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_exact_optional.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/properties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/properties.mjs
 function CheckProperties(stack, context, schema, value) {
   const required = IsRequired(schema) ? schema.required : [];
   const isProperties = guard_exports.Every(guard_exports.Entries(schema.properties), 0, ([key, schema2]) => {
@@ -34024,7 +34092,7 @@ function CheckProperties(stack, context, schema, value) {
   return isProperties;
 }
 var init_properties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/properties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/properties.mjs"() {
     init_types3();
     init_guard2();
     init_schema2();
@@ -34032,12 +34100,12 @@ var init_properties2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/propertyNames.mjs
+// ../electron/node_modules/typebox/build/schema/engine/propertyNames.mjs
 function CheckPropertyNames(stack, context, schema, value) {
   return guard_exports.Every(guard_exports.Keys(value), 0, (key, _index) => CheckSchema(stack, context, schema.propertyNames, key));
 }
 var init_propertyNames2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/propertyNames.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -34045,20 +34113,20 @@ var init_propertyNames2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/recursiveRef.mjs
+// ../electron/node_modules/typebox/build/schema/engine/recursiveRef.mjs
 function CheckRecursiveRef(stack, context, schema, value) {
   const target = stack.RecursiveRef(schema) ?? false;
   return IsSchema(target) && CheckSchema(stack, context, target, value);
 }
 var init_recursiveRef2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/recursiveRef.mjs"() {
     init_functions();
     init_types3();
     init_schema2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/ref.mjs
+// ../electron/node_modules/typebox/build/schema/engine/ref.mjs
 function CheckRef(stack, context, schema, value) {
   const target = stack.Ref(schema) ?? false;
   const nextContext = new CheckContext();
@@ -34068,7 +34136,7 @@ function CheckRef(stack, context, schema, value) {
   return result;
 }
 var init_ref2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/ref.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/ref.mjs"() {
     init_functions();
     init_types3();
     init_context();
@@ -34077,17 +34145,17 @@ var init_ref2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/required.mjs
+// ../electron/node_modules/typebox/build/schema/engine/required.mjs
 function CheckRequired(_stack, _context, schema, value) {
   return guard_exports.Every(schema.required, 0, (key) => guard_exports.HasPropertyKey(value, key));
 }
 var init_required2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/required.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/required.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/type.mjs
+// ../electron/node_modules/typebox/build/schema/engine/type.mjs
 function CheckTypeName(_stack, _context, type, _schema, value) {
   return (
     // jsonschema
@@ -34104,12 +34172,12 @@ function CheckType(stack, context, schema, value) {
   return guard_exports.IsArray(schema.type) ? CheckTypeNames(stack, context, schema.type, schema, value) : CheckTypeName(stack, context, schema.type, schema, value);
 }
 var init_type2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/type.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/type.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs
 function CheckUnevaluatedItems(stack, context, schema, value) {
   const indices = context.GetIndices();
   return guard_exports.Every(value, 0, (item, index) => {
@@ -34117,7 +34185,7 @@ function CheckUnevaluatedItems(stack, context, schema, value) {
   });
 }
 var init_unevaluatedItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/unevaluatedItems.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -34125,7 +34193,7 @@ var init_unevaluatedItems2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
+// ../electron/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs
 function CheckUnevaluatedProperties(stack, context, schema, value) {
   const keys = context.GetKeys();
   return guard_exports.Every(guard_exports.Entries(value), 0, ([key, prop]) => {
@@ -34133,7 +34201,7 @@ function CheckUnevaluatedProperties(stack, context, schema, value) {
   });
 }
 var init_unevaluatedProperties2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/unevaluatedProperties.mjs"() {
     init_unique();
     init_context();
     init_guard2();
@@ -34141,7 +34209,7 @@ var init_unevaluatedProperties2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/uniqueItems.mjs
+// ../electron/node_modules/typebox/build/schema/engine/uniqueItems.mjs
 function IsValid5(schema) {
   return !guard_exports.IsEqual(schema.uniqueItems, false);
 }
@@ -34153,13 +34221,13 @@ function CheckUniqueItems(_stack, _context, schema, value) {
   return guard_exports.IsEqual(set, isLength);
 }
 var init_uniqueItems2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/uniqueItems.mjs"() {
     init_hashing();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/schema.mjs
+// ../electron/node_modules/typebox/build/schema/engine/schema.mjs
 function CheckSchemaPushStack(stack, context, schema, value) {
   return context.Push() && CheckSchema(stack, context, schema, value) && context.Pop();
 }
@@ -34170,7 +34238,7 @@ function CheckSchema(stack, context, schema, value) {
   return result;
 }
 var init_schema2 = __esm({
-  "../../node_modules/typebox/build/schema/engine/schema.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/schema.mjs"() {
     init_types3();
     init_refine2();
     init_guard4();
@@ -34220,9 +34288,9 @@ var init_schema2 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_functions.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_functions.mjs
 var init_functions = __esm({
-  "../../node_modules/typebox/build/schema/engine/_functions.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_functions.mjs"() {
     init_types3();
     init_hashing();
     init_guard2();
@@ -34230,13 +34298,13 @@ var init_functions = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/pointer/pointer_get.mjs
+// ../electron/node_modules/typebox/build/schema/pointer/pointer_get.mjs
 var init_pointer_get = __esm({
-  "../../node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
+  "../electron/node_modules/typebox/build/schema/pointer/pointer_get.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/schema/pointer/pointer.mjs
+// ../electron/node_modules/typebox/build/schema/pointer/pointer.mjs
 var pointer_exports = {};
 __export(pointer_exports, {
   Delete: () => Delete,
@@ -34323,20 +34391,20 @@ function Delete(value, pointer) {
   return value;
 }
 var init_pointer = __esm({
-  "../../node_modules/typebox/build/schema/pointer/pointer.mjs"() {
+  "../electron/node_modules/typebox/build/schema/pointer/pointer.mjs"() {
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/pointer/index.mjs
+// ../electron/node_modules/typebox/build/schema/pointer/index.mjs
 var init_pointer2 = __esm({
-  "../../node_modules/typebox/build/schema/pointer/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/pointer/index.mjs"() {
     init_pointer_get();
     init_pointer();
   }
 });
 
-// ../../node_modules/typebox/build/schema/resolve/ref.mjs
+// ../electron/node_modules/typebox/build/schema/resolve/ref.mjs
 function MatchId(schema, base, ref) {
   if (schema.$id === ref.hash)
     return schema;
@@ -34429,36 +34497,36 @@ function DynamicRef(root, base, dynamicRef, dynamicAnchors) {
   return anchorTarget ?? fragmentTarget;
 }
 var init_ref3 = __esm({
-  "../../node_modules/typebox/build/schema/resolve/ref.mjs"() {
+  "../electron/node_modules/typebox/build/schema/resolve/ref.mjs"() {
     init_guard2();
     init_pointer2();
     init_types3();
   }
 });
 
-// ../../node_modules/typebox/build/schema/resolve/resolve.mjs
+// ../electron/node_modules/typebox/build/schema/resolve/resolve.mjs
 var resolve_exports = {};
 __export(resolve_exports, {
   DynamicRef: () => DynamicRef,
   Ref: () => Ref
 });
 var init_resolve = __esm({
-  "../../node_modules/typebox/build/schema/resolve/resolve.mjs"() {
+  "../electron/node_modules/typebox/build/schema/resolve/resolve.mjs"() {
     init_ref3();
   }
 });
 
-// ../../node_modules/typebox/build/schema/resolve/index.mjs
+// ../electron/node_modules/typebox/build/schema/resolve/index.mjs
 var init_resolve2 = __esm({
-  "../../node_modules/typebox/build/schema/resolve/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/resolve/index.mjs"() {
     init_resolve();
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/_stack.mjs
+// ../electron/node_modules/typebox/build/schema/engine/_stack.mjs
 var __classPrivateFieldGet, _Stack_instances, _Stack_PushResourceAnchors, _Stack_PopResourceAnchors, _Stack_FromContext, _Stack_FromRef, Stack;
 var init_stack = __esm({
-  "../../node_modules/typebox/build/schema/engine/_stack.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/_stack.mjs"() {
     init_types3();
     init_guard2();
     init_resolve2();
@@ -34563,9 +34631,9 @@ var init_stack = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/engine/index.mjs
+// ../electron/node_modules/typebox/build/schema/engine/index.mjs
 var init_engine = __esm({
-  "../../node_modules/typebox/build/schema/engine/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/engine/index.mjs"() {
     init_context();
     init_externals();
     init_guard4();
@@ -34618,13 +34686,13 @@ var init_engine = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/static/index.mjs
+// ../electron/node_modules/typebox/build/schema/static/index.mjs
 var init_static = __esm({
-  "../../node_modules/typebox/build/schema/static/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/static/index.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/system/arguments/arguments.mjs
+// ../electron/node_modules/typebox/build/system/arguments/arguments.mjs
 var arguments_exports = {};
 __export(arguments_exports, {
   Match: () => Match2
@@ -34635,42 +34703,42 @@ function Match2(args, match) {
   })();
 }
 var init_arguments = __esm({
-  "../../node_modules/typebox/build/system/arguments/arguments.mjs"() {
+  "../electron/node_modules/typebox/build/system/arguments/arguments.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/system/arguments/index.mjs
+// ../electron/node_modules/typebox/build/system/arguments/index.mjs
 var init_arguments2 = __esm({
-  "../../node_modules/typebox/build/system/arguments/index.mjs"() {
+  "../electron/node_modules/typebox/build/system/arguments/index.mjs"() {
     init_arguments();
   }
 });
 
-// ../../node_modules/typebox/build/system/environment/evaluate.mjs
+// ../electron/node_modules/typebox/build/system/environment/evaluate.mjs
 var init_evaluate = __esm({
-  "../../node_modules/typebox/build/system/environment/evaluate.mjs"() {
+  "../electron/node_modules/typebox/build/system/environment/evaluate.mjs"() {
     init_settings2();
     init_guard2();
   }
 });
 
-// ../../node_modules/typebox/build/system/environment/environment.mjs
+// ../electron/node_modules/typebox/build/system/environment/environment.mjs
 var init_environment2 = __esm({
-  "../../node_modules/typebox/build/system/environment/environment.mjs"() {
+  "../electron/node_modules/typebox/build/system/environment/environment.mjs"() {
     init_evaluate();
   }
 });
 
-// ../../node_modules/typebox/build/system/environment/index.mjs
+// ../electron/node_modules/typebox/build/system/environment/index.mjs
 var init_environment3 = __esm({
-  "../../node_modules/typebox/build/system/environment/index.mjs"() {
+  "../electron/node_modules/typebox/build/system/environment/index.mjs"() {
     init_environment2();
   }
 });
 
-// ../../node_modules/typebox/build/schema/build.mjs
+// ../electron/node_modules/typebox/build/schema/build.mjs
 var init_build = __esm({
-  "../../node_modules/typebox/build/schema/build.mjs"() {
+  "../electron/node_modules/typebox/build/schema/build.mjs"() {
     init_arguments2();
     init_environment3();
     init_hashing();
@@ -34680,22 +34748,22 @@ var init_build = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/system/locale/en_US.mjs
+// ../electron/node_modules/typebox/build/system/locale/en_US.mjs
 var init_en_US = __esm({
-  "../../node_modules/typebox/build/system/locale/en_US.mjs"() {
+  "../electron/node_modules/typebox/build/system/locale/en_US.mjs"() {
   }
 });
 
-// ../../node_modules/typebox/build/system/locale/_config.mjs
+// ../electron/node_modules/typebox/build/system/locale/_config.mjs
 var init_config2 = __esm({
-  "../../node_modules/typebox/build/system/locale/_config.mjs"() {
+  "../electron/node_modules/typebox/build/system/locale/_config.mjs"() {
     init_en_US();
   }
 });
 
-// ../../node_modules/typebox/build/schema/errors.mjs
+// ../electron/node_modules/typebox/build/schema/errors.mjs
 var init_errors = __esm({
-  "../../node_modules/typebox/build/schema/errors.mjs"() {
+  "../electron/node_modules/typebox/build/schema/errors.mjs"() {
     init_arguments2();
     init_settings2();
     init_config2();
@@ -34704,7 +34772,7 @@ var init_errors = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/check.mjs
+// ../electron/node_modules/typebox/build/schema/check.mjs
 function Check(...args) {
   const [context, schema, value] = arguments_exports.Match(args, {
     3: (context2, schema2, value2) => [context2, schema2, value2],
@@ -34715,24 +34783,24 @@ function Check(...args) {
   return CheckSchema(stack, checkContext, schema, value);
 }
 var init_check = __esm({
-  "../../node_modules/typebox/build/schema/check.mjs"() {
+  "../electron/node_modules/typebox/build/schema/check.mjs"() {
     init_arguments2();
     init_engine();
   }
 });
 
-// ../../node_modules/typebox/build/schema/parse.mjs
+// ../electron/node_modules/typebox/build/schema/parse.mjs
 var init_parse = __esm({
-  "../../node_modules/typebox/build/schema/parse.mjs"() {
+  "../electron/node_modules/typebox/build/schema/parse.mjs"() {
     init_arguments2();
     init_check();
     init_errors();
   }
 });
 
-// ../../node_modules/typebox/build/schema/compile.mjs
+// ../electron/node_modules/typebox/build/schema/compile.mjs
 var init_compile = __esm({
-  "../../node_modules/typebox/build/schema/compile.mjs"() {
+  "../electron/node_modules/typebox/build/schema/compile.mjs"() {
     init_arguments2();
     init_build();
     init_errors();
@@ -34740,9 +34808,9 @@ var init_compile = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/schema.mjs
+// ../electron/node_modules/typebox/build/schema/schema.mjs
 var init_schema3 = __esm({
-  "../../node_modules/typebox/build/schema/schema.mjs"() {
+  "../electron/node_modules/typebox/build/schema/schema.mjs"() {
     init_engine();
     init_pointer2();
     init_resolve2();
@@ -34756,9 +34824,9 @@ var init_schema3 = __esm({
   }
 });
 
-// ../../node_modules/typebox/build/schema/index.mjs
+// ../electron/node_modules/typebox/build/schema/index.mjs
 var init_schema4 = __esm({
-  "../../node_modules/typebox/build/schema/index.mjs"() {
+  "../electron/node_modules/typebox/build/schema/index.mjs"() {
     init_schema3();
     init_schema3();
   }
@@ -35064,6 +35132,9 @@ var init_agent_tool_registry = __esm({
     WAIT_AGENT_UPDATES = "WaitAgentUpdates";
     BUILTIN_TOOL_METADATA = {
       DiscoverCapabilities: defineTool("DiscoverCapabilities", "\u53D1\u73B0\u5DF2\u6388\u6743\u5DE5\u5177\u548C\u6280\u80FD\uFF0C\u4E0D\u6267\u884C\u4E1A\u52A1\u64CD\u4F5C", true, true, false, false),
+      CheckContextUsage: defineTool("CheckContextUsage", "\u67E5\u770B\u672C\u5BF9\u8BDD\u5269\u4F59\u4E0A\u4E0B\u6587", true, true, false, false),
+      Wait: defineTool("Wait", "\u5728\u672C\u8F6E\u91CC\u7B49\u4E00\u6BB5\u65F6\u95F4", true, true, false, false),
+      SendNotification: defineTool("SendNotification", "\u7ED9\u7528\u6237\u53D1\u684C\u9762\u901A\u77E5", false, false, false, false),
       ScheduledTask: defineTool("ScheduledTask", "\u67E5\u770B\u3001\u63D0\u51FA\u5B9A\u65F6\u4EFB\u52A1\u8349\u7A3F\u6216\u6682\u505C\u4EFB\u52A1", false, false, false, false),
       ReportScheduledResult: defineTool("ReportScheduledResult", "\u62A5\u544A\u672C\u6B21\u5B9A\u65F6\u8FD0\u884C\u7ED3\u679C", false, true, false, false),
       FindSessions: defineTool("FindSessions", "\u67E5\u627E\u672C\u673A\u5176\u4ED6\u5BF9\u8BDD\uFF08\u53EA\u8FD4\u56DE\u6807\u9898\u4E0E\u6807\u8BC6\uFF09", true, true, false, false),
@@ -35078,6 +35149,8 @@ var init_agent_tool_registry = __esm({
       ReplySessionMessage: defineTool("ReplySessionMessage", "\u56DE\u590D\u672C\u8F6E\u6536\u5230\u7684\u534F\u4F5C\u8BF7\u6C42", false, true, false, false),
       Bash: defineTool("Bash", "\u6267\u884C\u5DF2\u83B7\u6388\u6743\u7684 Shell \u547D\u4EE4", false, false, true, true),
       BashOutput: defineTool("BashOutput", "\u8BFB\u53D6\u540E\u53F0\u547D\u4EE4\u7684\u65B0\u8F93\u51FA\u4E0E\u72B6\u6001", true, false, false, false),
+      WriteBashInput: defineTool("WriteBashInput", "\u5F80\u4EA4\u4E92\u5F0F\u540E\u53F0\u547D\u4EE4\u91CC\u8F93\u5165", false, false, false, false),
+      WatchBash: defineTool("WatchBash", "\u540E\u53F0\u547D\u4EE4\u7ED3\u675F\u6216\u51FA\u73B0\u67D0\u6BB5\u8F93\u51FA\u65F6\u53EB\u9192", false, true, false, false),
       StopBash: defineTool("StopBash", "\u7ED3\u675F Agent \u542F\u52A8\u7684\u540E\u53F0\u547D\u4EE4", false, true, false, false),
       CheckDependencies: defineTool("CheckDependencies", "\u68C0\u67E5\u5F53\u524D\u8FD0\u884C\u73AF\u5883\u7684\u547D\u4EE4\u548C\u6A21\u5757\u4F9D\u8D56", true, true, false, false),
       InstallDependency: defineTool("InstallDependency", "\u628A Python \u6216 Node \u5305\u88C5\u8FDB\u6258\u7BA1\u8FD0\u884C\u65F6\uFF08\u6240\u6709\u5BF9\u8BDD\u5171\u7528\uFF09", false, true, false, true),
@@ -35105,6 +35178,7 @@ var init_agent_tool_registry = __esm({
       TaskCreate: defineTool("TaskCreate", "\u521B\u5EFA\u4EFB\u52A1", false, false, false, false),
       TaskUpdate: defineTool("TaskUpdate", "\u66F4\u65B0\u4EFB\u52A1", false, false, false, false),
       AskUserQuestion: defineTool("AskUserQuestion", "\u5411\u7528\u6237\u63D0\u95EE\u5E76\u7B49\u5F85\u56DE\u7B54", true, false, false, false),
+      SuggestNewChat: defineTool("SuggestNewChat", "\u6362\u8BDD\u9898\u65F6\u5EFA\u8BAE\u53E6\u5F00\u5BF9\u8BDD", true, false, false, false),
       EnterPlanMode: defineTool("EnterPlanMode", "\u8FDB\u5165\u8BA1\u5212\u6A21\u5F0F", true, false, false, false),
       ExitPlanMode: defineTool("ExitPlanMode", "\u63D0\u4EA4\u8BA1\u5212\u5E76\u8BF7\u6C42\u5BA1\u6279", false, false, false, false),
       Agent: defineTool("Agent", "\u6D3E\u51FA\u5B50\u4EE3\u7406\u5904\u7406\u5B50\u4EFB\u52A1", false, false, false, true),
@@ -35115,12 +35189,15 @@ var init_agent_tool_registry = __esm({
       // 只读：离屏窗口加载本对话 .context/views/ 下的片段，页面的追问与状态保存都不生效
       CheckView: defineTool("CheckView", "\u5728\u4E0D\u53EF\u89C1\u7A97\u53E3\u91CC\u52A0\u8F7D\u4EA4\u4E92\u89C6\u56FE\uFF0C\u8FD4\u56DE\u622A\u56FE\u3001\u62A5\u9519\u4E0E\u9AD8\u5EA6", true, true, false, false, [{ field: "path", access: "read" }]),
       ReadImageText: defineTool("ReadImageText", "\u4ECE\u56FE\u7247\u63D0\u53D6\u6587\u5B57", true, true, false, false, [{ field: "path", access: "read" }]),
-      knowledge_search: defineTool("knowledge_search", "\u68C0\u7D22\u6240\u9009\u77E5\u8BC6", true, true, false, false),
-      knowledge_read: defineTool("knowledge_read", "\u8BFB\u53D6\u6240\u9009\u77E5\u8BC6", true, true, false, false),
-      knowledge_save: defineTool("knowledge_save", "\u4FDD\u5B58\u77E5\u8BC6\u6210\u679C", false, true, false, false),
-      knowledge_write_status: defineTool("knowledge_write_status", "\u67E5\u770B\u5165\u5E93\u72B6\u6001", true, true, false, false),
-      wiki_read: defineTool("wiki_read", "\u8BFB\u53D6 Wiki \u9875", true, true, false, false),
-      wiki_update: defineTool("wiki_update", "\u66F4\u65B0 Wiki\uFF08\u5F85\u8FC7\u76EE\uFF09", false, true, false, false),
+      // 本机完成：隐藏窗口解码 + 本地语音模型识别，音频不出本机；长转写写进对话自己的 .context/，不算改动
+      TranscribeAudio: defineTool("TranscribeAudio", "\u672C\u5730\u542C\u5199\u97F3\u9891\u6216\u89C6\u9891\u7684\u58F0\u97F3", true, true, false, false, [{ field: "path", access: "read" }]),
+      ReadVideo: defineTool("ReadVideo", "\u53D6\u672C\u5730\u89C6\u9891\u7684\u753B\u9762\u5E76\u53EF\u542C\u5199\u58F0\u97F3", true, true, false, false, [{ field: "path", access: "read" }]),
+      SearchKnowledge: defineTool("SearchKnowledge", "\u68C0\u7D22\u6240\u9009\u77E5\u8BC6", true, true, false, false),
+      ReadKnowledge: defineTool("ReadKnowledge", "\u8BFB\u53D6\u6240\u9009\u77E5\u8BC6", true, true, false, false),
+      SaveKnowledge: defineTool("SaveKnowledge", "\u4FDD\u5B58\u77E5\u8BC6\u6210\u679C", false, true, false, false),
+      KnowledgeSaveStatus: defineTool("KnowledgeSaveStatus", "\u67E5\u770B\u5165\u5E93\u72B6\u6001", true, true, false, false),
+      ReadWiki: defineTool("ReadWiki", "\u8BFB\u53D6 Wiki \u9875", true, true, false, false),
+      UpdateWiki: defineTool("UpdateWiki", "\u66F4\u65B0 Wiki\uFF08\u5F85\u8FC7\u76EE\uFF09", false, true, false, false),
       ReadDocument: defineTool("ReadDocument", "\u5206\u9875\u63D0\u53D6\u672C\u5730\u529E\u516C\u6587\u6863\u6587\u5B57", true, true, false, false, [{ field: "path", access: "read" }]),
       WorkspaceScan: defineTool("WorkspaceScan", "\u626B\u63CF\u5F53\u524D\u5DE5\u4F5C\u533A", true, true, false, false),
       RecordFileInfo: defineTool("RecordFileInfo", "\u66F4\u65B0\u5DE5\u4F5C\u533A\u6587\u4EF6\u7D22\u5F15", false, true, false, false),
@@ -35129,21 +35206,24 @@ var init_agent_tool_registry = __esm({
       RecordFileRelation: defineTool("RecordFileRelation", "\u5199\u5165\u5DE5\u4F5C\u533A\u5173\u7CFB\u56FE", false, false, false, false),
       RememberWorkspaceFact: defineTool("RememberWorkspaceFact", "\u5199\u5165\u5DE5\u4F5C\u533A\u957F\u671F\u4E8B\u5B9E", false, false, false, false),
       QueryWorkspaceGraph: defineTool("QueryWorkspaceGraph", "\u67E5\u8BE2\u5DE5\u4F5C\u533A\u77E5\u8BC6\u56FE\u8C31", true, true, false, false),
-      recall_memory: defineTool("recall_memory", "\u68C0\u7D22\u7528\u6237\u8BB0\u5FC6\u4E0E\u9879\u76EE\u8BB0\u5FC6", true, true, false, true),
-      remember_memory: defineTool("remember_memory", "\u5199\u5165\u7528\u6237\u8BB0\u5FC6", false, false, false, true),
-      forget_memory: defineTool("forget_memory", "\u5220\u9664\u7528\u6237\u8BB0\u5FC6", false, false, true, true),
-      generate_image: defineTool("generate_image", "\u751F\u6210\u6216\u7F16\u8F91\u56FE\u7247", false, false, false, true, [
+      RecallMemory: defineTool("RecallMemory", "\u68C0\u7D22\u7528\u6237\u8BB0\u5FC6\u4E0E\u9879\u76EE\u8BB0\u5FC6", true, true, false, true),
+      SaveMemory: defineTool("SaveMemory", "\u5199\u5165\u7528\u6237\u8BB0\u5FC6", false, false, false, true),
+      ForgetMemory: defineTool("ForgetMemory", "\u5220\u9664\u7528\u6237\u8BB0\u5FC6", false, false, true, true),
+      GenerateImage: defineTool("GenerateImage", "\u751F\u6210\u6216\u7F16\u8F91\u56FE\u7247", false, false, false, true, [
         { field: "referenceImagePaths", access: "read", optional: true, multiple: true }
       ]),
-      creative_design_read: defineTool("creative_design_read", "\u8BFB\u53D6\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8BBE\u8BA1\u56FE\u5C42", true, true, false, false),
-      creative_design_edit: defineTool("creative_design_edit", "\u4FEE\u6539\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8BBE\u8BA1\u56FE\u5C42", false, false, false, false),
-      creative_read_canvas: defineTool("creative_read_canvas", "\u8BFB\u53D6\u5DF2\u6388\u6743\u7684 Creative \u753B\u5E03", true, true, false, false),
+      ReadCanvasLayers: defineTool("ReadCanvasLayers", "\u8BFB\u53D6\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8BBE\u8BA1\u56FE\u5C42", true, true, false, false),
+      EditCanvasLayers: defineTool("EditCanvasLayers", "\u4FEE\u6539\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8BBE\u8BA1\u56FE\u5C42", false, false, false, false),
+      ReadCanvas: defineTool("ReadCanvas", "\u8BFB\u53D6\u5DF2\u6388\u6743\u7684 Creative \u753B\u5E03", true, true, false, false),
       OfficeRead: defineTool("OfficeRead", "\u8BFB\u53D6\u672C\u8F6E\u7ED1\u5B9A\u7684 Office \u6587\u6863\u4E0E\u7248\u672C", true, true, false, false),
       OfficeEdit: defineTool("OfficeEdit", "\u5728\u672C\u8F6E\u7ED1\u5B9A\u7684\u7F16\u8F91\u5B9E\u4F8B\u4E2D\u4FEE\u6539\u6587\u6863", false, false, false, false),
       OfficeExport: defineTool("OfficeExport", "\u5C06\u672C\u8F6E\u7ED1\u5B9A\u7684\u6587\u6863\u5BFC\u51FA\u4E3A\u9879\u76EE\u5185\u65B0\u6587\u4EF6", false, false, false, false),
-      creative_update_canvas: defineTool("creative_update_canvas", "\u4FEE\u6539\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8282\u70B9\u8349\u7A3F", false, false, false, false),
-      creative_generate_image: defineTool("creative_generate_image", "\u6267\u884C\u753B\u5E03\u56FE\u7247\u751F\u6210\u8282\u70B9", false, false, false, true),
-      fetch_group_chat_history: defineTool("fetch_group_chat_history", "\u8BFB\u53D6\u98DE\u4E66\u7FA4\u804A\u5386\u53F2", true, true, false, true)
+      UpdateCanvas: defineTool("UpdateCanvas", "\u4FEE\u6539\u5DF2\u6388\u6743\u753B\u5E03\u7684\u8282\u70B9\u8349\u7A3F", false, false, false, false),
+      GenerateVideo: defineTool("GenerateVideo", "\u5728\u672C\u5BF9\u8BDD\u7684\u89C6\u9891\u753B\u5E03\u4E0A\u5EFA\u89C6\u9891\u751F\u6210\u8282\u70B9", false, false, false, false, [
+        { field: "referenceImagePaths", access: "read", optional: true, multiple: true }
+      ]),
+      RunCanvasNode: defineTool("RunCanvasNode", "\u6267\u884C\u753B\u5E03\u56FE\u7247\u751F\u6210\u8282\u70B9", false, false, false, true),
+      ReadFeishuGroupHistory: defineTool("ReadFeishuGroupHistory", "\u8BFB\u53D6\u98DE\u4E66\u7FA4\u804A\u5386\u53F2", true, true, false, true)
     };
   }
 });
@@ -35416,7 +35496,7 @@ function validatePiToolStream(streamFn, provider, channelId, validateOutput2, re
         if (message.role !== "toolResult" || !message.content.some((block) => block.type === "image")) return message;
         return { ...message, content: [
           ...message.content.filter((block) => block.type !== "image"),
-          { type: "text", text: message.toolName === "generate_image" ? "\u751F\u6210\u7684\u56FE\u7247\u5DF2\u4EA4\u4ED8\u7ED9\u7528\u6237\u3002\u5F53\u524D\u6A21\u578B\u672A\u67E5\u770B\u56FE\u7247\u50CF\u7D20\uFF1B\u8BF7\u4F9D\u636E\u5DE5\u5177\u8FD4\u56DE\u7684\u751F\u6210\u72B6\u6001\u548C\u6587\u4EF6\u4FE1\u606F\u56DE\u590D\uFF0C\u4E0D\u8981\u58F0\u79F0\u5DF2\u68C0\u67E5\u56FE\u7247\u5185\u5BB9\uFF0C\u4E5F\u65E0\u9700\u8BA9\u7528\u6237\u5207\u6362\u6A21\u578B\u3002" : "\u5DE5\u5177\u8FD4\u56DE\u4E86\u56FE\u7247\uFF0C\u539F\u56FE\u4FDD\u7559\u5728\u4F1A\u8BDD\u4E2D\u3002\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165\uFF0C\u672A\u67E5\u770B\u56FE\u7247\u5185\u5BB9\uFF1B\u8BF7\u4F9D\u636E\u5DE5\u5177\u7684\u6587\u5B57\u7ED3\u679C\u7EE7\u7EED\uFF0C\u4E0D\u8981\u58F0\u79F0\u5DF2\u770B\u56FE\uFF0C\u4E5F\u4E0D\u8981\u53CD\u590D\u8BFB\u53D6\u540C\u4E00\u56FE\u7247\u3002\u82E5\u4EFB\u52A1\u5FC5\u987B\u7406\u89E3\u56FE\u7247\uFF0C\u8BF7\u8BF4\u660E\u9700\u8981\u652F\u6301\u56FE\u7247\u8F93\u5165\u7684\u6A21\u578B\u3002" }
+          { type: "text", text: message.toolName === "GenerateImage" ? "\u751F\u6210\u7684\u56FE\u7247\u5DF2\u4EA4\u4ED8\u7ED9\u7528\u6237\u3002\u5F53\u524D\u6A21\u578B\u672A\u67E5\u770B\u56FE\u7247\u50CF\u7D20\uFF1B\u8BF7\u4F9D\u636E\u5DE5\u5177\u8FD4\u56DE\u7684\u751F\u6210\u72B6\u6001\u548C\u6587\u4EF6\u4FE1\u606F\u56DE\u590D\uFF0C\u4E0D\u8981\u58F0\u79F0\u5DF2\u68C0\u67E5\u56FE\u7247\u5185\u5BB9\uFF0C\u4E5F\u65E0\u9700\u8BA9\u7528\u6237\u5207\u6362\u6A21\u578B\u3002" : "\u5DE5\u5177\u8FD4\u56DE\u4E86\u56FE\u7247\uFF0C\u539F\u56FE\u4FDD\u7559\u5728\u4F1A\u8BDD\u4E2D\u3002\u5F53\u524D\u6A21\u578B\u672A\u542F\u7528\u56FE\u7247\u8F93\u5165\uFF0C\u672A\u67E5\u770B\u56FE\u7247\u5185\u5BB9\uFF1B\u8BF7\u4F9D\u636E\u5DE5\u5177\u7684\u6587\u5B57\u7ED3\u679C\u7EE7\u7EED\uFF0C\u4E0D\u8981\u58F0\u79F0\u5DF2\u770B\u56FE\uFF0C\u4E5F\u4E0D\u8981\u53CD\u590D\u8BFB\u53D6\u540C\u4E00\u56FE\u7247\u3002\u82E5\u4EFB\u52A1\u5FC5\u987B\u7406\u89E3\u56FE\u7247\uFF0C\u8BF7\u8BF4\u660E\u9700\u8981\u652F\u6301\u56FE\u7247\u8F93\u5165\u7684\u6A21\u578B\u3002" }
         ] };
       }) };
     }
@@ -35671,7 +35751,7 @@ var init_mcp_app_sampling = __esm({
   }
 });
 
-// ../../node_modules/openai/internal/tslib.mjs
+// ../electron/node_modules/openai/internal/tslib.mjs
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
   if (kind === "m")
     throw new TypeError("Private method is not writable");
@@ -35689,11 +35769,11 @@ function __classPrivateFieldGet2(receiver, state, kind, f) {
   return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 var init_tslib = __esm({
-  "../../node_modules/openai/internal/tslib.mjs"() {
+  "../electron/node_modules/openai/internal/tslib.mjs"() {
   }
 });
 
-// ../../node_modules/openai/internal/errors.mjs
+// ../electron/node_modules/openai/internal/errors.mjs
 function isAbortError(err) {
   return typeof err === "object" && err !== null && // Spec-compliant fetch implementations
   ("name" in err && err.name === "AbortError" || // Expo fetch
@@ -35701,7 +35781,7 @@ function isAbortError(err) {
 }
 var castToError;
 var init_errors2 = __esm({
-  "../../node_modules/openai/internal/errors.mjs"() {
+  "../electron/node_modules/openai/internal/errors.mjs"() {
     castToError = (err) => {
       if (err instanceof Error)
         return err;
@@ -35729,10 +35809,10 @@ var init_errors2 = __esm({
   }
 });
 
-// ../../node_modules/openai/core/error.mjs
+// ../electron/node_modules/openai/core/error.mjs
 var OpenAIError, APIError, APIConnectionError, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, ConflictError, UnprocessableEntityError, RateLimitError, InternalServerError;
 var init_error = __esm({
-  "../../node_modules/openai/core/error.mjs"() {
+  "../electron/node_modules/openai/core/error.mjs"() {
     init_errors2();
     OpenAIError = class extends Error {
     };
@@ -35819,7 +35899,7 @@ var init_error = __esm({
   }
 });
 
-// ../../node_modules/openai/internal/shims.mjs
+// ../electron/node_modules/openai/internal/shims.mjs
 function makeReadableStream(...args) {
   const ReadableStream2 = globalThis.ReadableStream;
   if (typeof ReadableStream2 === "undefined") {
@@ -35855,11 +35935,11 @@ function ReadableStreamToAsyncIterable(stream) {
   };
 }
 var init_shims = __esm({
-  "../../node_modules/openai/internal/shims.mjs"() {
+  "../electron/node_modules/openai/internal/shims.mjs"() {
   }
 });
 
-// ../../node_modules/openai/internal/utils/bytes.mjs
+// ../electron/node_modules/openai/internal/utils/bytes.mjs
 function concatBytes(buffers) {
   let length = 0;
   for (const buffer of buffers) {
@@ -35883,11 +35963,11 @@ function decodeUTF8(bytes) {
 }
 var encodeUTF8_, decodeUTF8_;
 var init_bytes = __esm({
-  "../../node_modules/openai/internal/utils/bytes.mjs"() {
+  "../electron/node_modules/openai/internal/utils/bytes.mjs"() {
   }
 });
 
-// ../../node_modules/openai/internal/decoders/line.mjs
+// ../electron/node_modules/openai/internal/decoders/line.mjs
 function findNewlineIndex(buffer, startIndex) {
   const newline = 10;
   const carriage = 13;
@@ -35919,7 +35999,7 @@ function findDoubleNewlineIndex(buffer) {
 }
 var _LineDecoder_buffer, _LineDecoder_carriageReturnIndex, LineDecoder;
 var init_line = __esm({
-  "../../node_modules/openai/internal/decoders/line.mjs"() {
+  "../electron/node_modules/openai/internal/decoders/line.mjs"() {
     init_tslib();
     init_bytes();
     LineDecoder = class {
@@ -35969,14 +36049,14 @@ var init_line = __esm({
   }
 });
 
-// ../../node_modules/openai/internal/utils/values.mjs
+// ../electron/node_modules/openai/internal/utils/values.mjs
 var init_values = __esm({
-  "../../node_modules/openai/internal/utils/values.mjs"() {
+  "../electron/node_modules/openai/internal/utils/values.mjs"() {
     init_error();
   }
 });
 
-// ../../node_modules/openai/internal/utils/log.mjs
+// ../electron/node_modules/openai/internal/utils/log.mjs
 function noop() {
 }
 function makeLogFn(fnLevel, logger, logLevel) {
@@ -36007,7 +36087,7 @@ function loggerFor(client) {
 }
 var levelNumbers, noopLogger, cachedLoggers;
 var init_log = __esm({
-  "../../node_modules/openai/internal/utils/log.mjs"() {
+  "../electron/node_modules/openai/internal/utils/log.mjs"() {
     init_values();
     levelNumbers = {
       off: 0,
@@ -36026,7 +36106,7 @@ var init_log = __esm({
   }
 });
 
-// ../../node_modules/openai/core/streaming.mjs
+// ../electron/node_modules/openai/core/streaming.mjs
 var streaming_exports = {};
 __export(streaming_exports, {
   Stream: () => Stream,
@@ -36086,7 +36166,7 @@ function partition(str, delimiter2) {
 }
 var _Stream_client, Stream, SSEDecoder;
 var init_streaming = __esm({
-  "../../node_modules/openai/core/streaming.mjs"() {
+  "../electron/node_modules/openai/core/streaming.mjs"() {
     init_tslib();
     init_error();
     init_shims();
@@ -37630,7 +37710,7 @@ function installSkillPackage(workspace, source, updateId, builtin = false) {
   const manifest = manifestFromSource(source);
   validateFiles(source, manifest);
   const hash = hashSkillDirectory(source);
-  const id = updateId ?? `pkg-${(0, import_node_crypto10.createHash)("sha256").update(builtin ? `builtin:${manifest.id}` : source).digest("hex").slice(0, 20)}`;
+  const id = updateId ?? (builtin ? builtinPackageId(manifest.id) : packageId(source));
   const existing = registry.installations.find((i) => i.id === id);
   if (updateId && !existing) throw new Error(tr("\u6280\u80FD\u5305\u4E0D\u5B58\u5728\u3002", "Skill pack not found."));
   if (existing) {
@@ -37742,7 +37822,7 @@ function listBuiltinInstallations(workspace) {
     }];
   });
 }
-var import_node_crypto10, import_node_fs21, import_node_path19, MANIFEST2, ID, leases;
+var import_node_crypto10, import_node_fs21, import_node_path19, MANIFEST2, ID, leases, packageId, builtinPackageId;
 var init_skill_package_manager = __esm({
   "../electron/src/main/lib/skill-package-manager.ts"() {
     "use strict";
@@ -37755,6 +37835,8 @@ var init_skill_package_manager = __esm({
     MANIFEST2 = "cortex-skill-package.json";
     ID = /^[a-z0-9][a-z0-9._-]{0,63}$/;
     leases = /* @__PURE__ */ new Map();
+    packageId = (key) => `pkg-${(0, import_node_crypto10.createHash)("sha256").update(key).digest("hex").slice(0, 20)}`;
+    builtinPackageId = (manifestId) => packageId(`builtin:${manifestId}`);
   }
 });
 
@@ -38592,7 +38674,6 @@ __export(agent_workspace_manager_exports, {
   mirrorAgentWorkspaceKnowledgeBinding: () => mirrorAgentWorkspaceKnowledgeBinding,
   parseSkillFrontmatter: () => parseSkillFrontmatter,
   readWorkspaceSkillContent: () => readWorkspaceSkillContent,
-  reorderAgentWorkspaces: () => reorderAgentWorkspaces,
   resolveMcpServerEntries: () => resolveMcpServerEntries,
   resolveRuntimeSkills: () => resolveRuntimeSkills,
   saveWorkspaceMcpConfig: () => saveWorkspaceMcpConfig,
@@ -38649,22 +38730,6 @@ function listAgentWorkspaces() {
 function listAgentWorkspacesByUpdatedAt() {
   const index = readIndex();
   return index.workspaces.slice().sort((a, b) => b.updatedAt - a.updatedAt);
-}
-function reorderAgentWorkspaces(orderedIds) {
-  const index = readIndex();
-  const byId = new Map(index.workspaces.map((w) => [w.id, w]));
-  const reordered = [];
-  for (const id of orderedIds) {
-    const ws = byId.get(id);
-    if (ws) {
-      reordered.push(ws);
-      byId.delete(id);
-    }
-  }
-  for (const ws of byId.values()) reordered.push(ws);
-  index.workspaces = reordered;
-  writeIndex(index);
-  return reordered;
 }
 function getAgentWorkspace(id) {
   const index = readIndex();
@@ -39291,7 +39356,7 @@ function readWorkspaceConfig(workspaceSlug) {
 }
 function writeWorkspaceConfig(workspaceSlug, config) {
   const configPath = getWorkspaceConfigPath(workspaceSlug);
-  (0, import_node_fs24.writeFileSync)(configPath, JSON.stringify(config, null, 2), "utf-8");
+  writeJsonFileAtomic(configPath, config);
 }
 function getWorkspaceAttachedDirectories(workspaceSlug) {
   const config = readWorkspaceConfig(workspaceSlug);
@@ -48066,17 +48131,20 @@ function openerCommand(url, platform) {
 var modeLabel = (mode) => ({
   auto: tr("\u6309\u9700\u786E\u8BA4", "Ask for approval"),
   plan: tr("\u8BA1\u5212", "Plan"),
-  bypassPermissions: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve")
+  bypassPermissions: tr("\u81EA\u52A8\u6267\u884C", "Auto-approve"),
+  fullAccess: tr("\u5B8C\u5168\u653E\u884C", "Bypass permissions")
 })[mode];
 var workModeLabel = (mode) => ({
   auto: tr("\u6309\u9700\u786E\u8BA4", "Ask"),
   plan: tr("\u8BA1\u5212\uFF08\u53EA\u8BFB\uFF09", "Plan (read-only)"),
-  bypassPermissions: tr("\u81EA\u52A8\u6279\u51C6", "Auto-approve")
+  bypassPermissions: tr("\u81EA\u52A8\u6279\u51C6", "Auto-approve"),
+  fullAccess: tr("\u5B8C\u5168\u653E\u884C", "Bypass permissions")
 })[mode];
 var modeNotice = (mode) => ({
   auto: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u6309\u9700\u786E\u8BA4\u300D\u3002", "Permissions set to Ask for approval."),
   plan: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u8BA1\u5212\u300D\uFF1A\u53EA\u8BFB\uFF0C\u4E0D\u6539\u6587\u4EF6\u3002", "Permissions set to Plan: read-only, no file changes."),
-  bypassPermissions: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u81EA\u52A8\u6267\u884C\u300D\uFF1A\u5DE5\u5177\u4E0D\u518D\u9010\u6761\u786E\u8BA4\uFF0C\u6C99\u7BB1\u5916\u8FD0\u884C\u4ECD\u4F1A\u8BE2\u95EE\u3002", "Permissions set to Auto-approve: tools run without asking; running outside the sandbox still asks.")
+  bypassPermissions: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u81EA\u52A8\u6267\u884C\u300D\uFF1A\u5DE5\u5177\u4E0D\u518D\u9010\u6761\u786E\u8BA4\uFF0C\u4E0D\u53EF\u9006\u547D\u4EE4\u4ECD\u4F1A\u8BE2\u95EE\u3002", "Permissions set to Auto-approve: tools run without asking; irreversible commands still ask."),
+  fullAccess: tr("\u6743\u9650\u5DF2\u5207\u5230\u300C\u5B8C\u5168\u653E\u884C\u300D\uFF1A\u4E0D\u53EF\u9006\u547D\u4EE4\u4E5F\u4E0D\u518D\u8BE2\u95EE\uFF0C\u751F\u6210\u89C6\u9891\u4ECD\u4F1A\u786E\u8BA4\u3002", "Permissions set to Bypass permissions: even irreversible commands run without asking; video generation still asks.")
 })[mode];
 var thinkingLabel = (level) => ({
   off: tr("\u5173\u95ED", "Off"),
@@ -48537,8 +48605,8 @@ function commandCatalog(context) {
       aliases: ["mode", tr("\u6743\u9650", "Permissions"), tr("\u5207\u6A21\u5F0F", "Switch mode"), tr("\u53EA\u8BFB", "Read only"), tr("\u81EA\u52A8\u6267\u884C", "Auto run"), tr("\u8BA1\u5212\u6A21\u5F0F", "Plan mode")],
       description: tr("\u9009\u62E9\u6267\u884C\u6216\u8BA1\u5212", "Choose execution or planning") + (context.session ? "  " + modeLabel(context.session.mode) : ""),
       group: settings2,
-      argumentHint: "<auto|plan|bypassPermissions>",
-      getArgumentCompletions: (prefix) => choices(["auto", "plan", "bypassPermissions"], prefix)
+      argumentHint: "<auto|plan|bypassPermissions|fullAccess>",
+      getArgumentCompletions: (prefix) => choices(["auto", "plan", "bypassPermissions", "fullAccess"], prefix)
     },
     { name: "plan", label: tr("\u5BA1\u9605\u5DF2\u6709\u8BA1\u5212", "Review existing plan"), description: tr("\u6279\u6CE8\u5F53\u524D\u8BA1\u5212\u6216\u67E5\u770B\u6700\u8FD1\u8BA1\u5212", "Comment on the pending plan or view the latest plan"), group: session },
     { name: "inbox", label: tr("\u5F85\u5904\u7406\u4F1A\u8BDD", "Session inbox"), description: tr("\u8DE8\u4F1A\u8BDD\u72B6\u6001\uFF0C\u5F85\u786E\u8BA4\u4F18\u5148", "Session activity, needs input first"), group: session },
@@ -49781,7 +49849,7 @@ var TerminalUI = class {
     const model2 = clean(this.context?.model ?? "");
     const top = this.contextText && !this.pending ? meter : "";
     const modeName = this.context ? workModeLabel(this.context.mode) : "";
-    const mode = this.context?.mode === "bypassPermissions" ? theme.warning("\u25B2 " + modeName) : this.context?.mode === "plan" ? theme.accent(modeName) : modeName;
+    const mode = this.context?.mode === "fullAccess" ? theme.error("\u25B2 " + modeName) : this.context?.mode === "bypassPermissions" ? theme.warning("\u25B2 " + modeName) : this.context?.mode === "plan" ? theme.accent(modeName) : modeName;
     const room = Math.max(0, width - 6);
     const parts = [(0, import_pi_tui3.truncateToWidth)(mode, room)];
     if (thinking && width >= 60 && (0, import_pi_tui3.visibleWidth)(thinking + "  " + mode) <= room) parts.unshift(theme.muted(thinking));
@@ -51546,7 +51614,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.40";
+var version = "0.1.41";
 
 // src/interactive.ts
 var import_node_fs19 = require("node:fs");
@@ -52301,6 +52369,17 @@ async function runInteractive(worker, options, request, ui) {
       dispatchQueue();
     }
   };
+  const confirmFullAccess = async () => {
+    if (!ui) return false;
+    const answer = await ui.select(tr("\u5F00\u542F\u5B8C\u5168\u653E\u884C\uFF1F", "Turn on Bypass permissions?"), [
+      { value: "on", label: tr("\u5F00\u542F", "Turn on") },
+      { value: "cancel", label: tr("\u53D6\u6D88", "Cancel") }
+    ], { search: false, tag: tr("\u9AD8\u98CE\u9669", "High risk"), initial: "cancel", description: tr(
+      "Agent \u505A\u8FD9\u4E9B\u4E8B\u4E4B\u524D\u4E0D\u518D\u95EE\u4F60\uFF1A\n  \u4E0D\u53EF\u9006\u547D\u4EE4\uFF0C\u5982\u5F3A\u63A8\u3001\u5220\u9664\u76EE\u5F55\n  \u5F80\u5916\u53D1\u9001\u6570\u636E\n  \u542F\u52A8\u5DE5\u4F5C\u6D41\n  \u5220\u9664\u8BB0\u5FC6\n\n\u751F\u6210\u89C6\u9891\u4ECD\u4F1A\u5148\u786E\u8BA4\uFF0C\u6C99\u7BB1\u548C\u8DEF\u5F84\u9650\u5236\u4E0D\u53D8\u3002\u5B9A\u65F6\u4EFB\u52A1\u3001\u673A\u5668\u4EBA\u7B49\u65E0\u4EBA\u503C\u5B88\u7684\u8FD0\u884C\u4E0D\u80FD\u4F7F\u7528\u3002",
+      "The agent stops asking before:\n  Irreversible commands, like force pushes or deleting folders\n  Sending data out\n  Starting workflows\n  Deleting memories\n\nVideo generation still asks first, and sandbox and path limits stay. Unattended runs such as scheduled tasks and bots can\u2019t use it."
+    ) });
+    return answer === "on";
+  };
   const openMode = async () => {
     const current2 = store.get(state);
     if (!ui || editing) return;
@@ -52314,7 +52393,8 @@ async function runInteractive(worker, options, request, ui) {
         ...[
           { value: "auto", label: workModeLabel("auto"), description: tr("\u6267\u884C\u4EFB\u52A1\uFF0C\u9700\u8981\u6388\u6743\u65F6\u8BE2\u95EE", "Run tasks and ask when approval is needed") },
           { value: "plan", label: workModeLabel("plan"), description: tr("\u5148\u5206\u6790\u548C\u5236\u5B9A\u65B9\u6848", "Analyze and prepare a plan first") },
-          { value: "bypassPermissions", label: workModeLabel("bypassPermissions"), description: tr("\u5E38\u89C4\u5DE5\u5177\u4E0D\u9010\u9879\u786E\u8BA4\uFF0C\u4FDD\u7559\u8FB9\u754C\u4FDD\u62A4", "Approve routine tools; boundary protections remain") }
+          { value: "bypassPermissions", label: workModeLabel("bypassPermissions"), description: tr("\u5E38\u89C4\u5DE5\u5177\u4E0D\u9010\u9879\u786E\u8BA4\uFF0C\u4FDD\u7559\u8FB9\u754C\u4FDD\u62A4", "Approve routine tools; boundary protections remain") },
+          { value: "fullAccess", label: workModeLabel("fullAccess"), description: tr("\u90FD\u4E0D\u95EE\uFF0C\u751F\u6210\u89C6\u9891\u9664\u5916", "Never asks, except for video generation") }
         ].map((item) => ({ ...item, label: (item.value === current2.session.mode ? "\u2713 " : "  ") + item.label })),
         ...current2.requests.some((item) => item.interaction.kind === "plan") ? [{ value: ":plan", label: tr("\u5BA1\u9605\u5F85\u6279\u51C6\u8BA1\u5212", "Review the pending plan"), description: tr("\u6279\u51C6\u3001\u6279\u6CE8\u6216\u8BF7\u6C42\u4FEE\u6539", "Approve, comment, or request changes") }] : []
       ], {
@@ -52334,8 +52414,9 @@ async function runInteractive(worker, options, request, ui) {
         return;
       }
       if (store.get(state).session?.mode === mode) return;
+      if (mode === "fullAccess" && !await confirmFullAccess()) return;
       tracked(
-        { type: "settings", id: (0, import_node_crypto9.randomUUID)(), mode },
+        { type: "settings", id: (0, import_node_crypto9.randomUUID)(), mode, ...mode === "fullAccess" && { enableFullAccess: true } },
         { notice: modeNotice(mode) + "\n" + tr("\u4EC5\u5F53\u524D\u4F1A\u8BDD\u3002", "This session only."), log: true }
       );
     } catch (error) {
@@ -52850,7 +52931,7 @@ async function runInteractive(worker, options, request, ui) {
           }
           return;
         }
-        if (command === "/permissions" && !["auto", "plan", "bypassPermissions"].includes(value)) {
+        if (command === "/permissions" && !["auto", "plan", "bypassPermissions", "fullAccess"].includes(value)) {
           entry(tr("\u6743\u9650\u6A21\u5F0F\u65E0\u6548\u3002", "Invalid permission mode."));
           return;
         }
@@ -52865,6 +52946,15 @@ async function runInteractive(worker, options, request, ui) {
             return;
           }
           if (value === current2.session.mode) return;
+          if (value === "fullAccess") {
+            void confirmFullAccess().then((confirmed) => {
+              if (confirmed) tracked(
+                { type: "settings", id: (0, import_node_crypto9.randomUUID)(), scope: "session", mode: "fullAccess", enableFullAccess: true },
+                { notice: modeNotice("fullAccess") + "\n" + tr("\u4EC5\u5F53\u524D\u4F1A\u8BDD\u3002", "This session only."), log: true }
+              );
+            });
+            return;
+          }
         }
         if (command === "/thinking" && !current2.session.thinking?.levels.includes(value)) {
           entry(tr("\u5F53\u524D\u6A21\u578B\u4E0D\u652F\u6301\u8BE5\u601D\u8003\u5F3A\u5EA6\u3002", "This model doesn\u2019t support that thinking level."));
@@ -53828,8 +53918,8 @@ function parseCliArgs(args, stdoutIsTTY = process.stdout.isTTY === true) {
   }
   if (values["base-url"] && !values.provider) throw new Error(tr("--base-url \u9700\u8981\u540C\u65F6\u6307\u5B9A --provider", "--base-url needs --provider"));
   const mode = values["permission-mode"];
-  if (mode && !["auto", "plan", "bypassPermissions"].includes(mode)) {
-    throw new Error(tr("\u6743\u9650\u6A21\u5F0F\u5FC5\u987B\u662F auto\u3001plan \u6216 bypassPermissions", "Permission mode must be auto, plan or bypassPermissions"));
+  if (mode && !["auto", "plan", "bypassPermissions", "fullAccess"].includes(mode)) {
+    throw new Error(tr("\u6743\u9650\u6A21\u5F0F\u5FC5\u987B\u662F auto\u3001plan\u3001bypassPermissions \u6216 fullAccess", "Permission mode must be auto, plan, bypassPermissions or fullAccess"));
   }
   if (values.provider && !Object.hasOwn(PROVIDER_DEFAULT_URLS, values.provider)) throw new Error(tr("\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\u7C7B\u578B", "Unsupported provider type"));
   options.request = {
@@ -54227,8 +54317,8 @@ function help2() {
       "  --cwd <dir>                      Working directory for new sessions; can\u2019t change on resume"
     ),
     tr(
-      "  --permission-mode <\u6A21\u5F0F>         auto\uFF08\u9ED8\u8BA4\uFF09/ plan / bypassPermissions",
-      "  --permission-mode <mode>         auto (default) / plan / bypassPermissions"
+      "  --permission-mode <\u6A21\u5F0F>         auto\uFF08\u9ED8\u8BA4\uFF09/ plan / bypassPermissions / fullAccess\uFF08\u4EA4\u4E92\u8FD0\u884C\u987B\u5148\u5F00\u542F\uFF09",
+      "  --permission-mode <mode>         auto (default) / plan / bypassPermissions / fullAccess (interactive needs it turned on)"
     ),
     tr(
       "  --stdin                          \u5C06\u7BA1\u9053\u6587\u672C\u4F5C\u4E3A\u8D44\u6599\u9644\u52A0\u5230\u4EFB\u52A1",
