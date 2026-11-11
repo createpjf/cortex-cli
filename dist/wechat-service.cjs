@@ -31464,6 +31464,9 @@ var LINE_ICON = new RegExp(`^icon:[a-z][a-z0-9-]{0,31}(?::(?:${ARTIFACT_ICON_COL
 var SLIDE_PIXEL_FILTERS = ["dither", "ascii"];
 var SLIDE_FILTERS = ["grayscale", "sepia", "blur", "dim", ...SLIDE_PIXEL_FILTERS];
 var DROP = Symbol("drop");
+var svgMask = (viewBox, body) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${viewBox}' preserveAspectRatio='none'>${body}</svg>`)}")`;
+var CLOUD_MASK = svgMask("0 0 100 64", "<path d='M24 62C10 62 2 53 2 43c0-9 6-16 15-17C18 13 29 4 42 4c10 0 18 5 22 13 2-1 5-1 7-1 11 0 20 8 21 19 5 2 8 7 8 12 0 8-7 15-16 15Z'/>");
+var PERSON_MASK = svgMask("0 0 100 100", "<circle cx='50' cy='27' r='23'/><path d='M6 100c0-25 20-42 44-42s44 17 44 42Z'/>");
 var SLIDE_EFFECT_IMAGE_MAX = 16 * 1024 * 1024;
 var CJK = "\\u2e80-\\u9fff\\uac00-\\ud7af\\uff00-\\uffef";
 var CJK_CHAR = new RegExp(`[${CJK}]`);

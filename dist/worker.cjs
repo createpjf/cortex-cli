@@ -32091,7 +32091,9 @@ function cleanAttrs(type, a) {
         end: oneOf2(a.end, SLIDE_LINE_CAPS, "none"),
         style: cleanSlideStyle(a.style),
         // 直线 / 直角折线；没写时是直线，不写这个键
-        ...(a.route === "elbow" || a.route === "straight") && { route: a.route }
+        ...(a.route === "elbow" || a.route === "straight") && { route: a.route },
+        // 折线中段的位置（0–1），用户拖过才有
+        ...typeof a.bend === "number" && Number.isFinite(a.bend) && { bend: Math.round(Math.min(1, Math.max(0, a.bend)) * 1e3) / 1e3 }
       };
     }
     // 画笔笔迹（白板）：points 是相对自己画时那个框（pw × ph）的扁平坐标，成对、最多 SLIDE_INK_MAX_POINTS 个数；没有点或没钉住的整条丢掉
@@ -32173,16 +32175,17 @@ function linePoints(a) {
   const [x1, y1, x2, y2] = [a.x1, a.y1, a.x2, a.y2].map(Number);
   if (a.route !== "elbow") return [[x1, y1], [x2, y2]];
   const side = (end) => end?.side;
-  return elbowRoute({ x: x1, y: y1, side: side(a.from) }, { x: x2, y: y2, side: side(a.to) });
+  return elbowRoute({ x: x1, y: y1, side: side(a.from) }, { x: x2, y: y2, side: side(a.to) }, typeof a.bend === "number" ? a.bend : 0.5);
 }
-function elbowRoute(a, b3) {
+function elbowRoute(a, b3, bend = 0.5) {
   const pts = [[a.x, a.y]];
+  const mid = (p, q2) => Math.round(p + (q2 - p) * bend);
   if (!a.side || !b3.side) {
     if (Math.abs(b3.x - a.x) >= Math.abs(b3.y - a.y)) {
-      const mx = (a.x + b3.x) / 2;
+      const mx = mid(a.x, b3.x);
       pts.push([mx, a.y], [mx, b3.y]);
     } else {
-      const my = (a.y + b3.y) / 2;
+      const my = mid(a.y, b3.y);
       pts.push([a.x, my], [b3.x, my]);
     }
   } else {
@@ -32193,10 +32196,10 @@ function elbowRoute(a, b3) {
         const x2 = a.side === "left" ? Math.min(sa[0], sb[0]) : Math.max(sa[0], sb[0]);
         pts.push([x2, a.y], [x2, b3.y]);
       } else if (a.side === "right" && sa[0] <= sb[0] || a.side === "left" && sa[0] >= sb[0]) {
-        const mx = (sa[0] + sb[0]) / 2;
+        const mx = mid(sa[0], sb[0]);
         pts.push([mx, a.y], [mx, b3.y]);
       } else {
-        const my = (a.y + b3.y) / 2;
+        const my = mid(a.y, b3.y);
         pts.push(sa, [sa[0], my], [sb[0], my], sb);
       }
     } else if (!horizontal(a.side) && !horizontal(b3.side)) {
@@ -32204,10 +32207,10 @@ function elbowRoute(a, b3) {
         const y2 = a.side === "top" ? Math.min(sa[1], sb[1]) : Math.max(sa[1], sb[1]);
         pts.push([a.x, y2], [b3.x, y2]);
       } else if (a.side === "bottom" && sa[1] <= sb[1] || a.side === "top" && sa[1] >= sb[1]) {
-        const my = (sa[1] + sb[1]) / 2;
+        const my = mid(sa[1], sb[1]);
         pts.push([a.x, my], [b3.x, my]);
       } else {
-        const mx = (a.x + b3.x) / 2;
+        const mx = mid(a.x, b3.x);
         pts.push(sa, [mx, sa[1]], [mx, sb[1]], sb);
       }
     } else if (horizontal(a.side)) {
@@ -32297,6 +32300,30 @@ function lineAnchor(box, side) {
   const point4 = side === "top" ? { x: cx, y: box.y } : side === "right" ? { x: box.x + box.w, y: cy } : side === "bottom" ? { x: cx, y: box.y + box.h } : { x: box.x, y: cy };
   return { x: Math.round(point4.x), y: Math.round(point4.y) };
 }
+function spreadAnchors(lines, boxes) {
+  const groups = /* @__PURE__ */ new Map();
+  lines.forEach((line, index5) => {
+    for (const end of ["from", "to"]) {
+      const target = line[end], box = target && boxes.get(target.blockId);
+      if (!target || !box) continue;
+      const other2 = end === "from" ? line.to : line.from, otherBox = other2 && boxes.get(other2.blockId);
+      const at2 = otherBox ? { x: otherBox.x + otherBox.w / 2, y: otherBox.y + otherBox.h / 2 } : end === "from" ? { x: line.x2, y: line.y2 } : { x: line.x1, y: line.y1 };
+      const key3 = `${target.blockId}\0${target.side}`;
+      if (!groups.has(key3)) groups.set(key3, []);
+      groups.get(key3).push({ line: index5, end, order: target.side === "top" || target.side === "bottom" ? at2.x : at2.y });
+    }
+  });
+  const out = lines.map(() => ({}));
+  for (const [key3, members] of groups) {
+    const [blockId2, side] = key3.split("\0"), box = boxes.get(blockId2);
+    members.sort((a, b3) => a.order - b3.order || a.line - b3.line);
+    members.forEach((member, i) => {
+      const f = (i + 1) / (members.length + 1);
+      out[member.line][member.end] = side === "top" || side === "bottom" ? { x: Math.round(box.x + box.w * f), y: Math.round(side === "top" ? box.y : box.y + box.h) } : { x: Math.round(side === "left" ? box.x : box.x + box.w), y: Math.round(box.y + box.h * f) };
+    });
+  }
+  return out;
+}
 function resolveLineAnchors(slide) {
   const boxes = /* @__PURE__ */ new Map();
   const collect2 = (nodes, dx, dy) => {
@@ -32309,13 +32336,16 @@ function resolveLineAnchors(slide) {
     }
   };
   collect2(slide.content ?? [], 0, 0);
-  const end = (attach, x2, y2) => {
+  const lineNodes = (slide.content ?? []).filter((child) => child.type === "slideLine");
+  const spread3 = slide.attrs?.board ? spreadAnchors(lineNodes.map((line) => line.attrs), boxes) : null;
+  const end = (attach, x2, y2, point4) => {
     const target = attach, box = target && boxes.get(target.blockId);
-    return box ? { attach: target, ...lineAnchor(box, target.side) } : { attach: null, x: x2, y: y2 };
+    return box ? { attach: target, ...point4 ?? lineAnchor(box, target.side) } : { attach: null, x: x2, y: y2 };
   };
   return { ...slide, content: (slide.content ?? []).map((child) => {
     if (child.type !== "slideLine") return child;
-    const a = child.attrs ?? {}, from2 = end(a.from, a.x1, a.y1), to = end(a.to, a.x2, a.y2);
+    const at2 = spread3?.[lineNodes.indexOf(child)];
+    const a = child.attrs ?? {}, from2 = end(a.from, a.x1, a.y1, at2?.from), to = end(a.to, a.x2, a.y2, at2?.to);
     return { ...child, attrs: { ...a, x1: from2.x, y1: from2.y, from: from2.attach, x2: to.x, y2: to.y, to: to.attach } };
   }) };
 }
@@ -32449,7 +32479,7 @@ function cleanSlideLayout(input, blockIds) {
   }
   return out;
 }
-var PRESENTATION_BLOCK_TYPES, SLIDE_SHAPES, SLIDE_COORD, SLIDE_SIZE_MAX, SLIDE_LINE_SIDES, SLIDE_LINE_CAPS, SLIDE_TRANSITIONS, SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, isSlidePixelFilter, SLIDE_TEXT_ROLES, SLIDE_TEXT_OUTLINES, SLIDE_INK_MAX_POINTS, SLIDE_STYLE_KEYS, SLIDE_BORDER_STYLES, SLIDE_SHADOWS, DEFAULT_SLIDE_THEME, TOKEN, COLOR, WORDS, ASSET, ARTIFACT_ID, CORNERS, between, STYLE_VALUE_OK, cleanSlideAsset, isWhiteboardContent, isPresentationContent, oneOf2, range, text6, PADDING, padding, layout, sizes, SLIDE_BULLET_MAX, SLIDE_INDENT_MAX, cleanBullet, cleanIndent, DROP, LINE_TARGET, SLIDE_WIDTH, SLIDE_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT, slidePageSize, tokenVar, FILTER_CSS, SHADOW_CSS, STYLE_CSS, ELBOW_STUB, SIDE_DIR, horizontal, fixed, JUSTIFY, ALIGN, slideCropCss, slideCss, SLIDE_EFFECT_IMAGE_MAX, PNG_DATA_URL, LAYOUT_KEYS_MAX, TABLE_TRACKS_MAX, clamp, inRange, RGB, hex, tracks, PLACED_TYPES, NOTE_MIN_FONT, NOTE_SAFE_MARGIN, NOTE_ELEMENT_MAX, NOTE_OVERLAP, LATIN_WIDTH, LATIN_WORD_WIDTH, CJK, CJK_CHAR, TEXT_UNITS, ROLE_TYPE, roleType, plainText2, unitWidth;
+var PRESENTATION_BLOCK_TYPES, SLIDE_SHAPES, SLIDE_COORD, SLIDE_SIZE_MAX, SLIDE_LINE_SIDES, SLIDE_LINE_CAPS, SLIDE_TRANSITIONS, SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, isSlidePixelFilter, SLIDE_TEXT_ROLES, SLIDE_TEXT_OUTLINES, SLIDE_INK_MAX_POINTS, SLIDE_STYLE_KEYS, SLIDE_BORDER_STYLES, SLIDE_SHADOWS, DEFAULT_SLIDE_THEME, TOKEN, COLOR, WORDS, ASSET, ARTIFACT_ID, CORNERS, between, STYLE_VALUE_OK, cleanSlideAsset, isWhiteboardContent, isPresentationContent, oneOf2, range, text6, PADDING, padding, layout, sizes, SLIDE_BULLET_MAX, SLIDE_INDENT_MAX, cleanBullet, cleanIndent, DROP, LINE_TARGET, SLIDE_WIDTH, SLIDE_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT, slidePageSize, tokenVar, FILTER_CSS, SHADOW_CSS, STYLE_CSS, ELBOW_STUB, SIDE_DIR, horizontal, fixed, JUSTIFY, ALIGN, slideCropCss, svgMask, CLOUD_MASK, PERSON_MASK, slideCss, SLIDE_EFFECT_IMAGE_MAX, PNG_DATA_URL, LAYOUT_KEYS_MAX, TABLE_TRACKS_MAX, clamp, inRange, RGB, hex, tracks, PLACED_TYPES, NOTE_MIN_FONT, NOTE_SAFE_MARGIN, NOTE_ELEMENT_MAX, NOTE_OVERLAP, LATIN_WIDTH, LATIN_WORD_WIDTH, CJK, CJK_CHAR, TEXT_UNITS, ROLE_TYPE, roleType, plainText2, unitWidth;
 var init_artifact_slides = __esm({
   "../../packages/shared/src/utils/artifact-slides.ts"() {
     "use strict";
@@ -32488,7 +32518,7 @@ var init_artifact_slides = __esm({
     SLIDE_FILTERS = ["grayscale", "sepia", "blur", "dim", ...SLIDE_PIXEL_FILTERS];
     isSlidePixelFilter = (value2) => SLIDE_PIXEL_FILTERS.includes(value2);
     SLIDE_TEXT_ROLES = ["display", "title", "subtitle", "heading", "lead", "eyebrow", "body", "caption", "sticky", "sticker"];
-    SLIDE_TEXT_OUTLINES = ["rect", "rounded", "ellipse", "diamond"];
+    SLIDE_TEXT_OUTLINES = ["rect", "rounded", "ellipse", "diamond", "pill", "hexagon", "parallelogram", "cylinder", "delay", "bookmark", "cloud", "person"];
     SLIDE_INK_MAX_POINTS = 4e3;
     SLIDE_STYLE_KEYS = [
       "color",
@@ -32623,6 +32653,9 @@ var init_artifact_slides = __esm({
     JUSTIFY = { start: "flex-start", center: "center", end: "flex-end", between: "space-between" };
     ALIGN = { start: "flex-start", center: "center", end: "flex-end", stretch: "stretch" };
     slideCropCss = (crop) => crop ? `object-view-box:inset(${+(crop.y * 100).toFixed(3)}% ${+((1 - crop.x - crop.w) * 100).toFixed(3)}% ${+((1 - crop.y - crop.h) * 100).toFixed(3)}% ${+(crop.x * 100).toFixed(3)}%)` : "";
+    svgMask = (viewBox, body) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${viewBox}' preserveAspectRatio='none'>${body}</svg>`)}")`;
+    CLOUD_MASK = svgMask("0 0 100 64", "<path d='M24 62C10 62 2 53 2 43c0-9 6-16 15-17C18 13 29 4 42 4c10 0 18 5 22 13 2-1 5-1 7-1 11 0 20 8 21 19 5 2 8 7 8 12 0 8-7 15-16 15Z'/>");
+    PERSON_MASK = svgMask("0 0 100 100", "<circle cx='50' cy='27' r='23'/><path d='M6 100c0-25 20-42 44-42s44 17 44 42Z'/>");
     slideCss = (scope) => `
 ${scope} [data-deck-theme]{display:none}
 ${scope} section[data-slide]{flex:none;text-align:start}
@@ -32650,6 +32683,16 @@ ${scope} [data-text][data-outline=rect]{border-radius:0}
 ${scope} [data-text][data-outline=rounded]{border-radius:12px}
 ${scope} [data-text][data-outline=ellipse]{border-radius:50%}
 ${scope} [data-text][data-outline=diamond]{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);border:0;padding:16px 36px;background:color-mix(in srgb,var(${tokenVar("color.muted")}) 22%,var(${tokenVar("color.background")}))}
+${scope} [data-text][data-outline=pill]{border-radius:9999px;padding:12px 24px}
+${scope} [data-text][data-outline=delay]{border-radius:0 9999px 9999px 0;padding-right:28px}
+${scope} [data-text][data-outline=cylinder]{border-radius:50%/14%;padding-top:20px}
+${scope} [data-text][data-outline=cylinder]::before{content:'';position:absolute;left:-1px;right:-1px;top:-1px;height:28%;border:1px solid var(${tokenVar("color.muted")});border-radius:50%;pointer-events:none}
+${scope} [data-text]:is([data-outline=hexagon],[data-outline=parallelogram],[data-outline=bookmark],[data-outline=cloud],[data-outline=person]){border:0;background:color-mix(in srgb,var(${tokenVar("color.muted")}) 22%,var(${tokenVar("color.background")}))}
+${scope} [data-text][data-outline=hexagon]{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);padding:12px 28px}
+${scope} [data-text][data-outline=parallelogram]{clip-path:polygon(18% 0,100% 0,82% 100%,0 100%);padding:12px 32px}
+${scope} [data-text][data-outline=bookmark]{clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%);padding-bottom:28px}
+${scope} [data-text][data-outline=cloud]{mask:${CLOUD_MASK} center/100% 100% no-repeat;padding:18px 24px 14px}
+${scope} [data-text][data-outline=person]{mask:${PERSON_MASK} center/100% 100% no-repeat;justify-content:flex-end;padding:0 16px 12%}
 ${scope} [data-role=sticky][data-author]:not([data-author=""])::after{content:attr(data-author);position:absolute;left:16px;bottom:10px;font-size:11px;opacity:.6}
 ${scope} [data-text][data-role=sticker]{font-size:64px;line-height:1;background:none;text-align:center}
 ${scope} [data-shape][data-label]:not([data-label=""]){overflow:visible}
@@ -273644,8 +273687,9 @@ var init_artifact_presentation_schema = __esm({
         start: plainAttr("start", "none"),
         end: plainAttr("end", "none"),
         style: jsonAttr("style", {}),
-        // 直线 / 直角折线（白板上画的线缺省折线）
+        // 直线 / 直角折线（白板上画的线缺省折线）；bend 是折线中段的位置（0–1，用户拖过中段才有）
         route: plainAttr("route", null),
+        bend: plainAttr("bend", null),
         locked: lockedAttr
       }),
       parseHTML: () => [{ tag: "div[data-line]" }],
@@ -545996,7 +546040,7 @@ ${indent2}</div>`;
       return `${indent2}<x-ink${id19}${styleAttr(boxCss(node2))}></x-ink>`;
     case "slideLine": {
       const end = (value2) => value2 ? `${value2.blockId}:${value2.side}` : "";
-      return `${indent2}<x-connector${id19}${["x1", "y1", "x2", "y2"].map((k2) => attr(k2, a[k2])).join("")}${attr("head-start", a.start === "none" ? "" : a.start)}${attr("head-end", a.end === "none" ? "" : a.end)}${attr("from", end(a.from))}${attr("to", end(a.to))}${attr("route", a.route)}${styleAttr(styleCss(a.style))}></x-connector>`;
+      return `${indent2}<x-connector${id19}${["x1", "y1", "x2", "y2"].map((k2) => attr(k2, a[k2])).join("")}${attr("head-start", a.start === "none" ? "" : a.start)}${attr("head-end", a.end === "none" ? "" : a.end)}${attr("from", end(a.from))}${attr("to", end(a.to))}${attr("route", a.route)}${attr("bend", typeof a.bend === "number" ? a.bend : "")}${styleAttr(styleCss(a.style))}></x-connector>`;
     }
     case "slideDashboard":
       return `${indent2}<x-dashboard${id19}${attr("ref", `${a.artifactId ?? ""}${a.part ? `#${a.part}` : ""}`)}${style()}></x-dashboard>`;
@@ -546248,7 +546292,9 @@ function itemJson(element, ctx) {
     const [x1, y1, x2, y2] = coords2;
     const route = raw.route;
     if (route !== void 0 && route !== "elbow" && route !== "straight") throw invalid3(`${label2} \u7684 route \u53EA\u80FD\u662F elbow\uFF08\u76F4\u89D2\u6298\u7EBF\uFF09\u6216 straight\uFF08\u76F4\u7EBF\uFF09`);
-    return { type: "slideLine", attrs: { ...blockId2, x1, y1, x2, y2, start: cap("head-start"), end: cap("head-end"), from: end("from"), to: end("to"), ...route && { route }, style: styleJson(decl, label2, false) } };
+    const bend = raw.bend === void 0 ? void 0 : Number(raw.bend);
+    if (bend !== void 0 && !(bend >= 0 && bend <= 1)) throw invalid3(`${label2} \u7684 bend \u662F 0 \u5230 1 \u4E4B\u95F4\u7684\u6570\uFF08\u6298\u7EBF\u4E2D\u6BB5\u7684\u4F4D\u7F6E\uFF09\uFF0C\u4E0D\u6539\u8D70\u6CD5\u5C31\u539F\u6837\u4FDD\u7559\u6216\u4E0D\u5199`);
+    return { type: "slideLine", attrs: { ...blockId2, x1, y1, x2, y2, start: cap("head-start"), end: cap("head-end"), from: end("from"), to: end("to"), ...route && { route }, ...bend !== void 0 && { bend }, style: styleJson(decl, label2, false) } };
   }
   const text17 = TAG_ROLE[tag2] !== void 0 || tag2 === "div" && raw["data-text"] !== void 0;
   if (tag2 === "div" && !text17 && (raw["data-role"] !== void 0 || raw["data-fit"] !== void 0)) throw invalid3(`${label2} \u7684 data-role / data-fit \u53EA\u7ED9\u6587\u5B57\uFF08\u591A\u6BB5\u6587\u5B57\u5199 <div data-text>\uFF09`);
@@ -546770,7 +546816,7 @@ var init_artifact_slides_html = __esm({
       img: ["id", "style", "src", "alt", "data-crop", "data-filter"],
       "x-shape": ["id", "style", "kind", "label"],
       "x-dashboard": ["id", "style", "ref"],
-      "x-connector": ["id", "style", "x1", "y1", "x2", "y2", "head-start", "head-end", "from", "to", "route"],
+      "x-connector": ["id", "style", "x1", "y1", "x2", "y2", "head-start", "head-end", "from", "to", "route", "bend"],
       "x-ink": ["id", "style"],
       table: ["id", "style"]
       // 白板：锁定的元素（用户锁的，改写整页时原样带上）
@@ -547498,7 +547544,7 @@ async function exportPptx(snapshot2, layout2, readAsset2, embeds, basicFonts = f
   visit(snapshot2.content);
   return renderArtifactPptx(snapshot2.content, cleanSlideLayout(layout2, ids2), { readAsset: readAsset2, embeds, basicFonts });
 }
-var import_node_crypto133, XML_HEAD2, NS3, REL, CT, EMU_PER_PX2, SLIDE_W, SLIDE_H, SAFE_LINK2, PAGE, SHADOWS, ALIGN2, ANCHOR, MISSING_IMAGE, TABLE_COLUMNS_MAX, emu, esc5, fontSize, xfrm, longHex, fill, GENERIC_FONTS, typeface, UNDERLINE, SHAPE_PRESET, CXN_IDX, LINE_CAP2, SlideWriter, PptxWriter, TRANSITION, GROUP, CLR_MAP, SLIDE_MASTER, SLIDE_LAYOUT, NOTES_BODY, NOTES_MASTER, notesSlide, SCHEME, FONTS, BASIC_FONTS, theme;
+var import_node_crypto133, XML_HEAD2, NS3, REL, CT, EMU_PER_PX2, SLIDE_W, SLIDE_H, SAFE_LINK2, PAGE, SHADOWS, ALIGN2, ANCHOR, MISSING_IMAGE, TABLE_COLUMNS_MAX, emu, esc5, fontSize, xfrm, longHex, fill, GENERIC_FONTS, typeface, OUTLINE_PRESET, UNDERLINE, SHAPE_PRESET, CXN_IDX, LINE_CAP2, SlideWriter, PptxWriter, TRANSITION, GROUP, CLR_MAP, SLIDE_MASTER, SLIDE_LAYOUT, NOTES_BODY, NOTES_MASTER, notesSlide, SCHEME, FONTS, BASIC_FONTS, theme;
 var init_artifact_pptx = __esm({
   "../electron/src/main/lib/artifact-pptx.ts"() {
     "use strict";
@@ -547530,6 +547576,20 @@ var init_artifact_pptx = __esm({
     typeface = (family) => {
       const names = (family ?? "").split(",").map((name2) => name2.trim()).filter((name2) => name2 && !GENERIC_FONTS.has(name2.toLowerCase()));
       return names.length ? `<a:latin typeface="${esc5(names[0])}"/><a:ea typeface="${esc5(names[1] ?? names[0])}"/><a:cs typeface="${esc5(names[0])}"/>` : '<a:latin typeface="+mn-lt"/><a:ea typeface="+mn-ea"/><a:cs typeface="+mn-cs"/>';
+    };
+    OUTLINE_PRESET = {
+      rect: "rect",
+      rounded: "roundRect",
+      ellipse: "ellipse",
+      diamond: "diamond",
+      pill: "flowChartTerminator",
+      hexagon: "hexagon",
+      parallelogram: "parallelogram",
+      cylinder: "can",
+      delay: "flowChartDelay",
+      bookmark: "flowChartOffpageConnector",
+      cloud: "cloud",
+      person: "rect"
     };
     UNDERLINE = { solid: "sng", dashed: "dash", dotted: "dotted", wavy: "wavy" };
     SHAPE_PRESET = {
@@ -547590,7 +547650,7 @@ var init_artifact_pptx = __esm({
             for (const child of node2.content ?? []) this.item(child, own3 ?? parent, opacity);
             return;
           case "slideText": {
-            const outline = node2.attrs?.outline, preset = outline === "ellipse" ? "ellipse" : outline === "diamond" ? "diamond" : "rect";
+            const outline = node2.attrs?.outline, preset = OUTLINE_PRESET[String(outline)] ?? "rect";
             const anchor = outline ? "ctr" : ANCHOR[String(node2.attrs?.style?.verticalAlign)] ?? "t";
             return void this.shapes.push(this.shape(id19, box, preset, this.textBody(node2.content ?? [], box, false, anchor)));
           }
@@ -548229,7 +548289,7 @@ function buildArtifactTools(options2) {
   }, {
     name: "CreateArtifact",
     label: "\u65B0\u5EFA\u4F5C\u54C1",
-    description: `\u65B0\u5EFA\u4E00\u4EFD\u4F5C\u54C1\uFF08\u7528\u6237\u5728 Cortex \u91CC\u76F4\u63A5\u7F16\u8F91\u3001\u4E4B\u540E\u8BA9\u4F60\u7EE7\u7EED\u6539\u7A3F\uFF0C\u4F1A\u51FA\u73B0\u5728\u672C\u8F6E\u6210\u679C\u4E0E\u4F5C\u54C1\u5E93\u91CC\uFF09\uFF0C\u8FD4\u56DE artifactId \u4E0E revision\u3002\u6587\u6863\u7528 markdown \u5199\uFF1B\u7528\u6237\u8981\u4E00\u4EFD\u6587\u6863\u3001\u62A5\u544A\u3001\u4ECB\u7ECD\u3001\u65B9\u6848\u4E4B\u7C7B\u7684\u6210\u6587\u5185\u5BB9\uFF0C\u53C8\u6CA1\u70B9\u540D Word / PDF \u7B49\u6587\u4EF6\u683C\u5F0F\u65F6\u4F18\u5148\u7528\u5B83\uFF0C\u4E0D\u8981\u53E6\u505A .docx\u3002\u6F14\u793A\uFF08kind=presentation\uFF09\u7528 html \u5199\u82E5\u5E72\u9875\uFF0C\u53EF\u5E26 theme\uFF1B\u7528\u6237\u8981\u5E7B\u706F\u7247\u3001\u6F14\u793A\u3001\u6C47\u62A5 deck\uFF0C\u53C8\u6CA1\u70B9\u540D PPTX \u65F6\u4F18\u5148\u7528\u5B83\uFF0C\u4E0D\u8981\u53E6\u505A .pptx\u3002\u7528\u6237\u70B9\u540D\u4E86\u6587\u4EF6\u683C\u5F0F\u5C31\u7167\u7528\u6237\u7684\u683C\u5F0F\u505A\u3002\u770B\u677F\uFF08kind=dashboard\uFF09\u662F\u968F\u6570\u636E\u5237\u65B0\u7684\u4EEA\u8868\u76D8\uFF1Ahtml \u5199\u5C55\u793A\u7247\u6BB5\uFF08\u600E\u4E48\u5199\u89C1\u6280\u80FD visualize \u7684 references/dashboard.md\uFF1Bhtml \u91CC\u5199 source:1\u3001source:2 \u8868\u793A\u8FD9\u6B21\u65B0\u5EFA\u7684\u7B2C 1\u30012 \u4E2A\u6765\u6E90\uFF0C\u4FDD\u5B58\u65F6\u6362\u6210\u5B83\u4EEC\u7684 blockId\uFF09\uFF0Csources \u5199\u6570\u636E\u6765\u6E90\uFF0C\u6BCF\u9879\u5728 file\uFF08\u7B2C N \u4E2A dataPaths \u91CC\u7684 xlsx / csv / tsv\uFF09\u3001pdf\uFF08\u7B2C N \u4E2A dataPaths \u662F PDF\uFF0C\u540C\u65F6\u7ED9 columns\u3001rows\u3001rowPages\uFF09\u3001query\uFF08\u8FDE\u63A5\u5668\u53EA\u8BFB\u5DE5\u5177\uFF0C\u9700\u7528\u6237\u8BA4\u53EF\u540E\u624D\u53D6\u6570\uFF09\u91CC\u4E09\u9009\u4E00\uFF1B\u5C55\u793A\u91CC\u663E\u793A\u6570\u503C\u7684\u5143\u7D20\u6807 data-source\u3001data-field \u4E0E data-where\uFF08\u6216 data-row\uFF09\uFF0C\u5199\u6CD5\u89C1\u540C\u4E00\u4EFD\u8BF4\u660E\uFF0C\u7ED3\u679C\u5E26 marks \u65F6\u662F\u5BF9\u4E0D\u4E0A\u6570\u636E\u7684\u6807\u8BB0\uFF08\u6765\u6E90\u3001\u5217\u6216\u884C\u627E\u4E0D\u5230\uFF0C\u6216\u811A\u672C\u91CC\u8BBE\u4E86\u6807\u8BB0\uFF09\uFF0C\u8981\u6539\u6389\u3002\u767D\u677F\uFF08kind=whiteboard\uFF09\u662F\u4E00\u5757 2560\xD71440 \u7684\u677F\uFF0C\u7528\u6765\u6446\u60F3\u6CD5\u3001\u6D41\u7A0B\u4E0E\u5206\u7EC4\uFF1Ahtml \u53EA\u5199\u4E00\u4E2A <section>\uFF0C\u91CC\u9762\u7684\u5143\u7D20\u90FD\u7528 position:absolute \u9489\u4F4F\uFF1B\u4FBF\u5229\u8D34\u5199 <p data-role="sticky">\uFF08\u6362\u989C\u8272\u5199 style="background:\u2026"\uFF09\uFF0C\u8D34\u7EB8\u5199 <p data-role="sticker">\uFF08\u4E00\u4E2A emoji\uFF09\uFF0C\u5F62\u72B6\u91CC\u5199\u5B57\u5199 <p data-shape="rect|rounded|ellipse|diamond">\uFF0C\u5206\u533A\u5199 <x-shape kind="rect" label="\u6807\u9898">\uFF08\u6846\u4F4F\u7684\u5143\u7D20\u8DDF\u7740\u5B83\u8D70\uFF09\uFF0C\u8FDE\u7EBF\u5199 <x-connector from to> \u6302\u5728\u5143\u7D20\u4E0A\uFF08\u7F3A\u7701\u76F4\u89D2\u6298\u7EBF\uFF0C\u8981\u76F4\u7EBF\u5199 route="straight"\uFF09\uFF1B\u5143\u7D20\u53EF\u5199 data-locked="true" \u9501\u5B9A\uFF0C\u8BFB\u5230\u7684\u9501\u5B9A\u8981\u539F\u6837\u4FDD\u7559\uFF1B<x-ink id> \u662F\u7528\u6237\u753B\u7684\u7B14\u8FF9\uFF0C\u6539\u5199\u8FD9\u4E00\u9875\u65F6\u7167\u6284\uFF08\u5E26\u539F\u6765\u7684 id\uFF09\uFF0C\u4E0D\u80FD\u65B0\u5199\uFF1B\u677F\u4E0A\u4E0D\u5E26\u5E95\u8272\u7684\u6587\u5B57\u4E0E\u8FDE\u7EBF\u4E0D\u5199\u989C\u8272\uFF08\u7528\u4E3B\u9898\u8272\uFF0C\u754C\u9762\u6697\u8272\u65F6\u4F1A\u7FFB\u6210\u6D45\u8272\uFF09\uFF0C\u8981\u5F3A\u8C03\u5C31\u653E\u8FDB\u4FBF\u5229\u8D34\u6216\u5E26\u586B\u5145\u7684\u5F62\u72B6\uFF1B\u6539\u767D\u677F\u53EA\u7528 replace\u3001replace_node \u4E0E theme\u3002\u7528\u6237\u8981\u628A\u767D\u677F\u6574\u7406\u6210\u6587\u6863\u6216\u6F14\u793A\u65F6\uFF0C\u5148 read \u767D\u677F\uFF0C\u518D create \u4E00\u4EFD\u65B0\u7684\u6587\u6863\u6216\u6F14\u793A\uFF0C\u4E0D\u6539\u767D\u677F\u3002${SLIDE_FORMAT}`,
+    description: `\u65B0\u5EFA\u4E00\u4EFD\u4F5C\u54C1\uFF08\u7528\u6237\u5728 Cortex \u91CC\u76F4\u63A5\u7F16\u8F91\u3001\u4E4B\u540E\u8BA9\u4F60\u7EE7\u7EED\u6539\u7A3F\uFF0C\u4F1A\u51FA\u73B0\u5728\u672C\u8F6E\u6210\u679C\u4E0E\u4F5C\u54C1\u5E93\u91CC\uFF09\uFF0C\u8FD4\u56DE artifactId \u4E0E revision\u3002\u6587\u6863\u7528 markdown \u5199\uFF1B\u7528\u6237\u8981\u4E00\u4EFD\u6587\u6863\u3001\u62A5\u544A\u3001\u4ECB\u7ECD\u3001\u65B9\u6848\u4E4B\u7C7B\u7684\u6210\u6587\u5185\u5BB9\uFF0C\u53C8\u6CA1\u70B9\u540D Word / PDF \u7B49\u6587\u4EF6\u683C\u5F0F\u65F6\u4F18\u5148\u7528\u5B83\uFF0C\u4E0D\u8981\u53E6\u505A .docx\u3002\u6F14\u793A\uFF08kind=presentation\uFF09\u7528 html \u5199\u82E5\u5E72\u9875\uFF0C\u53EF\u5E26 theme\uFF1B\u7528\u6237\u8981\u5E7B\u706F\u7247\u3001\u6F14\u793A\u3001\u6C47\u62A5 deck\uFF0C\u53C8\u6CA1\u70B9\u540D PPTX \u65F6\u4F18\u5148\u7528\u5B83\uFF0C\u4E0D\u8981\u53E6\u505A .pptx\u3002\u7528\u6237\u70B9\u540D\u4E86\u6587\u4EF6\u683C\u5F0F\u5C31\u7167\u7528\u6237\u7684\u683C\u5F0F\u505A\u3002\u770B\u677F\uFF08kind=dashboard\uFF09\u662F\u968F\u6570\u636E\u5237\u65B0\u7684\u4EEA\u8868\u76D8\uFF1Ahtml \u5199\u5C55\u793A\u7247\u6BB5\uFF08\u600E\u4E48\u5199\u89C1\u6280\u80FD visualize \u7684 references/dashboard.md\uFF1Bhtml \u91CC\u5199 source:1\u3001source:2 \u8868\u793A\u8FD9\u6B21\u65B0\u5EFA\u7684\u7B2C 1\u30012 \u4E2A\u6765\u6E90\uFF0C\u4FDD\u5B58\u65F6\u6362\u6210\u5B83\u4EEC\u7684 blockId\uFF09\uFF0Csources \u5199\u6570\u636E\u6765\u6E90\uFF0C\u6BCF\u9879\u5728 file\uFF08\u7B2C N \u4E2A dataPaths \u91CC\u7684 xlsx / csv / tsv\uFF09\u3001pdf\uFF08\u7B2C N \u4E2A dataPaths \u662F PDF\uFF0C\u540C\u65F6\u7ED9 columns\u3001rows\u3001rowPages\uFF09\u3001query\uFF08\u8FDE\u63A5\u5668\u53EA\u8BFB\u5DE5\u5177\uFF0C\u9700\u7528\u6237\u8BA4\u53EF\u540E\u624D\u53D6\u6570\uFF09\u91CC\u4E09\u9009\u4E00\uFF1B\u5C55\u793A\u91CC\u663E\u793A\u6570\u503C\u7684\u5143\u7D20\u6807 data-source\u3001data-field \u4E0E data-where\uFF08\u6216 data-row\uFF09\uFF0C\u5199\u6CD5\u89C1\u540C\u4E00\u4EFD\u8BF4\u660E\uFF0C\u7ED3\u679C\u5E26 marks \u65F6\u662F\u5BF9\u4E0D\u4E0A\u6570\u636E\u7684\u6807\u8BB0\uFF08\u6765\u6E90\u3001\u5217\u6216\u884C\u627E\u4E0D\u5230\uFF0C\u6216\u811A\u672C\u91CC\u8BBE\u4E86\u6807\u8BB0\uFF09\uFF0C\u8981\u6539\u6389\u3002\u767D\u677F\uFF08kind=whiteboard\uFF09\u662F\u4E00\u5757 2560\xD71440 \u7684\u677F\uFF0C\u7528\u6765\u6446\u60F3\u6CD5\u3001\u6D41\u7A0B\u4E0E\u5206\u7EC4\uFF1Ahtml \u53EA\u5199\u4E00\u4E2A <section>\uFF0C\u91CC\u9762\u7684\u5143\u7D20\u90FD\u7528 position:absolute \u9489\u4F4F\uFF1B\u4FBF\u5229\u8D34\u5199 <p data-role="sticky">\uFF08\u6362\u989C\u8272\u5199 style="background:\u2026"\uFF09\uFF0C\u8D34\u7EB8\u5199 <p data-role="sticker">\uFF08\u4E00\u4E2A emoji\uFF09\uFF0C\u5F62\u72B6\u91CC\u5199\u5B57\u5199 <p data-shape="rect|rounded|ellipse|diamond|pill|hexagon|parallelogram|cylinder|delay|bookmark|cloud|person">\uFF0C\u5206\u533A\u5199 <x-shape kind="rect" label="\u6807\u9898">\uFF08\u6846\u4F4F\u7684\u5143\u7D20\u8DDF\u7740\u5B83\u8D70\uFF09\uFF0C\u8FDE\u7EBF\u5199 <x-connector from to> \u6302\u5728\u5143\u7D20\u4E0A\uFF08\u7F3A\u7701\u76F4\u89D2\u6298\u7EBF\uFF0C\u8981\u76F4\u7EBF\u5199 route="straight"\uFF09\uFF1B\u5143\u7D20\u53EF\u5199 data-locked="true" \u9501\u5B9A\uFF0C\u8BFB\u5230\u7684\u9501\u5B9A\u8981\u539F\u6837\u4FDD\u7559\uFF1B<x-ink id> \u662F\u7528\u6237\u753B\u7684\u7B14\u8FF9\uFF0C\u6539\u5199\u8FD9\u4E00\u9875\u65F6\u7167\u6284\uFF08\u5E26\u539F\u6765\u7684 id\uFF09\uFF0C\u4E0D\u80FD\u65B0\u5199\uFF1B\u677F\u4E0A\u4E0D\u5E26\u5E95\u8272\u7684\u6587\u5B57\u4E0E\u8FDE\u7EBF\u4E0D\u5199\u989C\u8272\uFF08\u7528\u4E3B\u9898\u8272\uFF0C\u754C\u9762\u6697\u8272\u65F6\u4F1A\u7FFB\u6210\u6D45\u8272\uFF09\uFF0C\u8981\u5F3A\u8C03\u5C31\u653E\u8FDB\u4FBF\u5229\u8D34\u6216\u5E26\u586B\u5145\u7684\u5F62\u72B6\uFF1B\u6539\u767D\u677F\u53EA\u7528 replace\u3001replace_node \u4E0E theme\u3002\u7528\u6237\u8981\u628A\u767D\u677F\u6574\u7406\u6210\u6587\u6863\u6216\u6F14\u793A\u65F6\uFF0C\u5148 read \u767D\u677F\uFF0C\u518D create \u4E00\u4EFD\u65B0\u7684\u6587\u6863\u6216\u6F14\u793A\uFF0C\u4E0D\u6539\u767D\u677F\u3002${SLIDE_FORMAT}`,
     promptSnippet: "CreateArtifact: \u7528\u6237\u8981\u4E00\u4EFD\u53EF\u76F4\u63A5\u7F16\u8F91\u3001\u6301\u7EED\u6539\u7A3F\u7684\u6587\u6863\u65F6\u65B0\u5EFA\u4F5C\u54C1",
     parameters: typebox_exports.Object({
       title: typebox_exports.String({ minLength: 1, maxLength: 255 }),
@@ -676977,6 +677037,7 @@ async function execute(request2) {
       const emittedTools = /* @__PURE__ */ new Map();
       const activeCommands = /* @__PURE__ */ new Set();
       let result8;
+      let usage;
       let sequence = 0;
       let startedAt;
       cancel = () => orchestrator2.stop(session3.id);
@@ -677016,6 +677077,16 @@ async function execute(request2) {
               emit("tool.updated", event2);
             }
           }
+        }
+        if (payload.kind === "sdk_message" && payload.message.type === "result" && !isTransientSdkMessage2(payload.message)) {
+          const done2 = payload.message;
+          const cost = usage && usage.costUsd === void 0 ? void 0 : done2.total_cost_usd === void 0 ? void 0 : (usage?.costUsd ?? 0) + done2.total_cost_usd;
+          usage = {
+            inputTokens: (usage?.inputTokens ?? 0) + (done2.usage?.input_tokens ?? 0),
+            outputTokens: (usage?.outputTokens ?? 0) + (done2.usage?.output_tokens ?? 0),
+            cacheReadTokens: (usage?.cacheReadTokens ?? 0) + (done2.usage?.cache_read_input_tokens ?? 0),
+            ...cost !== void 0 && { costUsd: cost }
+          };
         }
         if (payload.kind !== "sdk_message" || payload.message.type !== "assistant") return;
         const message8 = payload.message;
@@ -677106,6 +677177,7 @@ async function execute(request2) {
           agentsTruncated: agentState.agentsTruncated
         },
         artifacts: result8?.delivery?.artifacts ?? [],
+        ...usage && { usage },
         persistence: persistencePending ? "pending" : result8?.persisted ? "saved" : "failed",
         errors: errors2,
         exitCode: status === "cancelled" ? 130 : status === "blocked" ? 3 : status === "completed" ? 0 : 1

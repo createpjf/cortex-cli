@@ -2131,7 +2131,7 @@ var init_artifact_dashboard = __esm({
 });
 
 // ../../packages/shared/src/utils/artifact-slides.ts
-var SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, DROP, SLIDE_EFFECT_IMAGE_MAX, CJK, CJK_CHAR, TEXT_UNITS;
+var SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, DROP, svgMask, CLOUD_MASK, PERSON_MASK, SLIDE_EFFECT_IMAGE_MAX, CJK, CJK_CHAR, TEXT_UNITS;
 var init_artifact_slides = __esm({
   "../../packages/shared/src/utils/artifact-slides.ts"() {
     "use strict";
@@ -2139,6 +2139,9 @@ var init_artifact_slides = __esm({
     SLIDE_PIXEL_FILTERS = ["dither", "ascii"];
     SLIDE_FILTERS = ["grayscale", "sepia", "blur", "dim", ...SLIDE_PIXEL_FILTERS];
     DROP = Symbol("drop");
+    svgMask = (viewBox, body) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${viewBox}' preserveAspectRatio='none'>${body}</svg>`)}")`;
+    CLOUD_MASK = svgMask("0 0 100 64", "<path d='M24 62C10 62 2 53 2 43c0-9 6-16 15-17C18 13 29 4 42 4c10 0 18 5 22 13 2-1 5-1 7-1 11 0 20 8 21 19 5 2 8 7 8 12 0 8-7 15-16 15Z'/>");
+    PERSON_MASK = svgMask("0 0 100 100", "<circle cx='50' cy='27' r='23'/><path d='M6 100c0-25 20-42 44-42s44 17 44 42Z'/>");
     SLIDE_EFFECT_IMAGE_MAX = 16 * 1024 * 1024;
     CJK = "\\u2e80-\\u9fff\\uac00-\\ud7af\\uff00-\\uffef";
     CJK_CHAR = new RegExp(`[${CJK}]`);

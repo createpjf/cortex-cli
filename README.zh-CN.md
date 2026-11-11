@@ -78,11 +78,12 @@ cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documen
 
 ## 设置与更新
 
-独立模式的设置和对话保存在 `~/.cortex-cli-preview`，外观与语言保存在 `~/.cortex-cli-ui.json`。模型请求发往你配置的供应商，工具在本机执行。`CORTEX_LANGUAGE=en` 或 `zh-CN` 优先于保存的语言；`NO_COLOR=1` 关闭颜色，`/motion` 减少动画。下一步预测仍为 Beta，每轮会额外请求一次模型，可在 `/settings` 关闭。终端在后台时，需要你确认或长任务结束会提醒你：Ghostty、iTerm2、Kitty、WezTerm、Warp 弹系统通知，其他终端响铃。装上 [`fd`](https://github.com/sharkdp/fd) 后 `@` 可按名称搜索整个项目，`cortex doctor` 会检查。
+独立模式的设置和对话保存在 `~/.cortex-cli-preview`，外观与语言保存在 `~/.cortex-cli-ui.json`。模型请求发往你配置的供应商，工具在本机执行。`CORTEX_LANGUAGE=en` 或 `zh-CN` 优先于保存的语言；`NO_COLOR=1` 关闭颜色，`/motion` 减少动画。下一步预测仍为 Beta，每轮会额外请求一次模型，可在 `/settings` 关闭。终端在后台时，需要你确认或长任务结束会提醒你：Ghostty、iTerm2、Kitty、WezTerm、Warp 弹系统通知，其他终端响铃。退出时会打印一段小结：用时、Token、工具与改动的文件。装上 [`fd`](https://github.com/sharkdp/fd) 后 `@` 可按名称搜索整个项目，`cortex doctor` 会检查。
 
 ```sh
 cortex update                        # 从本仓库更新
 cortex doctor                        # 检查安装与终端
+cortex --debug                       # 运行日志写进配置目录的 logs/，密钥会被隐去
 npm uninstall -g cortex-cli
 ```
 

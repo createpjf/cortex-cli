@@ -78,11 +78,12 @@ Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to
 
 ## Settings and updates
 
-Standalone settings and conversations live in `~/.cortex-cli-preview`; appearance and language live in `~/.cortex-cli-ui.json`. Model requests go to your configured provider; tools run on your computer. `CORTEX_LANGUAGE=en` or `zh-CN` overrides the saved language. `NO_COLOR=1` disables colors; `/motion` reduces animation. Next-message predictions are beta, make an extra model request per turn, and can be disabled in `/settings`. When the terminal is in the background, Cortex lets you know when it needs approval or finishes a long run: a system notification in Ghostty, iTerm2, Kitty, WezTerm and Warp, a bell elsewhere. Install [`fd`](https://github.com/sharkdp/fd) so `@` searches the whole project by name; `cortex doctor` checks for it.
+Standalone settings and conversations live in `~/.cortex-cli-preview`; appearance and language live in `~/.cortex-cli-ui.json`. Model requests go to your configured provider; tools run on your computer. `CORTEX_LANGUAGE=en` or `zh-CN` overrides the saved language. `NO_COLOR=1` disables colors; `/motion` reduces animation. Next-message predictions are beta, make an extra model request per turn, and can be disabled in `/settings`. When the terminal is in the background, Cortex lets you know when it needs approval or finishes a long run: a system notification in Ghostty, iTerm2, Kitty, WezTerm and Warp, a bell elsewhere. Quitting prints a short summary of time, tokens, tools and changed files. Install [`fd`](https://github.com/sharkdp/fd) so `@` searches the whole project by name; `cortex doctor` checks for it.
 
 ```sh
 cortex update                        # Update from this repository
 cortex doctor                        # Check installation and terminal
+cortex --debug                       # Write runtime logs to logs/ in the config folder, keys hidden
 npm uninstall -g cortex-cli
 ```
 
