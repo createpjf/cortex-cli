@@ -21,7 +21,7 @@ npm install -g github:createpjf/cortex-cli --loglevel=error
 cortex
 ```
 
-首次启动会引导你选择供应商、模型并填写 API Key。界面默认英文，可在 **`/settings` → Language** 中切换中文。
+首次启动会引导你选择供应商、模型并填写 API Key。界面跟随系统语言（中文系统显示中文，其他显示英文），可在 **`/settings` → Language** 中切换。
 
 **支持的平台：** Anthropic、OpenAI、Google、DeepSeek、FLock API Platform、xAI / Grok、OpenRouter、Kimi、智谱 AI、MiniMax、豆包、通义千问及自定义 OpenAI 兼容端点。`/config` 修改连接，`/model` 切换模型；可用模型取决于供应商与账户权限。
 

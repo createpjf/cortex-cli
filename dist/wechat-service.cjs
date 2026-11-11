@@ -30851,6 +30851,7 @@ var MEETING_APPS = [
   app("org.mozilla.firefox", "Firefox", "Firefox", true),
   app("com.apple.WebKit.GPU", "Safari", "Safari", true)
 ];
+var MEETING_OTHERS_QUIET_PROMPT_MS = 15 * 6e4;
 
 // ../../packages/shared/src/types/channel.ts
 var PROVIDER_DEFAULT_URLS = {

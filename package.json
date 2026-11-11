@@ -1,6 +1,6 @@
 {
   "name": "cortex-cli",
-  "version": "0.1.55",
+  "version": "0.1.56",
   "private": true,
   "description": "An AI agent for your terminal. Bring your own model.",
   "license": "MIT",

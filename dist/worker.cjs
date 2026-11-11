@@ -1057,6 +1057,9 @@ function chunkRms(pcm) {
 function shouldHintSilence(lastSoundAt2, dismissedAt2, now) {
   return now - Math.max(lastSoundAt2, dismissedAt2) >= MEETING_SILENCE_PROMPT_MS;
 }
+function shouldHintOthersQuiet(lastOthersSoundAt2, dismissedAt2, now) {
+  return lastOthersSoundAt2 > 0 && now - Math.max(lastOthersSoundAt2, dismissedAt2) >= MEETING_OTHERS_QUIET_PROMPT_MS;
+}
 function micAccessDecision(status) {
   if (status === "not-determined") return "ask";
   return status === "denied" || status === "restricted" ? "denied" : "ok";
@@ -1064,12 +1067,12 @@ function micAccessDecision(status) {
 function summaryLineKey(text17) {
   return text17.replace(/^(?:\s*>)*\s*(?:#{1,6}\s+|(?:[-*+]|\d+[.)])\s+)?(?:\[[ xX]\]\s+)?/, "").replace(/@date\([^)]*\)|@select\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\\([!-/:-@[-`{-~])/g, "$1").replace(/&(amp|lt|gt|quot|#39);/g, (_4, name2) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[name2]).replace(/<\/?[a-zA-Z][^>]*>/g, "").replace(/\*\*|==|\+\+|[*_`]/g, "").replace(/\s+/g, " ").trim();
 }
-var MEETING_WARNINGS, MEETING_MAX_MINUTES, MEETING_SUMMARY_TEMPLATES, MEETING_TRANSCRIBE_SHARE, MEETING_VOCABULARY_WORD_MAX, MEETING_SEARCH_LIMIT, MEETING_SEARCH_SNIPPET_MAX, MEETING_SEARCH_QUERY_MAX, MEETING_ERRORS, MEETING_IMPORT_MAX_BYTES, MEETING_IMPORT_EXTENSIONS, isImportedMeeting, MEETING_NOTES_MAX, CAPTION_RIGHT_MARGIN, CAPTION_BOTTOM_MARGIN, CAPTION_COMPACT_SIZE, MEETING_IPC_CHANNELS, speakerNumber, app, MEETING_APPS, DETECT_PROMPT_AFTER_MS, DETECT_ENDED_AFTER_MS, DETECT_PROMPT_HIDE_MS, MEETING_MUTED_APPS_MAX, MEETING_SILENCE_RMS, MEETING_SILENCE_PROMPT_MS;
+var MEETING_WARNINGS, MEETING_MAX_MINUTES, MEETING_SUMMARY_TEMPLATES, MEETING_TRANSCRIBE_SHARE, MEETING_VOCABULARY_WORD_MAX, MEETING_SEARCH_LIMIT, MEETING_SEARCH_SNIPPET_MAX, MEETING_SEARCH_QUERY_MAX, MEETING_ERRORS, MEETING_IMPORT_MAX_BYTES, MEETING_IMPORT_EXTENSIONS, isImportedMeeting, MEETING_NOTES_MAX, CAPTION_RIGHT_MARGIN, CAPTION_BOTTOM_MARGIN, CAPTION_COMPACT_SIZE, MEETING_IPC_CHANNELS, speakerNumber, app, MEETING_APPS, DETECT_PROMPT_AFTER_MS, DETECT_ENDED_AFTER_MS, DETECT_PROMPT_HIDE_MS, MEETING_MUTED_APPS_MAX, MEETING_SILENCE_RMS, MEETING_SILENCE_PROMPT_MS, MEETING_OTHERS_QUIET_PROMPT_MS;
 var init_meetings = __esm({
   "../../packages/shared/src/types/meetings.ts"() {
     "use strict";
     init_i18n();
-    MEETING_WARNINGS = ["no_mic", "no_system", "mic_silent", "system_silent", "mic_fallback", "mic_ended", "system_ended"];
+    MEETING_WARNINGS = ["no_mic", "no_system", "mic_silent", "system_silent", "mic_fallback", "mic_ended", "system_ended", "too_long"];
     MEETING_MAX_MINUTES = 480;
     MEETING_SUMMARY_TEMPLATES = ["minutes", "one_on_one", "weekly", "interview", "customer"];
     MEETING_TRANSCRIBE_SHARE = 0.8;
@@ -1236,6 +1239,7 @@ var init_meetings = __esm({
     MEETING_MUTED_APPS_MAX = 50;
     MEETING_SILENCE_RMS = 300;
     MEETING_SILENCE_PROMPT_MS = 6e5;
+    MEETING_OTHERS_QUIET_PROMPT_MS = 15 * 6e4;
   }
 });
 
@@ -30799,6 +30803,43 @@ function providerCards() {
       mediaOnly: true,
       methods: dashscopeMethods(WAN_MODELS)
     },
+    // 本地运行：都走 OpenAI 兼容接口，地址是各自文档里的默认端口
+    {
+      id: "ollama",
+      name: "Ollama",
+      group: "local",
+      logo: "ollama",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:11434/v1" }]
+    },
+    {
+      id: "lmstudio",
+      name: "LM Studio",
+      group: "local",
+      logo: "lmstudio",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:1234/v1" }]
+    },
+    {
+      id: "vllm",
+      name: "vLLM",
+      group: "local",
+      logo: "vllm",
+      note: tr("\u81EA\u5EFA\u670D\u52A1\u5668", "Self-hosted server"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:8000/v1" }]
+    },
+    {
+      id: "llamacpp",
+      name: "llama.cpp",
+      group: "local",
+      logo: "llamacpp",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:8080/v1" }]
+    },
     {
       id: "openrouter",
       name: "OpenRouter",
@@ -32487,7 +32528,7 @@ function cleanSlideLayout(input, blockIds) {
   }
   return out;
 }
-var PRESENTATION_BLOCK_TYPES, SLIDE_SHAPES, SLIDE_COORD, SLIDE_SIZE_MAX, SLIDE_LINE_SIDES, SLIDE_LINE_CAPS, SLIDE_TRANSITIONS, SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, isSlidePixelFilter, SLIDE_TEXT_ROLES, SLIDE_TEXT_OUTLINES, SLIDE_INK_MAX_POINTS, SLIDE_STYLE_KEYS, SLIDE_BORDER_STYLES, SLIDE_SHADOWS, DEFAULT_SLIDE_THEME, TOKEN, COLOR, WORDS, ASSET, ARTIFACT_ID, CORNERS, between, STYLE_VALUE_OK, cleanSlideAsset, isWhiteboardContent, isPresentationContent, oneOf2, range, text6, PADDING, padding, layout, sizes, SLIDE_BULLET_MAX, SLIDE_INDENT_MAX, cleanBullet, cleanIndent, DROP, LINE_TARGET, SLIDE_WIDTH, SLIDE_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT, slidePageSize, tokenVar, FILTER_CSS, SHADOW_CSS, STYLE_CSS, ELBOW_STUB, SIDE_DIR, horizontal, fixed, JUSTIFY, ALIGN, slideCropCss, svgMask, CLOUD_MASK, PERSON_MASK, slideCss, SLIDE_EFFECT_IMAGE_MAX, PNG_DATA_URL, LAYOUT_KEYS_MAX, TABLE_TRACKS_MAX, clamp, inRange, RGB, hex, tracks, PLACED_TYPES, NOTE_MIN_FONT, NOTE_SAFE_MARGIN, NOTE_ELEMENT_MAX, NOTE_OVERLAP, LATIN_WIDTH, LATIN_WORD_WIDTH, CJK, CJK_CHAR, TEXT_UNITS, ROLE_TYPE, roleType, plainText2, unitWidth;
+var PRESENTATION_BLOCK_TYPES, SLIDE_SHAPES, SLIDE_COORD, SLIDE_SIZE_MAX, SLIDE_LINE_SIDES, SLIDE_LINE_CAPS, SLIDE_TRANSITIONS, SLIDE_PIXEL_FILTERS, SLIDE_FILTERS, isSlidePixelFilter, SLIDE_TEXT_ROLES, SLIDE_TEXT_OUTLINES, SLIDE_INK_MAX_POINTS, SLIDE_STYLE_KEYS, SLIDE_BORDER_STYLES, SLIDE_SHADOWS, DEFAULT_SLIDE_THEME, TOKEN, COLOR, WORDS, ASSET, ARTIFACT_ID, CORNERS, between, STYLE_VALUE_OK, cleanSlideAsset, isWhiteboardContent, isPresentationContent, oneOf2, range, text6, PADDING, padding, layout, sizes, SLIDE_BULLET_MAX, SLIDE_INDENT_MAX, cleanBullet, cleanIndent, DROP, LINE_TARGET, SLIDE_WIDTH, SLIDE_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT, BOARD_SECTION_STYLE, slidePageSize, tokenVar, FILTER_CSS, SHADOW_CSS, STYLE_CSS, ELBOW_STUB, SIDE_DIR, horizontal, fixed, JUSTIFY, ALIGN, slideCropCss, svgMask, CLOUD_MASK, PERSON_MASK, slideCss, SLIDE_EFFECT_IMAGE_MAX, PNG_DATA_URL, LAYOUT_KEYS_MAX, TABLE_TRACKS_MAX, clamp, inRange, RGB, hex, tracks, PLACED_TYPES, NOTE_MIN_FONT, NOTE_SAFE_MARGIN, NOTE_ELEMENT_MAX, NOTE_OVERLAP, LATIN_WIDTH, LATIN_WORD_WIDTH, CJK, CJK_CHAR, TEXT_UNITS, ROLE_TYPE, roleType, plainText2, unitWidth;
 var init_artifact_slides = __esm({
   "../../packages/shared/src/utils/artifact-slides.ts"() {
     "use strict";
@@ -32629,6 +32670,7 @@ var init_artifact_slides = __esm({
     SLIDE_HEIGHT = 720;
     BOARD_WIDTH = 2560;
     BOARD_HEIGHT = 1440;
+    BOARD_SECTION_STYLE = { background: "#f1efe8", radius: 8 };
     slidePageSize = (attrs) => attrs.board === true ? { w: BOARD_WIDTH, h: BOARD_HEIGHT } : { w: SLIDE_WIDTH, h: SLIDE_HEIGHT };
     tokenVar = (name2) => `--slide-${name2.replace(/\./g, "-")}`;
     FILTER_CSS = { grayscale: "grayscale(1)", sepia: "sepia(0.8)", blur: "blur(4px)", dim: "brightness(0.7)" };
@@ -36090,7 +36132,7 @@ function parseModelDiscovery(item, provider, baseUrl, modelId) {
     provider,
     modelId,
     checkedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    contextWindow: integer(item.context_length ?? item.context_window ?? item.inputTokenLimit ?? item.max_input_tokens, 1024, 1e7),
+    contextWindow: integer(item.context_length ?? item.context_window ?? item.inputTokenLimit ?? item.max_input_tokens ?? item.max_model_len, 1024, 1e7),
     maxOutputTokens: integer(top.max_completion_tokens ?? item.max_output_tokens ?? item.outputTokenLimit, 128, 1e6),
     ...Array.isArray(modalities) && modalities.includes("text") ? { input: modalities.includes("image") ? ["text", "image"] : ["text"] } : {},
     ...typeof item.supports_function_calling === "boolean" ? { tools: item.supports_function_calling } : parameters2.includes("tools") ? { tools: true } : {},
@@ -63249,6 +63291,201 @@ var init_proxy_fetch = __esm({
   }
 });
 
+// ../electron/src/main/lib/agent-error-utils.ts
+function friendlyErrorMessage(raw) {
+  if (/not logged in|please run \/login/i.test(raw)) return tr("\u8BF7\u68C0\u67E5\u662F\u5426\u9009\u62E9\u4E86\u6B63\u786E\u7684\u4F9B\u5E94\u5546\u548C\u6A21\u578B", "Check that the right provider and model are selected");
+  return raw;
+}
+function shouldKeepChannelOpen(terminalReason) {
+  return terminalReason != null && CONTINUABLE_TERMINAL_REASONS.has(terminalReason);
+}
+function isPromptTooLongError(...messages) {
+  const combined = messages.join(" ").toLowerCase();
+  return PROMPT_TOO_LONG_PATTERNS.some((p) => combined.includes(p));
+}
+function extractHttpStatus(...messages) {
+  for (const message8 of messages) {
+    const match = message8.match(/(?:^|(?:HTTP|API\s*(?:error|\u9519\u8bef)|status(?:\s*code)?)[\s:(=]*)([45]\d{2})\b/i);
+    if (match) return Number(match[1]);
+  }
+  return void 0;
+}
+function mapSDKErrorToTypedError(errorCode4, detailedMessage, originalError, providerName) {
+  if (errorCode4 === "message_save_failed") return {
+    code: "message_save_failed",
+    title: tr("\u7B49\u5F85\u4FDD\u5B58", "Waiting to save"),
+    message: detailedMessage,
+    originalError,
+    canRetry: false,
+    actions: []
+  };
+  if (detailedMessage.trim() === "provider_error") detailedMessage = "";
+  const status = extractHttpStatus(originalError, detailedMessage);
+  const provider = providerName?.trim();
+  const authRejected = status === 401 || status === 403 || errorCode4 === "authentication_failed" || errorCode4 === "invalid_api_key";
+  if (authRejected && ACCOUNT_BLOCKED_PATTERN.test(`${detailedMessage} ${originalError}`)) return {
+    code: "account_blocked",
+    title: tr("\u8D26\u53F7\u5DF2\u88AB\u505C\u7528", "Account suspended"),
+    message: provider ? tr(`\u201C${provider}\u201D\u505C\u7528\u4E86\u8FD9\u4E2A\u8D26\u53F7\uFF0C\u6362 API Key \u89E3\u51B3\u4E0D\u4E86\u3002\u53EF\u4EE5\u5148\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED\uFF0C\u6216\u8BF7\u8D26\u53F7\u7BA1\u7406\u5458\u89E3\u5C01\u3002`, `${provider} has suspended this account, so a new API key won\u2019t help. Switch models to keep going, or ask the account admin to restore it.`) : tr("\u4F9B\u5E94\u5546\u505C\u7528\u4E86\u8FD9\u4E2A\u8D26\u53F7\uFF0C\u6362 API Key \u89E3\u51B3\u4E0D\u4E86\u3002\u53EF\u4EE5\u5148\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED\uFF0C\u6216\u8BF7\u8D26\u53F7\u7BA1\u7406\u5458\u89E3\u5C01\u3002", "The provider has suspended this account, so a new API key won\u2019t help. Switch models to keep going, or ask the account admin to restore it."),
+    details: [detailedMessage],
+    originalError,
+    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
+    canRetry: false
+  };
+  if (["provider_error", "unknown", "unknown_error", "invalid_request"].includes(errorCode4) && status !== 429 && MODEL_MISSING_PATTERN.test(`${detailedMessage} ${originalError}`)) return {
+    code: "invalid_model",
+    title: tr("\u6A21\u578B\u4E0D\u53EF\u7528", "Model unavailable"),
+    message: provider ? tr(`\u201C${provider}\u201D\u627E\u4E0D\u5230\u8FD9\u4E2A\u6A21\u578B\uFF0C\u53EF\u80FD\u5DF2\u4E0B\u7EBF\u6216\u6539\u540D\u3002\u8BF7\u6362\u4E2A\u6A21\u578B\uFF0C\u6216\u5728\u4F9B\u5E94\u5546\u8BBE\u7F6E\u91CC\u5237\u65B0\u6A21\u578B\u5217\u8868\u3002`, `${provider} can\u2019t find this model. It may have been retired or renamed. Switch models, or refresh the model list in provider settings.`) : tr("\u4F9B\u5E94\u5546\u627E\u4E0D\u5230\u8FD9\u4E2A\u6A21\u578B\uFF0C\u53EF\u80FD\u5DF2\u4E0B\u7EBF\u6216\u6539\u540D\u3002\u8BF7\u6362\u4E2A\u6A21\u578B\uFF0C\u6216\u5728\u4F9B\u5E94\u5546\u8BBE\u7F6E\u91CC\u5237\u65B0\u6A21\u578B\u5217\u8868\u3002", "The provider can\u2019t find this model. It may have been retired or renamed. Switch models, or refresh the model list in provider settings."),
+    details: [detailedMessage],
+    originalError,
+    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
+    canRetry: false
+  };
+  if (["provider_error", "unknown", "unknown_error", "rate_limited"].includes(errorCode4) && (status === 402 || QUOTA_PATTERN.test(`${detailedMessage} ${originalError}`))) errorCode4 = "billing_error";
+  if (authRejected) return {
+    code: "invalid_api_key",
+    title: tr("API Key \u88AB\u62D2\u7EDD", "API key rejected"),
+    // 供应商回的 JSON 只取给人看的那句，并写明下一步（换模型或查 Key）；原文留在诊断详情里
+    message: authErrorMessage(providerErrorText(detailedMessage) ?? (detailedMessage.trim() || void 0)),
+    originalError,
+    ...providerErrorText(detailedMessage) && { details: [detailedMessage] },
+    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
+    canRetry: false
+  };
+  if (["provider_error", "unknown", "unknown_error"].includes(errorCode4)) {
+    if (status === 429) errorCode4 = "rate_limited";
+    else if (status !== void 0) errorCode4 = "provider_error";
+    else if (TRANSIENT_PROVIDER_PATTERN.test(`${detailedMessage} ${originalError}`)) errorCode4 = "overloaded";
+  }
+  if (detailedMessage.includes(IPC_ERRORS.outputBudgetLead()) || detailedMessage.includes(IPC_ERRORS.outputLimit())) return {
+    code: "provider_error",
+    title: tr("\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650", "Output limit reached"),
+    message: detailedMessage,
+    originalError,
+    actions: [{ key: "s", label: tr("\u6A21\u578B\u8BBE\u7F6E", "Model settings"), action: "open_channel_settings" }],
+    canRetry: false
+  };
+  if (detailedMessage.includes(IPC_ERRORS.imageInputDisabled()) || originalError.includes(IPC_ERRORS.imageInputDisabled())) {
+    return {
+      code: "invalid_request",
+      title: tr("\u56FE\u7247\u8F93\u5165\u672A\u542F\u7528", "Image input not enabled"),
+      message: tr("\u5BF9\u8BDD\u91CC\u6709\u56FE\u7247\u3002\u8BF7\u6362\u7528\u652F\u6301\u56FE\u7247\u7684\u6A21\u578B\uFF0C\u6216\u68C0\u67E5\u4F9B\u5E94\u5546\u8BBE\u7F6E\u3002", "This chat has images. Switch to an image-capable model or check provider settings."),
+      // 换成能看图的模型后可直接重试本轮；canRetry 仍为 false，不自动重试
+      actions: [{ key: "s", label: tr("\u6A21\u578B\u8BBE\u7F6E", "Model settings"), action: "open_channel_settings" }, { key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }],
+      canRetry: false,
+      originalError
+    };
+  }
+  const errorMap3 = {
+    "billing_error": { code: "billing_error", title: tr("\u8D26\u6237\u4F59\u989D\u6216\u5957\u9910\u6709\u95EE\u9898", "Billing issue"), message: provider ? tr(`\u201C${provider}\u201D\u7684\u8D26\u6237\u4F59\u989D\u6216\u989D\u5EA6\u4E0D\u8DB3\uFF0C\u8BF7\u5145\u503C\u6216\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED`, `Your ${provider} account is out of balance or quota. Top it up or switch models.`) : tr("\u4F60\u7684\u8D26\u6237\u5B58\u5728\u8D26\u5355\u95EE\u9898\uFF0C\u8BF7\u68C0\u67E5\u4F59\u989D\u6216\u5957\u9910\uFF0C\u6216\u5207\u6362\u6A21\u578B", "The provider reported a billing issue with your account. Check your balance or plan, or switch models."), canRetry: false },
+    "rate_limited": { code: "rate_limited", title: tr("\u8BF7\u6C42\u592A\u9891\u7E41", "Rate limited"), message: tr("\u8BF7\u6C42\u8FC7\u4E8E\u9891\u7E41\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u5207\u6362\u6A21\u578B", "The provider is rate-limiting requests. Try again later or switch models."), canRetry: true },
+    "provider_error": { code: "provider_error", title: tr("\u6A21\u578B\u8BF7\u6C42\u5931\u8D25", "Model request failed"), message: tr("\u4F9B\u5E94\u5546\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u8BBE\u7F6E\u540E\u91CD\u8BD5\u3002", "The provider returned an error. Check the model and provider settings, then try again."), canRetry: status !== void 0 && status >= 500 },
+    "overloaded": { code: "provider_error", title: tr("\u670D\u52A1\u7E41\u5FD9", "Service busy"), message: tr("\u4F9B\u5E94\u5546\u7E41\u5FD9\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u5207\u6362\u6A21\u578B", "The provider is overloaded. Try again later or switch models."), canRetry: true },
+    "prompt_too_long": { code: "prompt_too_long", title: tr("\u4E0A\u4E0B\u6587\u8FC7\u957F", "Context too long"), message: tr("\u5BF9\u8BDD\u8D85\u51FA\u6A21\u578B\u7684\u4E0A\u4E0B\u6587\u4E0A\u9650\uFF0C\u8BF7\u538B\u7F29\u6216\u65B0\u5EFA\u5BF9\u8BDD", "Chat exceeds the model\u2019s context limit. Compact it or start a new chat."), canRetry: false }
+  };
+  const transport = status === void 0 ? transportErrorCategory(`${detailedMessage} ${originalError}`) : void 0;
+  const transportReason = transport ? TRANSPORT_REASONS[transport]?.() : void 0;
+  const looksLikeNetwork = status === 408 || status === void 0 && (!errorMap3[errorCode4] || errorCode4 === "provider_error") && (!!transportReason || TRANSIENT_NETWORK_PATTERN.test(detailedMessage) || TRANSIENT_NETWORK_PATTERN.test(originalError) || /connection error/i.test(`${detailedMessage} ${originalError}`));
+  if (looksLikeNetwork) {
+    const needsSettings = transport === "tls" || transport === "proxy";
+    return {
+      code: "network_error",
+      title: tr("\u7F51\u7EDC\u5F02\u5E38", "Network error"),
+      message: transportReason || detailedMessage || tr("\u4E0E\u4F9B\u5E94\u5546\u7684\u8FDE\u63A5\u4E2D\u65AD\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u6216\u4EE3\u7406\u540E\u91CD\u8BD5", "Lost connection to the provider. Check your network or proxy, then retry."),
+      ...transportReason && detailedMessage ? { details: [detailedMessage] } : {},
+      actions: [
+        { key: "s", label: tr("\u8BBE\u7F6E", "Settings"), action: "settings" },
+        { key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }
+      ],
+      canRetry: !needsSettings,
+      ...needsSettings ? {} : { retryDelayMs: 1e3 },
+      originalError
+    };
+  }
+  const mapped = errorMap3[errorCode4] || { code: "unknown_error", title: "", message: detailedMessage || errorCode4, canRetry: false };
+  return {
+    code: mapped.code,
+    title: mapped.title,
+    // 欠费时点名供应商的说明比供应商原话更能说清下一步；原话放进诊断详情
+    message: mapped.code === "billing_error" && provider ? mapped.message : detailedMessage || mapped.message,
+    ...mapped.code === "billing_error" && provider && detailedMessage && { details: [detailedMessage] },
+    actions: [
+      { key: "s", label: tr("\u8BBE\u7F6E", "Settings"), action: "settings" },
+      ...mapped.canRetry ? [{ key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }] : [],
+      ...mapped.code === "prompt_too_long" ? [{ key: "c", label: tr("\u538B\u7F29\u4E0A\u4E0B\u6587", "Compact context"), action: "compact" }] : []
+    ],
+    canRetry: mapped.canRetry,
+    retryDelayMs: mapped.canRetry ? 1e3 : void 0,
+    originalError
+  };
+}
+function extractErrorDetails(msg) {
+  let detailedMessage = msg.error?.message?.trim() || tr("\u672A\u77E5\u9519\u8BEF", "Unknown error");
+  let originalError = detailedMessage;
+  if (msg.error?.message?.trim() && !["provider_error", "unknown", "\u672A\u77E5\u9519\u8BEF", "Unknown error"].includes(detailedMessage)) return { detailedMessage, originalError };
+  try {
+    const content4 = msg.message?.content;
+    if (Array.isArray(content4) && content4.length > 0) {
+      const textBlock = content4.find((block2) => block2.type === "text" && typeof block2.text === "string" && /^API Error:\s*\d+/.test(block2.text.trim()));
+      if (textBlock && "text" in textBlock && typeof textBlock.text === "string") {
+        const fullText = textBlock.text;
+        originalError = fullText;
+        const apiErrorMatch = fullText.match(/API Error:\s*\d+\s*(\{.*\})/s);
+        if (apiErrorMatch?.[1]) {
+          try {
+            const apiErrorObj = JSON.parse(apiErrorMatch[1]);
+            if (apiErrorObj.error?.message) detailedMessage = apiErrorObj.error.message;
+          } catch {
+            detailedMessage = fullText;
+          }
+        } else {
+          detailedMessage = fullText;
+        }
+      }
+    }
+  } catch {
+  }
+  return { detailedMessage, originalError };
+}
+var TRANSPORT_REASONS, CONTINUABLE_TERMINAL_REASONS, PROMPT_TOO_LONG_PATTERNS, TRANSIENT_PROVIDER_PATTERN, ACCOUNT_BLOCKED_PATTERN, MODEL_MISSING_PATTERN, QUOTA_PATTERN;
+var init_agent_error_utils = __esm({
+  "../electron/src/main/lib/agent-error-utils.ts"() {
+    "use strict";
+    init_src();
+    init_error_patterns();
+    TRANSPORT_REASONS = {
+      dns: () => tr("\u65E0\u6CD5\u627E\u5230\u4F9B\u5E94\u5546\u7684\u5730\u5740\uFF08\u57DF\u540D\u89E3\u6790\u5931\u8D25\uFF09\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u3001\u4EE3\u7406\u6216 Base URL", "Couldn\u2019t find the provider\u2019s address (DNS lookup failed). Check your network, proxy, or base URL."),
+      connection: () => tr("\u65E0\u6CD5\u8FDE\u63A5\u4F9B\u5E94\u5546\uFF1A\u8FDE\u63A5\u88AB\u62D2\u7EDD\u6216\u5730\u5740\u4E0D\u53EF\u8FBE\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u662F\u5426\u5F00\u7740\u3001Base URL \u662F\u5426\u6B63\u786E", "Couldn\u2019t connect to the provider: the connection was refused or the address is unreachable. Check that your proxy is running and the base URL is correct."),
+      tls: () => tr("\u8BC1\u4E66\u6821\u9A8C\u6CA1\u901A\u8FC7\uFF0C\u5E38\u89C1\u4E8E\u4EE3\u7406\u6216\u516C\u53F8\u7F51\u7EDC\u66FF\u6362\u4E86\u8BC1\u4E66\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E", "The certificate check failed. A proxy or company network may be replacing certificates. Check your proxy settings."),
+      proxy_tunnel: () => tr("\u4EE3\u7406\u8FDE\u4E0D\u4E0A\u76EE\u6807\u5730\u5740\uFF0C\u8BF7\u68C0\u67E5 Base URL \u4E0E\u7AEF\u53E3\uFF1B\u6A21\u578B\u670D\u52A1\u5728\u672C\u673A\u65F6\u5148\u786E\u8BA4\u5B83\u5DF2\u542F\u52A8", "The proxy couldn\u2019t reach the target address. Check the base URL and port. If the model runs on this computer, make sure it\u2019s started."),
+      proxy: () => tr("\u65E0\u6CD5\u548C\u4EE3\u7406\u5EFA\u7ACB\u52A0\u5BC6\u8FDE\u63A5\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u5730\u5740\u4E0E\u534F\u8BAE", "Couldn\u2019t open a secure connection to the proxy. Check the proxy address and protocol.")
+    };
+    CONTINUABLE_TERMINAL_REASONS = /* @__PURE__ */ new Set([
+      "aborted_streaming",
+      "aborted_tools",
+      "tool_deferred",
+      "hook_stopped",
+      "stop_hook_prevented"
+    ]);
+    PROMPT_TOO_LONG_PATTERNS = [
+      "prompt is too long",
+      "prompt_too_long",
+      "input is too long",
+      "context_length_exceeded",
+      "context size has been exceeded",
+      "exceeds the available context size",
+      "input length exceeds",
+      "maximum context length",
+      "token limit",
+      "exceeds the model"
+    ];
+    TRANSIENT_PROVIDER_PATTERN = /service is temporarily unavailable|upstream provider returned an error|unable to forward upstream|upstream.?request.?failed/i;
+    ACCOUNT_BLOCKED_PATTERN = /\b(?:blocked|suspended|banned|deactivated)\b|account (?:is |has been )?disabled|\u8d26\u53f7.{0,6}(?:\u5c01\u7981|\u505c\u7528|\u51bb\u7ed3)/i;
+    MODEL_MISSING_PATTERN = /model[_ ]not[_ ]found|no such model|unknown model|invalid model|model\b[^.]{0,80}\b(?:does not exist|not found|not exist|is not supported|is not available|has been deprecated|decommissioned)|\u6a21\u578b.{0,10}(?:\u4e0d\u5b58\u5728|\u5df2\u4e0b\u7ebf)/i;
+    QUOTA_PATTERN = /"code"\s*:\s*"?1308(?![0-9])|insufficient[_ ](?:quota|balance|credit|funds)|exceeded your current quota|quota exceeded|\u4f59\u989d\u4e0d\u8db3|\u6b20\u8d39|\u989d\u5ea6\u4e0d\u8db3/i;
+  }
+});
+
 // ../electron/src/main/lib/system-proxy-detector.ts
 async function detectSystemProxy() {
   const platform = process.platform;
@@ -69445,201 +69682,6 @@ var init_agent_tool_registry = __esm({
   }
 });
 
-// ../electron/src/main/lib/agent-error-utils.ts
-function friendlyErrorMessage(raw) {
-  if (/not logged in|please run \/login/i.test(raw)) return tr("\u8BF7\u68C0\u67E5\u662F\u5426\u9009\u62E9\u4E86\u6B63\u786E\u7684\u4F9B\u5E94\u5546\u548C\u6A21\u578B", "Check that the right provider and model are selected");
-  return raw;
-}
-function shouldKeepChannelOpen(terminalReason) {
-  return terminalReason != null && CONTINUABLE_TERMINAL_REASONS.has(terminalReason);
-}
-function isPromptTooLongError(...messages) {
-  const combined = messages.join(" ").toLowerCase();
-  return PROMPT_TOO_LONG_PATTERNS.some((p) => combined.includes(p));
-}
-function extractHttpStatus(...messages) {
-  for (const message8 of messages) {
-    const match = message8.match(/(?:^|(?:HTTP|API\s*(?:error|\u9519\u8bef)|status(?:\s*code)?)[\s:(=]*)([45]\d{2})\b/i);
-    if (match) return Number(match[1]);
-  }
-  return void 0;
-}
-function mapSDKErrorToTypedError(errorCode4, detailedMessage, originalError, providerName) {
-  if (errorCode4 === "message_save_failed") return {
-    code: "message_save_failed",
-    title: tr("\u7B49\u5F85\u4FDD\u5B58", "Waiting to save"),
-    message: detailedMessage,
-    originalError,
-    canRetry: false,
-    actions: []
-  };
-  if (detailedMessage.trim() === "provider_error") detailedMessage = "";
-  const status = extractHttpStatus(originalError, detailedMessage);
-  const provider = providerName?.trim();
-  const authRejected = status === 401 || status === 403 || errorCode4 === "authentication_failed" || errorCode4 === "invalid_api_key";
-  if (authRejected && ACCOUNT_BLOCKED_PATTERN.test(`${detailedMessage} ${originalError}`)) return {
-    code: "account_blocked",
-    title: tr("\u8D26\u53F7\u5DF2\u88AB\u505C\u7528", "Account suspended"),
-    message: provider ? tr(`\u201C${provider}\u201D\u505C\u7528\u4E86\u8FD9\u4E2A\u8D26\u53F7\uFF0C\u6362 API Key \u89E3\u51B3\u4E0D\u4E86\u3002\u53EF\u4EE5\u5148\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED\uFF0C\u6216\u8BF7\u8D26\u53F7\u7BA1\u7406\u5458\u89E3\u5C01\u3002`, `${provider} has suspended this account, so a new API key won\u2019t help. Switch models to keep going, or ask the account admin to restore it.`) : tr("\u4F9B\u5E94\u5546\u505C\u7528\u4E86\u8FD9\u4E2A\u8D26\u53F7\uFF0C\u6362 API Key \u89E3\u51B3\u4E0D\u4E86\u3002\u53EF\u4EE5\u5148\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED\uFF0C\u6216\u8BF7\u8D26\u53F7\u7BA1\u7406\u5458\u89E3\u5C01\u3002", "The provider has suspended this account, so a new API key won\u2019t help. Switch models to keep going, or ask the account admin to restore it."),
-    details: [detailedMessage],
-    originalError,
-    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
-    canRetry: false
-  };
-  if (["provider_error", "unknown", "unknown_error", "invalid_request"].includes(errorCode4) && status !== 429 && MODEL_MISSING_PATTERN.test(`${detailedMessage} ${originalError}`)) return {
-    code: "invalid_model",
-    title: tr("\u6A21\u578B\u4E0D\u53EF\u7528", "Model unavailable"),
-    message: provider ? tr(`\u201C${provider}\u201D\u627E\u4E0D\u5230\u8FD9\u4E2A\u6A21\u578B\uFF0C\u53EF\u80FD\u5DF2\u4E0B\u7EBF\u6216\u6539\u540D\u3002\u8BF7\u6362\u4E2A\u6A21\u578B\uFF0C\u6216\u5728\u4F9B\u5E94\u5546\u8BBE\u7F6E\u91CC\u5237\u65B0\u6A21\u578B\u5217\u8868\u3002`, `${provider} can\u2019t find this model. It may have been retired or renamed. Switch models, or refresh the model list in provider settings.`) : tr("\u4F9B\u5E94\u5546\u627E\u4E0D\u5230\u8FD9\u4E2A\u6A21\u578B\uFF0C\u53EF\u80FD\u5DF2\u4E0B\u7EBF\u6216\u6539\u540D\u3002\u8BF7\u6362\u4E2A\u6A21\u578B\uFF0C\u6216\u5728\u4F9B\u5E94\u5546\u8BBE\u7F6E\u91CC\u5237\u65B0\u6A21\u578B\u5217\u8868\u3002", "The provider can\u2019t find this model. It may have been retired or renamed. Switch models, or refresh the model list in provider settings."),
-    details: [detailedMessage],
-    originalError,
-    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
-    canRetry: false
-  };
-  if (["provider_error", "unknown", "unknown_error", "rate_limited"].includes(errorCode4) && (status === 402 || QUOTA_PATTERN.test(`${detailedMessage} ${originalError}`))) errorCode4 = "billing_error";
-  if (authRejected) return {
-    code: "invalid_api_key",
-    title: tr("API Key \u88AB\u62D2\u7EDD", "API key rejected"),
-    // 供应商回的 JSON 只取给人看的那句，并写明下一步（换模型或查 Key）；原文留在诊断详情里
-    message: authErrorMessage(providerErrorText(detailedMessage) ?? (detailedMessage.trim() || void 0)),
-    originalError,
-    ...providerErrorText(detailedMessage) && { details: [detailedMessage] },
-    actions: [{ key: "s", label: tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E", "Provider settings"), action: "open_channel_settings" }],
-    canRetry: false
-  };
-  if (["provider_error", "unknown", "unknown_error"].includes(errorCode4)) {
-    if (status === 429) errorCode4 = "rate_limited";
-    else if (status !== void 0) errorCode4 = "provider_error";
-    else if (TRANSIENT_PROVIDER_PATTERN.test(`${detailedMessage} ${originalError}`)) errorCode4 = "overloaded";
-  }
-  if (detailedMessage.includes(IPC_ERRORS.outputBudgetLead()) || detailedMessage.includes(IPC_ERRORS.outputLimit())) return {
-    code: "provider_error",
-    title: tr("\u8F93\u51FA\u8FBE\u5230\u4E0A\u9650", "Output limit reached"),
-    message: detailedMessage,
-    originalError,
-    actions: [{ key: "s", label: tr("\u6A21\u578B\u8BBE\u7F6E", "Model settings"), action: "open_channel_settings" }],
-    canRetry: false
-  };
-  if (detailedMessage.includes(IPC_ERRORS.imageInputDisabled()) || originalError.includes(IPC_ERRORS.imageInputDisabled())) {
-    return {
-      code: "invalid_request",
-      title: tr("\u56FE\u7247\u8F93\u5165\u672A\u542F\u7528", "Image input not enabled"),
-      message: tr("\u5BF9\u8BDD\u91CC\u6709\u56FE\u7247\u3002\u8BF7\u6362\u7528\u652F\u6301\u56FE\u7247\u7684\u6A21\u578B\uFF0C\u6216\u68C0\u67E5\u4F9B\u5E94\u5546\u8BBE\u7F6E\u3002", "This chat has images. Switch to an image-capable model or check provider settings."),
-      // 换成能看图的模型后可直接重试本轮；canRetry 仍为 false，不自动重试
-      actions: [{ key: "s", label: tr("\u6A21\u578B\u8BBE\u7F6E", "Model settings"), action: "open_channel_settings" }, { key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }],
-      canRetry: false,
-      originalError
-    };
-  }
-  const errorMap3 = {
-    "billing_error": { code: "billing_error", title: tr("\u8D26\u6237\u4F59\u989D\u6216\u5957\u9910\u6709\u95EE\u9898", "Billing issue"), message: provider ? tr(`\u201C${provider}\u201D\u7684\u8D26\u6237\u4F59\u989D\u6216\u989D\u5EA6\u4E0D\u8DB3\uFF0C\u8BF7\u5145\u503C\u6216\u6362\u4E2A\u6A21\u578B\u7EE7\u7EED`, `Your ${provider} account is out of balance or quota. Top it up or switch models.`) : tr("\u4F60\u7684\u8D26\u6237\u5B58\u5728\u8D26\u5355\u95EE\u9898\uFF0C\u8BF7\u68C0\u67E5\u4F59\u989D\u6216\u5957\u9910\uFF0C\u6216\u5207\u6362\u6A21\u578B", "The provider reported a billing issue with your account. Check your balance or plan, or switch models."), canRetry: false },
-    "rate_limited": { code: "rate_limited", title: tr("\u8BF7\u6C42\u592A\u9891\u7E41", "Rate limited"), message: tr("\u8BF7\u6C42\u8FC7\u4E8E\u9891\u7E41\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u5207\u6362\u6A21\u578B", "The provider is rate-limiting requests. Try again later or switch models."), canRetry: true },
-    "provider_error": { code: "provider_error", title: tr("\u6A21\u578B\u8BF7\u6C42\u5931\u8D25", "Model request failed"), message: tr("\u4F9B\u5E94\u5546\u8FD4\u56DE\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u6A21\u578B\u4E0E\u4F9B\u5E94\u5546\u8BBE\u7F6E\u540E\u91CD\u8BD5\u3002", "The provider returned an error. Check the model and provider settings, then try again."), canRetry: status !== void 0 && status >= 500 },
-    "overloaded": { code: "provider_error", title: tr("\u670D\u52A1\u7E41\u5FD9", "Service busy"), message: tr("\u4F9B\u5E94\u5546\u7E41\u5FD9\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u5207\u6362\u6A21\u578B", "The provider is overloaded. Try again later or switch models."), canRetry: true },
-    "prompt_too_long": { code: "prompt_too_long", title: tr("\u4E0A\u4E0B\u6587\u8FC7\u957F", "Context too long"), message: tr("\u5BF9\u8BDD\u8D85\u51FA\u6A21\u578B\u7684\u4E0A\u4E0B\u6587\u4E0A\u9650\uFF0C\u8BF7\u538B\u7F29\u6216\u65B0\u5EFA\u5BF9\u8BDD", "Chat exceeds the model\u2019s context limit. Compact it or start a new chat."), canRetry: false }
-  };
-  const transport = status === void 0 ? transportErrorCategory(`${detailedMessage} ${originalError}`) : void 0;
-  const transportReason = transport ? TRANSPORT_REASONS[transport]?.() : void 0;
-  const looksLikeNetwork = status === 408 || status === void 0 && (!errorMap3[errorCode4] || errorCode4 === "provider_error") && (!!transportReason || TRANSIENT_NETWORK_PATTERN.test(detailedMessage) || TRANSIENT_NETWORK_PATTERN.test(originalError) || /connection error/i.test(`${detailedMessage} ${originalError}`));
-  if (looksLikeNetwork) {
-    const needsSettings = transport === "tls" || transport === "proxy";
-    return {
-      code: "network_error",
-      title: tr("\u7F51\u7EDC\u5F02\u5E38", "Network error"),
-      message: transportReason || detailedMessage || tr("\u4E0E\u4F9B\u5E94\u5546\u7684\u8FDE\u63A5\u4E2D\u65AD\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u6216\u4EE3\u7406\u540E\u91CD\u8BD5", "Lost connection to the provider. Check your network or proxy, then retry."),
-      ...transportReason && detailedMessage ? { details: [detailedMessage] } : {},
-      actions: [
-        { key: "s", label: tr("\u8BBE\u7F6E", "Settings"), action: "settings" },
-        { key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }
-      ],
-      canRetry: !needsSettings,
-      ...needsSettings ? {} : { retryDelayMs: 1e3 },
-      originalError
-    };
-  }
-  const mapped = errorMap3[errorCode4] || { code: "unknown_error", title: "", message: detailedMessage || errorCode4, canRetry: false };
-  return {
-    code: mapped.code,
-    title: mapped.title,
-    // 欠费时点名供应商的说明比供应商原话更能说清下一步；原话放进诊断详情
-    message: mapped.code === "billing_error" && provider ? mapped.message : detailedMessage || mapped.message,
-    ...mapped.code === "billing_error" && provider && detailedMessage && { details: [detailedMessage] },
-    actions: [
-      { key: "s", label: tr("\u8BBE\u7F6E", "Settings"), action: "settings" },
-      ...mapped.canRetry ? [{ key: "r", label: tr("\u91CD\u8BD5", "Retry"), action: "retry" }] : [],
-      ...mapped.code === "prompt_too_long" ? [{ key: "c", label: tr("\u538B\u7F29\u4E0A\u4E0B\u6587", "Compact context"), action: "compact" }] : []
-    ],
-    canRetry: mapped.canRetry,
-    retryDelayMs: mapped.canRetry ? 1e3 : void 0,
-    originalError
-  };
-}
-function extractErrorDetails(msg) {
-  let detailedMessage = msg.error?.message?.trim() || tr("\u672A\u77E5\u9519\u8BEF", "Unknown error");
-  let originalError = detailedMessage;
-  if (msg.error?.message?.trim() && !["provider_error", "unknown", "\u672A\u77E5\u9519\u8BEF", "Unknown error"].includes(detailedMessage)) return { detailedMessage, originalError };
-  try {
-    const content4 = msg.message?.content;
-    if (Array.isArray(content4) && content4.length > 0) {
-      const textBlock = content4.find((block2) => block2.type === "text" && typeof block2.text === "string" && /^API Error:\s*\d+/.test(block2.text.trim()));
-      if (textBlock && "text" in textBlock && typeof textBlock.text === "string") {
-        const fullText = textBlock.text;
-        originalError = fullText;
-        const apiErrorMatch = fullText.match(/API Error:\s*\d+\s*(\{.*\})/s);
-        if (apiErrorMatch?.[1]) {
-          try {
-            const apiErrorObj = JSON.parse(apiErrorMatch[1]);
-            if (apiErrorObj.error?.message) detailedMessage = apiErrorObj.error.message;
-          } catch {
-            detailedMessage = fullText;
-          }
-        } else {
-          detailedMessage = fullText;
-        }
-      }
-    }
-  } catch {
-  }
-  return { detailedMessage, originalError };
-}
-var TRANSPORT_REASONS, CONTINUABLE_TERMINAL_REASONS, PROMPT_TOO_LONG_PATTERNS, TRANSIENT_PROVIDER_PATTERN, ACCOUNT_BLOCKED_PATTERN, MODEL_MISSING_PATTERN, QUOTA_PATTERN;
-var init_agent_error_utils = __esm({
-  "../electron/src/main/lib/agent-error-utils.ts"() {
-    "use strict";
-    init_src();
-    init_error_patterns();
-    TRANSPORT_REASONS = {
-      dns: () => tr("\u65E0\u6CD5\u627E\u5230\u4F9B\u5E94\u5546\u7684\u5730\u5740\uFF08\u57DF\u540D\u89E3\u6790\u5931\u8D25\uFF09\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u3001\u4EE3\u7406\u6216 Base URL", "Couldn\u2019t find the provider\u2019s address (DNS lookup failed). Check your network, proxy, or base URL."),
-      connection: () => tr("\u65E0\u6CD5\u8FDE\u63A5\u4F9B\u5E94\u5546\uFF1A\u8FDE\u63A5\u88AB\u62D2\u7EDD\u6216\u5730\u5740\u4E0D\u53EF\u8FBE\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u662F\u5426\u5F00\u7740\u3001Base URL \u662F\u5426\u6B63\u786E", "Couldn\u2019t connect to the provider: the connection was refused or the address is unreachable. Check that your proxy is running and the base URL is correct."),
-      tls: () => tr("\u8BC1\u4E66\u6821\u9A8C\u6CA1\u901A\u8FC7\uFF0C\u5E38\u89C1\u4E8E\u4EE3\u7406\u6216\u516C\u53F8\u7F51\u7EDC\u66FF\u6362\u4E86\u8BC1\u4E66\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E", "The certificate check failed. A proxy or company network may be replacing certificates. Check your proxy settings."),
-      proxy_tunnel: () => tr("\u4EE3\u7406\u8FDE\u4E0D\u4E0A\u76EE\u6807\u5730\u5740\uFF0C\u8BF7\u68C0\u67E5 Base URL \u4E0E\u7AEF\u53E3\uFF1B\u6A21\u578B\u670D\u52A1\u5728\u672C\u673A\u65F6\u5148\u786E\u8BA4\u5B83\u5DF2\u542F\u52A8", "The proxy couldn\u2019t reach the target address. Check the base URL and port. If the model runs on this computer, make sure it\u2019s started."),
-      proxy: () => tr("\u65E0\u6CD5\u548C\u4EE3\u7406\u5EFA\u7ACB\u52A0\u5BC6\u8FDE\u63A5\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u5730\u5740\u4E0E\u534F\u8BAE", "Couldn\u2019t open a secure connection to the proxy. Check the proxy address and protocol.")
-    };
-    CONTINUABLE_TERMINAL_REASONS = /* @__PURE__ */ new Set([
-      "aborted_streaming",
-      "aborted_tools",
-      "tool_deferred",
-      "hook_stopped",
-      "stop_hook_prevented"
-    ]);
-    PROMPT_TOO_LONG_PATTERNS = [
-      "prompt is too long",
-      "prompt_too_long",
-      "input is too long",
-      "context_length_exceeded",
-      "context size has been exceeded",
-      "exceeds the available context size",
-      "input length exceeds",
-      "maximum context length",
-      "token limit",
-      "exceeds the model"
-    ];
-    TRANSIENT_PROVIDER_PATTERN = /service is temporarily unavailable|upstream provider returned an error|unable to forward upstream|upstream.?request.?failed/i;
-    ACCOUNT_BLOCKED_PATTERN = /\b(?:blocked|suspended|banned|deactivated)\b|account (?:is |has been )?disabled|\u8d26\u53f7.{0,6}(?:\u5c01\u7981|\u505c\u7528|\u51bb\u7ed3)/i;
-    MODEL_MISSING_PATTERN = /model[_ ]not[_ ]found|no such model|unknown model|invalid model|model\b[^.]{0,80}\b(?:does not exist|not found|not exist|is not supported|is not available|has been deprecated|decommissioned)|\u6a21\u578b.{0,10}(?:\u4e0d\u5b58\u5728|\u5df2\u4e0b\u7ebf)/i;
-    QUOTA_PATTERN = /"code"\s*:\s*"?1308(?![0-9])|insufficient[_ ](?:quota|balance|credit|funds)|exceeded your current quota|quota exceeded|\u4f59\u989d\u4e0d\u8db3|\u6b20\u8d39|\u989d\u5ea6\u4e0d\u8db3/i;
-  }
-});
-
 // ../electron/src/main/lib/adapters/pi-context-budget.ts
 function runtimeContextText(text17) {
   return `<runtime_context>
@@ -71806,7 +71848,7 @@ function decryptApiKey(channelId) {
 async function testChannel(channelId) {
   const channel2 = readConfig().channels.find((item) => item.id === channelId);
   if (!channel2) return { success: false, message: tr("\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728", "Provider not found") };
-  return testChannelDirect({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey: decryptKey(channel2.apiKey) });
+  return testChannelDirect({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey: decryptKey(channel2.apiKey), local: isLocalChannel(channel2) });
 }
 function recordImageInputCheck(snapshot2, modelId, supported3) {
   return withChannelsLock(() => {
@@ -71872,11 +71914,23 @@ async function fetchModels(input, signal = AbortSignal.timeout(1e4), quiet = fal
         return { success: false, message: tr(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${input.provider}`, `Unsupported provider: ${input.provider}`), models: [] };
     }
   } catch (error50) {
-    const raw = error50 instanceof Error ? error50.message : tr("\u672A\u77E5\u9519\u8BEF", "Unknown error");
+    const cause = fetchFailureCause(error50);
+    const raw = `${error50 instanceof Error ? error50.message : tr("\u672A\u77E5\u9519\u8BEF", "Unknown error")}${cause ? tr(`\uFF08${cause}\uFF09`, ` (${cause})`) : ""}`;
     const message8 = input.apiKey ? raw.split(input.apiKey).join("[REDACTED]") : raw;
+    const category = cause ? transportErrorCategory(cause) : void 0;
+    const local = (category === "connection" || category === "proxy_tunnel") && (input.local === true || isLocalModelEndpoint(input.baseUrl));
+    const reason = local ? tr(
+      "\u8BF7\u786E\u8BA4\u672C\u5730\u6A21\u578B\u670D\u52A1\u5DF2\u7ECF\u542F\u52A8\u3001\u5730\u5740\u5E26\u4E0A\u7AEF\u53E3\uFF1B\u670D\u52A1\u5728\u53E6\u4E00\u53F0\u7535\u8111\u4E0A\u65F6\uFF0C\u90A3\u8FB9\u8981\u76D1\u542C 0.0.0.0\uFF0C\u4E0D\u80FD\u53EA\u76D1\u542C\u672C\u673A",
+      "Make sure the local model server is running and the address includes the port. If it runs on another computer, it must listen on 0.0.0.0, not only on localhost"
+    ) : TRANSPORT_REASONS[category ?? ""]?.();
     if (!quiet) console.error("[\u6E20\u9053\u7BA1\u7406] \u62C9\u53D6\u6A21\u578B\u5217\u8868\u5931\u8D25:", message8);
-    return { success: false, message: tr(`\u65E0\u6CD5\u83B7\u53D6\u6A21\u578B\uFF1A${message8}`, `Couldn\u2019t fetch models: ${message8}`), models: [] };
+    return { success: false, message: tr(`\u65E0\u6CD5\u83B7\u53D6\u6A21\u578B\uFF1A${message8}${reason ? `\u3002${reason}` : ""}`, `Couldn\u2019t fetch models: ${message8}${reason ? `. ${reason}` : ""}`), models: [] };
   }
+}
+function fetchFailureCause(error50) {
+  const cause = error50?.cause;
+  const text17 = cause?.message || cause?.errors?.[0]?.message || cause?.code;
+  return typeof text17 === "string" && text17 ? text17 : void 0;
 }
 async function fetchAnthropicCompatibleModels(baseUrl, apiKey, proxyUrl, provider = "anthropic", signal) {
   let url4 = normalizeAnthropicBaseUrl(baseUrl, provider);
@@ -72148,6 +72202,8 @@ var init_channel_manager = __esm({
     init_safe_file();
     init_file_lock();
     init_proxy_fetch();
+    init_agent_error_utils();
+    init_error_patterns();
     init_proxy_settings_service();
     init_chat_tool_config();
     init_src2();
@@ -484878,37 +484934,46 @@ function transcribeMedia(path13, options2 = {}, deps2 = defaultDeps2) {
   return serial(async () => {
     await checkFile(path13, AUDIO_MAX_BYTES);
     const maxSeconds = options2.maxMinutes === void 0 ? MEDIA_MAX_SECONDS : options2.maxMinutes * 60;
+    const cut3 = options2.cut === true;
     const model2 = await deps2.pickModel(options2.modelId, options2.language);
     if (!model2) throw toolError({ code: "speech_model_missing" });
     const service7 = await deps2.speech();
-    return deps2.decode(path13, maxSeconds, options2.signal, async (audio) => {
+    return deps2.decode(path13, cut3 ? Infinity : maxSeconds, options2.signal, async (audio) => {
+      const total = () => Math.min(audio.duration(), cut3 ? maxSeconds : Infinity);
       const opening = audio.duration();
-      if (audio.exact && opening > maxSeconds) throw tooLong(path13, opening, maxSeconds);
+      if (!cut3 && audio.exact && opening > maxSeconds) throw tooLong(path13, opening, maxSeconds);
+      const limit2 = { truncated: false };
       async function* chunks() {
-        for await (const samples of withinLimit(audio.chunks(), path13, maxSeconds)) {
+        for await (const samples of withinLimit(audio.chunks(), path13, maxSeconds, cut3 ? limit2 : void 0)) {
           if (options2.signal?.aborted) return;
           yield samples;
         }
       }
-      const result8 = await recognize(service7, model2, chunks(), audio.exact ? opening : maxSeconds, options2.signal, (seconds) => options2.onProgress?.(Math.min(seconds, audio.duration()), audio.duration()));
-      return { ...result8, duration: audio.duration() };
+      const result8 = await recognize(service7, model2, chunks(), audio.exact ? Math.min(opening, maxSeconds) : maxSeconds, options2.signal, (seconds) => options2.onProgress?.(Math.min(seconds, total()), total()));
+      return { ...result8, duration: limit2.truncated ? maxSeconds : audio.duration(), ...limit2.truncated && { truncated: true } };
     });
   }, options2.signal);
 }
-async function* withinLimit(chunks, path13, maxSeconds) {
+async function* withinLimit(chunks, path13, maxSeconds, cut3) {
+  const max3 = Math.floor(maxSeconds * LOCAL_SAMPLE_RATE);
   let given = 0;
   for await (const samples of chunks) {
-    given += samples.length / LOCAL_SAMPLE_RATE;
-    if (given > maxSeconds) throw tooLong(path13, given, maxSeconds);
+    if (given + samples.length > max3) {
+      if (!cut3) throw tooLong(path13, (given + samples.length) / LOCAL_SAMPLE_RATE, maxSeconds);
+      cut3.truncated = true;
+      if (max3 > given) yield samples.subarray(0, max3 - given);
+      return;
+    }
+    given += samples.length;
     yield samples;
   }
 }
-function decodeAudio(path13, maxSeconds, signal, use2) {
+function decodeAudio(path13, maxSeconds, signal, use2, cut3 = { truncated: false }) {
   return serial(async () => {
     await checkFile(path13, AUDIO_MAX_BYTES);
-    return decodeInWindow(path13, maxSeconds, signal, (audio) => {
-      if (audio.exact && audio.duration() > maxSeconds) throw tooLong(path13, audio.duration(), maxSeconds);
-      return use2({ exact: audio.exact, duration: () => audio.duration(), chunks: () => withinLimit(audio.chunks(), path13, maxSeconds) });
+    return decodeInWindow(path13, Infinity, signal, (audio) => {
+      const duration5 = () => Math.min(audio.duration(), maxSeconds);
+      return use2({ exact: audio.exact, duration: duration5, chunks: () => withinLimit(audio.chunks(), path13, maxSeconds, cut3) });
     });
   }, signal);
 }
@@ -484923,8 +484988,7 @@ async function* decodeAudioChunks(path13, opts, deps2 = defaultDeps2) {
   });
   const job = serial(async () => {
     await checkFile(path13, AUDIO_MAX_BYTES);
-    await deps2.decode(path13, opts.maxSeconds, opts.signal, async (audio) => {
-      if (audio.exact && audio.duration() > opts.maxSeconds) throw tooLong(path13, audio.duration(), opts.maxSeconds);
+    await deps2.decode(path13, Infinity, opts.signal, async (audio) => {
       opened(audio);
       await released;
     });
@@ -484936,7 +485000,7 @@ async function* decodeAudioChunks(path13, opts, deps2 = defaultDeps2) {
     ended.catch(() => {
     });
     const audio = await Promise.race([audioReady, ended]);
-    const source = withinLimit(audio.chunks(), path13, opts.maxSeconds);
+    const source = withinLimit(audio.chunks(), path13, opts.maxSeconds, { truncated: false });
     for (; ; ) {
       const next = await Promise.race([source.next(), ended]);
       if (next.done) break;
@@ -546536,6 +546600,10 @@ function asWhiteboard(doc3) {
   page.attrs = { ...page.attrs, board: true };
   for (const item of page.content ?? []) if (item.type === "slideLine" && !item.attrs?.route) item.attrs = { ...item.attrs, route: "elbow" };
   for (const item of page.content ?? []) {
+    const style = item.attrs?.style ?? {};
+    if (item.type === "slideShape" && typeof item.attrs?.label === "string" && style.background === void 0) item.attrs = { ...item.attrs, style: { ...BOARD_SECTION_STYLE, ...style } };
+  }
+  for (const item of page.content ?? []) {
     const inside6 = boardClamped(item.type, item.attrs ?? {});
     if (inside6) item.attrs = inside6;
   }
@@ -559737,8 +559805,8 @@ var require_copy_sync = __commonJS({
       return getStats(destStat, src, dest, opts);
     }
     function getStats(destStat, src, dest, opts) {
-      const statSync48 = opts.dereference ? fs11.statSync : fs11.lstatSync;
-      const srcStat = statSync48(src);
+      const statSync47 = opts.dereference ? fs11.statSync : fs11.lstatSync;
+      const srcStat = statSync47(src);
       if (srcStat.isDirectory()) return onDir(srcStat, destStat, src, dest, opts);
       else if (srcStat.isFile() || srcStat.isCharacterDevice() || srcStat.isBlockDevice()) return onFile(srcStat, destStat, src, dest, opts);
       else if (srcStat.isSymbolicLink()) return onLink(destStat, src, dest, opts);
@@ -581410,6 +581478,7 @@ async function transcribeWithSystem(path13, opts, deps2 = defaultDeps4) {
       throw helperFailure("ready_timeout", tail());
     }
     let duration5 = 0;
+    const cut3 = { truncated: false };
     if (started3) {
       duration5 = await deps2.decode(path13, opts.maxSeconds, signal, async (audio) => {
         let written = 0;
@@ -581423,13 +581492,13 @@ async function transcribeWithSystem(path13, opts, deps2 = defaultDeps4) {
           opts.onProgress?.(Math.min(written, audio.duration()), audio.duration());
         }
         return audio.duration();
-      });
+      }, cut3);
     }
     proc.stdin?.end();
     const { code: code2 } = await exit3;
     if (stopping2 || signal?.aborted) throw abortError2();
     if (code2 !== 0 || !done2) throw helperFailure(error50, tail());
-    return { segments: segments.sort((a, b3) => a.start - b3.start), duration: duration5, modelId: SYSTEM_SPEECH_MODEL };
+    return { segments: segments.sort((a, b3) => a.start - b3.start), duration: duration5, modelId: SYSTEM_SPEECH_MODEL, ...cut3.truncated && { truncated: true } };
   } catch (caught) {
     clearTimeout(readyTimer);
     await stop();
@@ -581473,12 +581542,6 @@ function mergeTrackSegments(mic, system) {
     ...mic.map((segment) => ({ ...segment, track: "mic", speaker: "me" })),
     ...system.map((segment) => ({ ...segment, track: "system", speaker: "others" }))
   ].sort((a, b3) => a.start - b3.start);
-}
-function rejectTooLong(paths) {
-  for (const path13 of paths) {
-    const minutes = (0, import_node_fs124.statSync)(path13).size / MAX_OPUS_BYTES_PER_MINUTE;
-    if (minutes > MEETING_MAX_MINUTES) throw toolError({ code: "media_too_long", params: { name: (0, import_node_path135.basename)(path13), minutes: Math.ceil(minutes), limit: MEETING_MAX_MINUTES } });
-  }
 }
 function resolveSystemModel(status) {
   if (!status.available || !status.supported) throw meetingError(MEETING_ERRORS.SYSTEM_SPEECH_UNAVAILABLE, status.available ? tr("\u7CFB\u7EDF\u8BED\u97F3\u8BC6\u522B\u4E0D\u652F\u6301\u8FD9\u4E2A\u8BED\u8A00\uFF0C\u8BF7\u5728\u4F1A\u8BAE\u8BBE\u7F6E\u91CC\u6362\u4E00\u4E2A\u8BED\u8A00\u6216\u6A21\u578B\u3002", "System speech recognition doesn\u2019t support this language. Choose another language or model in meeting settings.") : tr("\u8FD9\u53F0\u7535\u8111\u7528\u4E0D\u4E86\u7CFB\u7EDF\u8BED\u97F3\u8BC6\u522B\uFF0C\u8BF7\u5728\u4F1A\u8BAE\u8BBE\u7F6E\u91CC\u6539\u9009\u672C\u5730\u6A21\u578B\u3002", "System speech recognition isn\u2019t available on this Mac. Choose a local model in meeting settings."));
@@ -581530,10 +581593,10 @@ async function transcribeMeeting(id19, opts = {}, deps2 = defaultDeps5()) {
   const share = MEETING_TRANSCRIBE_SHARE;
   setStatus({ status: "transcribing", error: void 0, trackErrors: void 0 });
   try {
-    rejectTooLong(tracks2.map((track) => store.audioPath(id19, track)));
     const failures2 = [];
     const byTrack = { mic: [], system: [] };
     const trackErrors = {};
+    let truncated = false;
     for (const [index5, track] of tracks2.entries()) {
       try {
         const path13 = store.audioPath(id19, track);
@@ -581542,11 +581605,13 @@ async function transcribeMeeting(id19, opts = {}, deps2 = defaultDeps5()) {
         const result8 = modelId === SYSTEM_SPEECH_MODEL ? await (deps2.transcribeSystem ?? transcribeSystemDefault)(path13, { maxSeconds: MEETING_MAX_MINUTES * 60, signal: opts.signal, onProgress }) : await deps2.transcribe(path13, {
           modelId,
           maxMinutes: MEETING_MAX_MINUTES,
+          cut: true,
           signal: opts.signal,
           language: await (deps2.language ?? (() => defaultLanguage(modelId)))(),
           onProgress
         });
         byTrack[track] = result8.segments;
+        if (result8.truncated) truncated = true;
       } catch (error50) {
         if (opts.signal?.aborted) throw error50;
         trackErrors[track] = errorCodeOf(error50);
@@ -581560,8 +581625,10 @@ async function transcribeMeeting(id19, opts = {}, deps2 = defaultDeps5()) {
       return fixes.length ? { ...segment, fixes } : segment;
     });
     store.writeSegments(id19, segments);
-    store.update(id19, { speakers: void 0, speakerGuesses: void 0, diarizedAt: void 0, trackErrors: failures2.length ? trackErrors : void 0 });
-    let done2 = { status: "transcribed", speakers: void 0, speakerGuesses: void 0, diarizedAt: void 0, trackErrors: failures2.length ? trackErrors : void 0 };
+    const others = (store.get(id19)?.meta.warnings ?? []).filter((code2) => code2 !== "too_long");
+    const warnings2 = truncated ? addMeetingWarning(others, "too_long") : others.length ? others : void 0;
+    store.update(id19, { speakers: void 0, speakerGuesses: void 0, diarizedAt: void 0, trackErrors: failures2.length ? trackErrors : void 0, warnings: warnings2 });
+    let done2 = { status: "transcribed", speakers: void 0, speakerGuesses: void 0, diarizedAt: void 0, trackErrors: failures2.length ? trackErrors : void 0, warnings: warnings2 };
     if (speakers) {
       try {
         segments = await assignMeetingSpeakers(id19, segments, {
@@ -581589,19 +581656,16 @@ function transcribeMeetingShared(id19, opts, deps2) {
   inFlight2.set(id19, run3);
   return run3;
 }
-var import_node_fs124, import_node_path135, MAX_OPUS_BYTES_PER_MINUTE, transcribeSystemDefault, defaultDeps5, inFlight2;
+var transcribeSystemDefault, defaultDeps5, inFlight2;
 var init_meeting_transcriber = __esm({
   "../electron/src/main/lib/meeting-transcriber.ts"() {
     "use strict";
-    import_node_fs124 = require("node:fs");
-    import_node_path135 = require("node:path");
     init_src();
     init_media_reader();
     init_meeting_store();
     init_meeting_vocabulary();
     init_meeting_speakers();
     init_system_speech();
-    MAX_OPUS_BYTES_PER_MINUTE = 16e4 / 8 * 60;
     transcribeSystemDefault = async (path13, opts) => transcribeWithSystem(path13, { ...opts, locale: await meetingSystemLocale() });
     defaultDeps5 = () => ({ store: getMeetingStore(), transcribe: transcribeMedia, resolveModel, speakers: defaultSpeakerDeps() });
     inFlight2 = /* @__PURE__ */ new Map();
@@ -582160,6 +582224,7 @@ function resetEndHint(startedAt) {
   sendToWindow(MEETING_IPC_CHANNELS.CAPTION_END_HINT, null);
   resizeCaptionWindow();
   lastSoundAt = startedAt;
+  lastOthersSoundAt = 0;
   dismissedAt = 0;
 }
 async function pickStreamingModel() {
@@ -582292,7 +582357,10 @@ function showMeetingCaptions(meetingId, startedAt = Date.now()) {
     clearWarnings();
     resetEndHint(startedAt);
     silenceTimer = setInterval(() => {
-      if (!endHint && shouldHintSilence(lastSoundAt, dismissedAt, Date.now())) setMeetingEndHint({ kind: "silence" });
+      if (endHint) return;
+      const now = Date.now();
+      if (shouldHintSilence(lastSoundAt, dismissedAt, now)) setMeetingEndHint({ kind: "silence" });
+      else if (shouldHintOthersQuiet(lastOthersSoundAt, dismissedAt, now)) setMeetingEndHint({ kind: "others" });
     }, SILENCE_CHECK_MS);
     windowEnabled = getSettings().meetings?.showCaptionWindow !== false;
   }
@@ -582350,6 +582418,10 @@ function feedMeetingCaption(meetingId, track, pcm) {
   if (rms >= MEETING_SILENCE_RMS) {
     lastSoundAt = Date.now();
     if (endHint?.kind === "silence") setMeetingEndHint(null);
+    if (track === "system") {
+      lastOthersSoundAt = lastSoundAt;
+      if (endHint?.kind === "others") setMeetingEndHint(null);
+    }
   }
   if (!windowEnabled) return;
   void startSession(meetingId, track);
@@ -582420,7 +582492,7 @@ function registerMeetingCaptionStop() {
     setMeetingEndHint(null);
   });
 }
-var import_electron26, import_path9, sessionId, captionWindow, lastBounds, dragged, windowEnabled, dragFrom, activeMeetingId, meetingStartedAt, liveSession, offToggles, started, captionStatus, RETRY_MS, NO_MODEL_RETRY_MS, noModelAt, endHint, warnings, warningFresh, warningTimer, WARNING_EXPAND_MS, lastSoundAt, dismissedAt, silenceTimer, SILENCE_CHECK_MS, levels, lastLevelSentAt, LEVEL_INTERVAL_MS, LEVEL_STALE_MS, toggleListeners, pendingPrefs, pendingWrite, prefsTimer, PREFS_SAVE_DELAY_MS, targetSize, captionDock, isDragDelta;
+var import_electron26, import_path9, sessionId, captionWindow, lastBounds, dragged, windowEnabled, dragFrom, activeMeetingId, meetingStartedAt, liveSession, offToggles, started, captionStatus, RETRY_MS, NO_MODEL_RETRY_MS, noModelAt, endHint, warnings, warningFresh, warningTimer, WARNING_EXPAND_MS, lastSoundAt, lastOthersSoundAt, dismissedAt, silenceTimer, SILENCE_CHECK_MS, levels, lastLevelSentAt, LEVEL_INTERVAL_MS, LEVEL_STALE_MS, toggleListeners, pendingPrefs, pendingWrite, prefsTimer, PREFS_SAVE_DELAY_MS, targetSize, captionDock, isDragDelta;
 var init_meeting_caption_window = __esm({
   "../electron/src/main/lib/meeting-caption-window.ts"() {
     "use strict";
@@ -582454,6 +582526,7 @@ var init_meeting_caption_window = __esm({
     warningTimer = null;
     WARNING_EXPAND_MS = 1e4;
     lastSoundAt = 0;
+    lastOthersSoundAt = 0;
     dismissedAt = 0;
     silenceTimer = null;
     SILENCE_CHECK_MS = 3e4;
@@ -582838,8 +582911,8 @@ function createMeetingDetector(deps2) {
 }
 function helperPath2() {
   if (process.platform !== "darwin") return null;
-  const path13 = import_electron28.app.isPackaged ? (0, import_node_path136.join)(process.resourcesPath, "meeting-helper", "cortex-meeting-helper") : (0, import_node_path136.join)(import_electron28.app.getAppPath(), "vendor", "meeting-helper", "cortex-meeting-helper");
-  return (0, import_node_fs125.existsSync)(path13) ? path13 : null;
+  const path13 = import_electron28.app.isPackaged ? (0, import_node_path135.join)(process.resourcesPath, "meeting-helper", "cortex-meeting-helper") : (0, import_node_path135.join)(import_electron28.app.getAppPath(), "vendor", "meeting-helper", "cortex-meeting-helper");
+  return (0, import_node_fs124.existsSync)(path13) ? path13 : null;
 }
 function startMeetingDetector() {
   if (detectEnabled()) detector.start();
@@ -582856,14 +582929,14 @@ function onMeetingEnded(cb2) {
     endedListeners.delete(cb2);
   };
 }
-var import_electron28, import_node_child_process18, import_node_fs125, import_node_path136, DETECTOR_MAX_RESTARTS, DETECTOR_RESTART_MS, TICK_MS2, MAX_LINE_CHARS, endedListeners, detector, detectEnabled;
+var import_electron28, import_node_child_process18, import_node_fs124, import_node_path135, DETECTOR_MAX_RESTARTS, DETECTOR_RESTART_MS, TICK_MS2, MAX_LINE_CHARS, endedListeners, detector, detectEnabled;
 var init_meeting_detector = __esm({
   "../electron/src/main/lib/meeting-detector.ts"() {
     "use strict";
     import_electron28 = __toESM(require_electron(), 1);
     import_node_child_process18 = require("node:child_process");
-    import_node_fs125 = require("node:fs");
-    import_node_path136 = require("node:path");
+    import_node_fs124 = require("node:fs");
+    import_node_path135 = require("node:path");
     init_src();
     init_settings_service();
     init_meeting_store();
@@ -583131,7 +583204,7 @@ async function importTranscript() {
   if (picked.canceled || !path13) return null;
   const info2 = await (0, import_promises67.stat)(path13);
   if (!info2.isFile()) throw meetingError(MEETING_ERRORS.IMPORT_UNSUPPORTED, tr("\u9009\u7684\u4E0D\u662F\u6587\u4EF6", "That isn\u2019t a file"));
-  const name2 = (0, import_node_path137.basename)(path13);
+  const name2 = (0, import_node_path136.basename)(path13);
   checkImportFile(name2, info2.size);
   const text17 = checkImportText(name2.toLowerCase().endsWith(".docx") ? await extractTextFromFile(path13).catch((error50) => {
     console.error("[\u4F1A\u8BAE] \u8BFB\u53D6 DOCX \u6587\u5B57\u7A3F\u5931\u8D25:", error50);
@@ -583437,13 +583510,13 @@ function registerMeetingIpcHandlers() {
     }
   });
 }
-var import_electron30, import_promises67, import_node_path137, workspaceExists, PRIVACY_URLS, isMeetingCaptureArmed, summaryReadable;
+var import_electron30, import_promises67, import_node_path136, workspaceExists, PRIVACY_URLS, isMeetingCaptureArmed, summaryReadable;
 var init_meeting_ipc = __esm({
   "../electron/src/main/meeting-ipc.ts"() {
     "use strict";
     import_electron30 = __toESM(require_electron(), 1);
     import_promises67 = require("node:fs/promises");
-    import_node_path137 = require("node:path");
+    import_node_path136 = require("node:path");
     init_src();
     init_knowledge_ipc();
     init_meeting_search();
@@ -583772,13 +583845,13 @@ function hasMcpAppStatePage(messages, target) {
 function isTopLevelMcpAppPage(messages, target) {
   return hasMcpAppStatePage(messages.filter((message8) => message8.type === "user" && !message8.parent_tool_use_id), target);
 }
-var import_node_fs126, import_node_crypto146, import_node_path138, hash13, keyOf2, failure5, isRecord9, McpAppStateStore;
+var import_node_fs125, import_node_crypto146, import_node_path137, hash13, keyOf2, failure5, isRecord9, McpAppStateStore;
 var init_mcp_app_state = __esm({
   "../electron/src/main/lib/mcp-app-state.ts"() {
     "use strict";
-    import_node_fs126 = require("node:fs");
+    import_node_fs125 = require("node:fs");
     import_node_crypto146 = require("node:crypto");
-    import_node_path138 = require("node:path");
+    import_node_path137 = require("node:path");
     init_src();
     init_file_lock();
     hash13 = (value2) => (0, import_node_crypto146.createHash)("sha256").update(value2).digest("hex");
@@ -583848,33 +583921,33 @@ var init_mcp_app_state = __esm({
       /** 只在 profile 下按宿主散列出的身份存文件；不接收页面路径，不跟随子目录符号链接。 */
       path(target) {
         const root3 = this.deps.directory;
-        (0, import_node_fs126.mkdirSync)(root3, { recursive: true, mode: 448 });
-        const actual = (0, import_node_fs126.realpathSync)(root3);
-        if (actual !== (0, import_node_path138.join)((0, import_node_fs126.realpathSync)((0, import_node_path138.dirname)(root3)), (0, import_node_path138.basename)(root3))) throw new Error("\u9875\u9762\u72B6\u6001\u76EE\u5F55\u65E0\u6548");
-        const directory = (0, import_node_path138.join)(actual, hash13(target.sessionId));
-        (0, import_node_fs126.mkdirSync)(directory, { recursive: true, mode: 448 });
-        if ((0, import_node_fs126.realpathSync)(directory) !== directory) throw new Error("\u9875\u9762\u72B6\u6001\u76EE\u5F55\u65E0\u6548");
-        return (0, import_node_path138.join)(directory, `${hash13(keyOf2(target))}.${target.resourceHash}.json`);
+        (0, import_node_fs125.mkdirSync)(root3, { recursive: true, mode: 448 });
+        const actual = (0, import_node_fs125.realpathSync)(root3);
+        if (actual !== (0, import_node_path137.join)((0, import_node_fs125.realpathSync)((0, import_node_path137.dirname)(root3)), (0, import_node_path137.basename)(root3))) throw new Error("\u9875\u9762\u72B6\u6001\u76EE\u5F55\u65E0\u6548");
+        const directory = (0, import_node_path137.join)(actual, hash13(target.sessionId));
+        (0, import_node_fs125.mkdirSync)(directory, { recursive: true, mode: 448 });
+        if ((0, import_node_fs125.realpathSync)(directory) !== directory) throw new Error("\u9875\u9762\u72B6\u6001\u76EE\u5F55\u65E0\u6548");
+        return (0, import_node_path137.join)(directory, `${hash13(keyOf2(target))}.${target.resourceHash}.json`);
       }
       read(path13, resourceHash) {
         try {
-          const info2 = (0, import_node_fs126.lstatSync)(path13, { throwIfNoEntry: false });
+          const info2 = (0, import_node_fs125.lstatSync)(path13, { throwIfNoEntry: false });
           if (!info2) return { version: 1, resourceHash, revision: 0, state: null };
           if (!info2.isFile() || info2.isSymbolicLink()) return "corrupt";
-          const fd2 = (0, import_node_fs126.openSync)(path13, import_node_fs126.constants.O_RDONLY | (import_node_fs126.constants.O_NOFOLLOW ?? 0) | (import_node_fs126.constants.O_NONBLOCK ?? 0));
+          const fd2 = (0, import_node_fs125.openSync)(path13, import_node_fs125.constants.O_RDONLY | (import_node_fs125.constants.O_NOFOLLOW ?? 0) | (import_node_fs125.constants.O_NONBLOCK ?? 0));
           let value2;
           try {
-            if (!(0, import_node_fs126.fstatSync)(fd2).isFile() || (0, import_node_fs126.realpathSync)(path13) !== path13) return "corrupt";
+            if (!(0, import_node_fs125.fstatSync)(fd2).isFile() || (0, import_node_fs125.realpathSync)(path13) !== path13) return "corrupt";
             const buffer = Buffer.alloc(MCP_APP_STATE_MAX_BYTES + 1025);
             let count4 = 0, read2 = 0;
             do {
-              read2 = (0, import_node_fs126.readSync)(fd2, buffer, count4, buffer.length - count4, count4);
+              read2 = (0, import_node_fs125.readSync)(fd2, buffer, count4, buffer.length - count4, count4);
               count4 += read2;
             } while (read2 && count4 < buffer.length);
             if (count4 === buffer.length) return "corrupt";
             value2 = JSON.parse(buffer.subarray(0, count4).toString("utf8"));
           } finally {
-            (0, import_node_fs126.closeSync)(fd2);
+            (0, import_node_fs125.closeSync)(fd2);
           }
           if (!isRecord9(value2) || value2.version !== 1 || value2.resourceHash !== resourceHash || !Number.isSafeInteger(value2.revision) || value2.revision < 1 || !("state" in value2) || mcpAppStateJson(value2.state) === null) return "corrupt";
           return { version: 1, resourceHash, revision: value2.revision, state: value2.state };
@@ -583907,20 +583980,20 @@ var init_mcp_app_state = __esm({
             const previous4 = this.read(path13, lease.target.resourceHash);
             if (previous4 === "corrupt") return failure5("corrupt");
             if (previous4.revision !== revision3) return failure5("conflict");
-            const temporary = (0, import_node_path138.join)((0, import_node_path138.dirname)(path13), `.${(0, import_node_crypto146.randomUUID)()}.tmp`);
+            const temporary = (0, import_node_path137.join)((0, import_node_path137.dirname)(path13), `.${(0, import_node_crypto146.randomUUID)()}.tmp`);
             try {
-              const fd2 = (0, import_node_fs126.openSync)(temporary, import_node_fs126.constants.O_WRONLY | import_node_fs126.constants.O_CREAT | import_node_fs126.constants.O_EXCL | (import_node_fs126.constants.O_NOFOLLOW ?? 0), 384);
+              const fd2 = (0, import_node_fs125.openSync)(temporary, import_node_fs125.constants.O_WRONLY | import_node_fs125.constants.O_CREAT | import_node_fs125.constants.O_EXCL | (import_node_fs125.constants.O_NOFOLLOW ?? 0), 384);
               try {
-                (0, import_node_fs126.writeFileSync)(fd2, JSON.stringify({ version: 1, resourceHash: lease.target.resourceHash, revision: revision3 + 1, state: frozen }));
-                (0, import_node_fs126.fsyncSync)(fd2);
+                (0, import_node_fs125.writeFileSync)(fd2, JSON.stringify({ version: 1, resourceHash: lease.target.resourceHash, revision: revision3 + 1, state: frozen }));
+                (0, import_node_fs125.fsyncSync)(fd2);
               } finally {
-                (0, import_node_fs126.closeSync)(fd2);
+                (0, import_node_fs125.closeSync)(fd2);
               }
-              if (!this.current(lease) || (0, import_node_fs126.realpathSync)((0, import_node_path138.dirname)(path13)) !== (0, import_node_path138.dirname)(path13)) return failure5("stale");
-              (0, import_node_fs126.renameSync)(temporary, path13);
+              if (!this.current(lease) || (0, import_node_fs125.realpathSync)((0, import_node_path137.dirname)(path13)) !== (0, import_node_path137.dirname)(path13)) return failure5("stale");
+              (0, import_node_fs125.renameSync)(temporary, path13);
               return { ok: true, persisted: true, revision: revision3 + 1 };
             } finally {
-              (0, import_node_fs126.rmSync)(temporary, { force: true });
+              (0, import_node_fs125.rmSync)(temporary, { force: true });
             }
           }, { recoverDeadOwner: true });
         } catch {
@@ -583962,13 +584035,13 @@ function parseMcpAppDownloadSource(value2) {
   if (value2.encoding === "base64" && length % 4 !== 0) return null;
   return { kind: "embedded", encoding: value2.encoding, length, size: size2, name: name2 };
 }
-var import_node_fs127, import_node_crypto147, import_node_path139, fail3, DownloadError2, isRecord10, signature3, McpAppDownloads;
+var import_node_fs126, import_node_crypto147, import_node_path138, fail3, DownloadError2, isRecord10, signature3, McpAppDownloads;
 var init_mcp_app_download = __esm({
   "../electron/src/main/lib/mcp-app-download.ts"() {
     "use strict";
-    import_node_fs127 = require("node:fs");
+    import_node_fs126 = require("node:fs");
     import_node_crypto147 = require("node:crypto");
-    import_node_path139 = require("node:path");
+    import_node_path138 = require("node:path");
     init_src();
     fail3 = (reason) => ({ ok: false, reason });
     DownloadError2 = class extends Error {
@@ -583979,7 +584052,7 @@ var init_mcp_app_download = __esm({
     };
     isRecord10 = (value2) => typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
     signature3 = (path13) => {
-      const stat17 = (0, import_node_fs127.lstatSync)(path13, { bigint: true, throwIfNoEntry: false });
+      const stat17 = (0, import_node_fs126.lstatSync)(path13, { bigint: true, throwIfNoEntry: false });
       if (!stat17) return null;
       if (!stat17.isFile() || stat17.isSymbolicLink()) throw new Error("\u4E0B\u8F7D\u76EE\u6807\u4E0D\u662F\u666E\u901A\u6587\u4EF6");
       return `${stat17.dev}:${stat17.ino}:${stat17.size}:${stat17.mtimeNs}:${stat17.ctimeNs}`;
@@ -584034,10 +584107,10 @@ var init_mcp_app_download = __esm({
             return fail3("canceled");
           }
           if (page.signal.aborted || !page.current() || !await this.deps.authorize(owner, lease)) return fail3("denied");
-          const parent = (0, import_node_fs127.realpathSync)((0, import_node_path139.dirname)(chosen)), target = (0, import_node_path139.join)(parent, (0, import_node_path139.basename)(chosen));
+          const parent = (0, import_node_fs126.realpathSync)((0, import_node_path138.dirname)(chosen)), target = (0, import_node_path138.join)(parent, (0, import_node_path138.basename)(chosen));
           const previous4 = signature3(target);
-          const temporary = (0, import_node_path139.join)(parent, `.cortex-download-${(0, import_node_crypto147.randomUUID)()}.tmp`);
-          const fd2 = (0, import_node_fs127.openSync)(temporary, import_node_fs127.constants.O_WRONLY | import_node_fs127.constants.O_CREAT | import_node_fs127.constants.O_EXCL | (import_node_fs127.constants.O_NOFOLLOW ?? 0), 384);
+          const temporary = (0, import_node_path138.join)(parent, `.cortex-download-${(0, import_node_crypto147.randomUUID)()}.tmp`);
+          const fd2 = (0, import_node_fs126.openSync)(temporary, import_node_fs126.constants.O_WRONLY | import_node_fs126.constants.O_CREAT | import_node_fs126.constants.O_EXCL | (import_node_fs126.constants.O_NOFOLLOW ?? 0), 384);
           const operation = (0, import_node_crypto147.randomUUID)(), controller3 = new AbortController();
           const abort = () => {
             controller3.abort();
@@ -584083,12 +584156,12 @@ var init_mcp_app_download = __esm({
         download2.dispose();
         this.busy.delete(download2.lease);
         try {
-          (0, import_node_fs127.closeSync)(download2.fd);
+          (0, import_node_fs126.closeSync)(download2.fd);
         } catch {
           console.warn("[MCP Apps] \u5173\u95ED\u4E0B\u8F7D\u4E34\u65F6\u6587\u4EF6\u5931\u8D25");
         }
         try {
-          (0, import_node_fs127.rmSync)(download2.temporary, { force: true });
+          (0, import_node_fs126.rmSync)(download2.temporary, { force: true });
         } catch {
           console.warn("[MCP Apps] \u6E05\u7406\u4E0B\u8F7D\u4E34\u65F6\u6587\u4EF6\u5931\u8D25");
         }
@@ -584096,7 +584169,7 @@ var init_mcp_app_download = __esm({
       writeBytes(download2, bytes) {
         if (download2.signal.aborted || !download2.current()) throw new DownloadError2("denied");
         if (download2.bytes + bytes.byteLength > MCP_APP_DOWNLOAD_MAX_BYTES) throw new DownloadError2("too-large");
-        (0, import_node_fs127.writeFileSync)(download2.fd, bytes);
+        (0, import_node_fs126.writeFileSync)(download2.fd, bytes);
         download2.bytes += bytes.byteLength;
       }
       append(download2, chunk2, encoding) {
@@ -584152,10 +584225,10 @@ var init_mcp_app_download = __esm({
             }
           } else if (download2.chars !== download2.source.length || download2.bytes !== download2.source.size) return fail3("invalid");
           if (!await this.deps.authorize(owner, download2.lease) || download2.signal.aborted || !download2.current()) return fail3("denied");
-          if ((0, import_node_fs127.realpathSync)((0, import_node_path139.dirname)(download2.target)) !== (0, import_node_path139.dirname)(download2.target) || signature3(download2.target) !== download2.previous) return fail3("changed");
-          (0, import_node_fs127.fsyncSync)(download2.fd);
-          if (download2.previous === null) (0, import_node_fs127.linkSync)(download2.temporary, download2.target);
-          else (0, import_node_fs127.renameSync)(download2.temporary, download2.target);
+          if ((0, import_node_fs126.realpathSync)((0, import_node_path138.dirname)(download2.target)) !== (0, import_node_path138.dirname)(download2.target) || signature3(download2.target) !== download2.previous) return fail3("changed");
+          (0, import_node_fs126.fsyncSync)(download2.fd);
+          if (download2.previous === null) (0, import_node_fs126.linkSync)(download2.temporary, download2.target);
+          else (0, import_node_fs126.renameSync)(download2.temporary, download2.target);
           return { ok: true };
         } catch (error50) {
           return fail3(error50 instanceof DownloadError2 ? error50.reason : isRecord10(error50) && error50.reason === "too_large" ? "too-large" : download2.signal.aborted ? "canceled" : "failed");
@@ -584347,9 +584420,9 @@ function onCapabilitiesChanged(listener) {
   };
 }
 function changedPaths(root3, filename) {
-  const path13 = (0, import_node_path140.resolve)(root3, filename);
+  const path13 = (0, import_node_path139.resolve)(root3, filename);
   try {
-    return [path13, (0, import_node_fs128.realpathSync)(path13)];
+    return [path13, (0, import_node_fs127.realpathSync)(path13)];
   } catch {
     return [path13];
   }
@@ -584357,13 +584430,13 @@ function changedPaths(root3, filename) {
 function startWorkspaceWatcher(win) {
   mainWin = win;
   try {
-    (0, import_node_fs128.mkdirSync)(getStandaloneAgentSessionsRoot(), { recursive: true });
+    (0, import_node_fs127.mkdirSync)(getStandaloneAgentSessionsRoot(), { recursive: true });
     watchAttachedDirectory(getStandaloneAgentSessionsRoot());
   } catch (error50) {
     console.error("[\u5DE5\u4F5C\u533A\u76D1\u542C] \u72EC\u7ACB\u5BF9\u8BDD\u76EE\u5F55\u76D1\u542C\u542F\u52A8\u5931\u8D25:", error50);
   }
   const watchDir = getAgentWorkspacesDir();
-  if (!(0, import_node_fs128.existsSync)(watchDir)) {
+  if (!(0, import_node_fs127.existsSync)(watchDir)) {
     console.warn("[\u5DE5\u4F5C\u533A\u76D1\u542C] \u76EE\u5F55\u4E0D\u5B58\u5728\uFF0C\u8DF3\u8FC7:", watchDir);
     return;
   }
@@ -584376,7 +584449,7 @@ function startWorkspaceWatcher(win) {
     changedFiles.clear();
   };
   try {
-    watcher = (0, import_node_fs128.watch)(watchDir, { recursive: true }, (_eventType, filename) => {
+    watcher = (0, import_node_fs127.watch)(watchDir, { recursive: true }, (_eventType, filename) => {
       if (win.isDestroyed()) return;
       const normalizedFilename = (filename ?? "").replace(/\\/g, "/");
       const pathParts = normalizedFilename.split("/").filter(Boolean);
@@ -584418,7 +584491,7 @@ function startWorkspaceWatcher(win) {
   }
   try {
     let globalTimer = null;
-    globalWatcher = (0, import_node_fs128.watch)(getGlobalCapabilitiesDir(), { recursive: true }, () => {
+    globalWatcher = (0, import_node_fs127.watch)(getGlobalCapabilitiesDir(), { recursive: true }, () => {
       if (globalTimer) clearTimeout(globalTimer);
       globalTimer = setTimeout(() => {
         notifyMcpRuntimeChange();
@@ -584458,14 +584531,14 @@ function stopWorkspaceWatcher() {
 }
 function watchAttachedDirectory(dirPath) {
   if (attachedWatchers.has(dirPath)) return;
-  if (!(0, import_node_fs128.existsSync)(dirPath)) {
+  if (!(0, import_node_fs127.existsSync)(dirPath)) {
     if (!missingAttached.has(dirPath)) console.warn("[\u9644\u52A0\u76EE\u5F55\u76D1\u542C] \u76EE\u5F55\u4E0D\u5B58\u5728\uFF0C\u8DF3\u8FC7\uFF08\u540C\u4E00\u76EE\u5F55\u53EA\u8BB0\u4E00\u6B21\uFF09:", dirPath);
     missingAttached.add(dirPath);
     return;
   }
   missingAttached.delete(dirPath);
   try {
-    const w2 = (0, import_node_fs128.watch)(dirPath, { recursive: true }, (_event, filename) => {
+    const w2 = (0, import_node_fs127.watch)(dirPath, { recursive: true }, (_event, filename) => {
       if (!mainWin || mainWin.isDestroyed()) return;
       for (const path13 of changedPaths(dirPath, filename ?? "")) attachedChangedPaths.add(path13);
       if (attachedFilesTimer) clearTimeout(attachedFilesTimer);
@@ -584497,13 +584570,13 @@ function unwatchAttachedDirectory(dirPath) {
     console.log("[\u9644\u52A0\u76EE\u5F55\u76D1\u542C] \u5DF2\u505C\u6B62:", dirPath);
   }
 }
-var import_node_fs128, import_node_path140, capabilityListeners, notifyCapabilitiesChanged, DEBOUNCE_MS2, watcher, globalWatcher, clearWorkspaceTimers, attachedWatchers, missingAttached, attachedFilesTimer, mainWin, attachedChangedPaths;
+var import_node_fs127, import_node_path139, capabilityListeners, notifyCapabilitiesChanged, DEBOUNCE_MS2, watcher, globalWatcher, clearWorkspaceTimers, attachedWatchers, missingAttached, attachedFilesTimer, mainWin, attachedChangedPaths;
 var init_workspace_watcher = __esm({
   "../electron/src/main/lib/workspace-watcher.ts"() {
     "use strict";
     init_mcp_runtime_events();
-    import_node_fs128 = require("node:fs");
-    import_node_path140 = require("node:path");
+    import_node_fs127 = require("node:fs");
+    import_node_path139 = require("node:path");
     init_src();
     init_config_paths();
     capabilityListeners = /* @__PURE__ */ new Set();
@@ -584598,7 +584671,7 @@ function registerMcpAppIpcHandlers() {
     Promise.resolve().then(() => (init_config_paths(), config_paths_exports)),
     Promise.resolve().then(() => (init_agent_session_manager(), agent_session_manager_exports))
   ]).then(([{ getConfigDir: getConfigDir2 }, { getAgentSessionMeta: getAgentSessionMeta2, readAgentSessionHistory: readAgentSessionHistory2 }]) => new McpAppStateStore({
-    directory: (0, import_node_path141.join)(getConfigDir2(), "mcp-app-state"),
+    directory: (0, import_node_path140.join)(getConfigDir2(), "mcp-app-state"),
     hasPage: (target) => {
       const meta5 = getAgentSessionMeta2(target.sessionId);
       return !!meta5 && meta5.cola !== "im" && hasMcpAppStatePage(readAgentSessionHistory2(target.sessionId), target);
@@ -584820,13 +584893,13 @@ function registerMcpAppIpcHandlers() {
     return readMcpAppResource({ sessionId: sessionId2, server, uri }, await mcpAppDeps());
   });
 }
-var import_electron32, import_node_path141, isParam2, isRecord11, MAX_ARGUMENTS_CHARS, invalid5;
+var import_electron32, import_node_path140, isParam2, isRecord11, MAX_ARGUMENTS_CHARS, invalid5;
 var init_mcp_app_ipc = __esm({
   "../electron/src/main/mcp-app-ipc.ts"() {
     "use strict";
     init_src();
     import_electron32 = __toESM(require_electron(), 1);
-    import_node_path141 = require("node:path");
+    import_node_path140 = require("node:path");
     init_knowledge_ipc();
     init_mcp_app_load();
     init_mcp_app_state();
@@ -584850,13 +584923,13 @@ async function fetchIconify(args, signal) {
   const result8 = await safeWebFetch(url4.toString(), { proxyUrl: await getEffectiveProxyUrl(true), maxBytes: 8 * 1024 * 1024, timeoutMs: 1e4, signal, headers: { accept: "application/json" } });
   return { status: result8.status, text: result8.text };
 }
-var import_node_fs129, import_promises68, import_node_path142, import_node_crypto148, import_node_os15, import_electron33, ICONIFY_PATH, iconifyInput, text14, channelSchema, fileOptions, fileInput, dataSchema, hash14, inside5, knowledgeRoot, CreativeDesignNative;
+var import_node_fs128, import_promises68, import_node_path141, import_node_crypto148, import_node_os15, import_electron33, ICONIFY_PATH, iconifyInput, text14, channelSchema, fileOptions, fileInput, dataSchema, hash14, inside5, knowledgeRoot, CreativeDesignNative;
 var init_creative_design_native = __esm({
   "../electron/src/main/lib/creative-design-native.ts"() {
     "use strict";
-    import_node_fs129 = require("node:fs");
+    import_node_fs128 = require("node:fs");
     import_promises68 = require("node:fs/promises");
-    import_node_path142 = require("node:path");
+    import_node_path141 = require("node:path");
     import_node_crypto148 = require("node:crypto");
     import_node_os15 = require("node:os");
     import_electron33 = __toESM(require_electron(), 1);
@@ -584877,10 +584950,10 @@ var init_creative_design_native = __esm({
     dataSchema = external_exports.instanceof(Uint8Array).refine((value2) => value2.byteLength <= 64 * 1024 * 1024);
     hash14 = (data3) => (0, import_node_crypto148.createHash)("sha256").update(data3).digest("hex");
     inside5 = (root3, path13) => {
-      const part = (0, import_node_path142.relative)(root3, path13);
-      return !part || !(0, import_node_path142.isAbsolute)(part) && part !== ".." && !part.startsWith(`..${import_node_path142.sep}`);
+      const part = (0, import_node_path141.relative)(root3, path13);
+      return !part || !(0, import_node_path141.isAbsolute)(part) && part !== ".." && !part.startsWith(`..${import_node_path141.sep}`);
     };
-    knowledgeRoot = async () => (0, import_node_path142.resolve)(await (0, import_promises68.realpath)((0, import_node_path142.dirname)(getKnowledgeDir())), (0, import_node_path142.basename)(getKnowledgeDir()));
+    knowledgeRoot = async () => (0, import_node_path141.resolve)(await (0, import_promises68.realpath)((0, import_node_path141.dirname)(getKnowledgeDir())), (0, import_node_path141.basename)(getKnowledgeDir()));
     CreativeDesignNative = class {
       constructor(designs, window2) {
         this.designs = designs;
@@ -584907,10 +584980,10 @@ var init_creative_design_native = __esm({
       async grant(binding2, path13, directory, write2) {
         const resolved = await (0, import_promises68.realpath)(path13).catch(async (error50) => {
           if (error50.code !== "ENOENT") throw error50;
-          return (0, import_node_path142.join)(await (0, import_promises68.realpath)((0, import_node_path142.dirname)(path13)), (0, import_node_path142.basename)(path13));
+          return (0, import_node_path141.join)(await (0, import_promises68.realpath)((0, import_node_path141.dirname)(path13)), (0, import_node_path141.basename)(path13));
         });
         const knowledge = await knowledgeRoot(), creative = await (0, import_promises68.realpath)(getCreativeDir());
-        if (inside5(knowledge, resolved) || inside5(creative, resolved) || directory && (inside5(resolved, knowledge) || inside5(resolved, creative)) || resolved.split(import_node_path142.sep).some((segment) => SECRET_SEGMENT.test(segment))) throw designError("DESIGN_FORBIDDEN");
+        if (inside5(knowledge, resolved) || inside5(creative, resolved) || directory && (inside5(resolved, knowledge) || inside5(resolved, creative)) || resolved.split(import_node_path141.sep).some((segment) => SECRET_SEGMENT.test(segment))) throw designError("DESIGN_FORBIDDEN");
         const context2 = this.context(binding2);
         const previous4 = context2.grants.find((grant) => grant.path === resolved && grant.directory === directory);
         if (previous4) previous4.write ||= write2;
@@ -584927,17 +585000,17 @@ var init_creative_design_native = __esm({
         const root3 = this.designs.nativeCacheDir(binding2.canvasId);
         if (cache5) await (0, import_promises68.mkdir)(root3, { recursive: true, mode: 448 });
         const canonicalRoot = cache5 ? await (0, import_promises68.realpath)(root3) : root3;
-        const requested = cache5 ? (0, import_node_path142.resolve)(root3, value2.path) : (0, import_node_path142.resolve)(value2.path);
+        const requested = cache5 ? (0, import_node_path141.resolve)(root3, value2.path) : (0, import_node_path141.resolve)(value2.path);
         if (cache5 && !inside5(root3, requested)) throw designError("DESIGN_FORBIDDEN");
         const resolved = await (0, import_promises68.realpath)(requested).catch(async (error50) => {
           if (error50.code !== "ENOENT") throw error50;
-          let parent = (0, import_node_path142.dirname)(requested);
-          while (!(0, import_node_fs129.existsSync)(parent)) parent = (0, import_node_path142.dirname)(parent);
+          let parent = (0, import_node_path141.dirname)(requested);
+          while (!(0, import_node_fs128.existsSync)(parent)) parent = (0, import_node_path141.dirname)(parent);
           const realParent = await (0, import_promises68.realpath)(parent);
-          return (0, import_node_path142.resolve)(realParent, (0, import_node_path142.relative)(parent, requested));
+          return (0, import_node_path141.resolve)(realParent, (0, import_node_path141.relative)(parent, requested));
         });
         if (cache5 ? !inside5(canonicalRoot, resolved) : !context2.grants.some((grant) => (!write2 || grant.write) && (grant.directory ? inside5(grant.path, resolved) : grant.path === resolved))) throw designError("DESIGN_FORBIDDEN");
-        if (inside5(await knowledgeRoot(), resolved) || resolved.split(import_node_path142.sep).some((segment) => SECRET_SEGMENT.test(segment))) throw designError("DESIGN_FORBIDDEN");
+        if (inside5(await knowledgeRoot(), resolved) || resolved.split(import_node_path141.sep).some((segment) => SECRET_SEGMENT.test(segment))) throw designError("DESIGN_FORBIDDEN");
         return { path: resolved, cache: cache5 };
       }
       async version(path13) {
@@ -584963,16 +585036,16 @@ var init_creative_design_native = __esm({
           if (context2.watches.size >= 32 || value3.paths.length !== 1) throw designError("DESIGN_LIMIT");
           const target2 = await this.path(binding2, { path: value3.paths[0], options: value3.options });
           const directory = (await (0, import_promises68.stat)(target2.path)).isDirectory();
-          const watcher3 = (0, import_node_fs129.watch)(directory ? target2.path : (0, import_node_path142.dirname)(target2.path), { persistent: false }, (_event, file3) => {
-            if (!directory && file3 && file3.toString() !== (0, import_node_path142.basename)(target2.path)) return;
-            this.event(binding2, value3.channel.__cortexChannel, { type: { modify: "any" }, paths: [directory && file3 ? (0, import_node_path142.join)(target2.path, file3.toString()) : target2.path] });
+          const watcher3 = (0, import_node_fs128.watch)(directory ? target2.path : (0, import_node_path141.dirname)(target2.path), { persistent: false }, (_event, file3) => {
+            if (!directory && file3 && file3.toString() !== (0, import_node_path141.basename)(target2.path)) return;
+            this.event(binding2, value3.channel.__cortexChannel, { type: { modify: "any" }, paths: [directory && file3 ? (0, import_node_path141.join)(target2.path, file3.toString()) : target2.path] });
           });
           watcher3.on("error", () => this.event(binding2, value3.channel.__cortexChannel, { type: { other: true }, paths: [target2.path] }));
           context2.watches.set(id19, watcher3);
           return id19;
         }
         const value2 = fileInput.parse(args), target = await this.path(binding2, value2, command2 !== "fs.read" && command2 !== "fs.range" && command2 !== "fs.stat" && command2 !== "fs.exists");
-        if (command2 === "fs.exists") return (0, import_node_fs129.existsSync)(target.path);
+        if (command2 === "fs.exists") return (0, import_node_fs128.existsSync)(target.path);
         if (command2 === "fs.stat") {
           const info2 = await (0, import_promises68.stat)(target.path);
           return { isFile: info2.isFile(), isDirectory: info2.isDirectory(), size: info2.size, mtime: info2.mtime };
@@ -584989,7 +585062,7 @@ var init_creative_design_native = __esm({
         }
         if (command2 === "fs.range") {
           const { offset: offset2, length } = external_exports.object({ offset: external_exports.number().int().nonnegative(), length: external_exports.number().int().nonnegative().max(8 * 1024 * 1024) }).parse(args);
-          const file3 = await (0, import_promises68.open)(target.path, import_node_fs129.constants.O_RDONLY | import_node_fs129.constants.O_NOFOLLOW);
+          const file3 = await (0, import_promises68.open)(target.path, import_node_fs128.constants.O_RDONLY | import_node_fs128.constants.O_NOFOLLOW);
           try {
             const info2 = await file3.stat();
             if (!info2.isFile() || info2.size > 64 * 1024 * 1024) throw designError("DESIGN_LIMIT");
@@ -585001,7 +585074,7 @@ var init_creative_design_native = __esm({
           }
         }
         if (command2 === "fs.read") {
-          const file3 = await (0, import_promises68.open)(target.path, import_node_fs129.constants.O_RDONLY | import_node_fs129.constants.O_NOFOLLOW);
+          const file3 = await (0, import_promises68.open)(target.path, import_node_fs128.constants.O_RDONLY | import_node_fs128.constants.O_NOFOLLOW);
           try {
             const before2 = await file3.stat();
             if (!before2.isFile() || before2.size > 64 * 1024 * 1024) throw designError("DESIGN_LIMIT");
@@ -585020,7 +585093,7 @@ var init_creative_design_native = __esm({
             if (!context2.versions.has(target.path) && await this.version(target.path) === null) context2.versions.set(target.path, null);
             if (!target.cache && (!context2.versions.has(target.path) || context2.versions.get(target.path) !== await this.version(target.path))) throw designError("DESIGN_CONFLICT");
             const temporary = `${target.path}.${(0, import_node_crypto148.randomUUID)()}.tmp`;
-            const file3 = await (0, import_promises68.open)(temporary, import_node_fs129.constants.O_WRONLY | import_node_fs129.constants.O_CREAT | import_node_fs129.constants.O_EXCL | import_node_fs129.constants.O_NOFOLLOW, 384);
+            const file3 = await (0, import_promises68.open)(temporary, import_node_fs128.constants.O_WRONLY | import_node_fs128.constants.O_CREAT | import_node_fs128.constants.O_EXCL | import_node_fs128.constants.O_NOFOLLOW, 384);
             try {
               await file3.writeFile(data3);
               await file3.sync();
@@ -585085,12 +585158,12 @@ var init_creative_design_native = __esm({
           ;
           return;
         }
-        if (command2 === "path.home") return (0, import_node_os15.homedir)() + import_node_path142.sep;
-        if (command2 === "path.data" || command2 === "path.cache") return this.designs.nativeCacheDir(binding2.canvasId) + import_node_path142.sep;
-        if (command2 === "path.join") return (0, import_node_path142.join)(...external_exports.array(text14).min(1).max(20).parse(args.paths));
-        if (command2 === "path.basename") return (0, import_node_path142.basename)(text14.parse(args.path));
-        if (command2 === "path.dirname") return (0, import_node_path142.dirname)(text14.parse(args.path));
-        if (command2 === "path.normalize") return (0, import_node_path142.resolve)(text14.parse(args.path));
+        if (command2 === "path.home") return (0, import_node_os15.homedir)() + import_node_path141.sep;
+        if (command2 === "path.data" || command2 === "path.cache") return this.designs.nativeCacheDir(binding2.canvasId) + import_node_path141.sep;
+        if (command2 === "path.join") return (0, import_node_path141.join)(...external_exports.array(text14).min(1).max(20).parse(args.paths));
+        if (command2 === "path.basename") return (0, import_node_path141.basename)(text14.parse(args.path));
+        if (command2 === "path.dirname") return (0, import_node_path141.dirname)(text14.parse(args.path));
+        if (command2 === "path.normalize") return (0, import_node_path141.resolve)(text14.parse(args.path));
         if (command2 === "runtime.arch") return process.arch === "arm64" ? "aarch64" : process.arch === "x64" ? "x86_64" : process.arch;
         if (command2 === "runtime.version") return (0, import_node_os15.release)();
         if (command2 === "runtime.appVersion") return import_electron33.app.getVersion();
@@ -585157,15 +585230,15 @@ function registerCreativeDesignIpc() {
       const path13 = chosen.filePaths[0];
       if (chosen.canceled || !path13) return null;
       if (binding2) service7.instance(binding2);
-      const resolved = await (0, import_promises69.realpath)(path13), insideKnowledge = (0, import_node_path143.relative)(getKnowledgeDir(), resolved);
-      if (!insideKnowledge || insideKnowledge !== ".." && !insideKnowledge.startsWith(`..${import_node_path143.sep}`) && !(0, import_node_path143.isAbsolute)(insideKnowledge)) throw designError("DESIGN_FORBIDDEN");
-      const file3 = await (0, import_promises69.open)(resolved, import_node_fs130.constants.O_RDONLY | import_node_fs130.constants.O_NOFOLLOW);
+      const resolved = await (0, import_promises69.realpath)(path13), insideKnowledge = (0, import_node_path142.relative)(getKnowledgeDir(), resolved);
+      if (!insideKnowledge || insideKnowledge !== ".." && !insideKnowledge.startsWith(`..${import_node_path142.sep}`) && !(0, import_node_path142.isAbsolute)(insideKnowledge)) throw designError("DESIGN_FORBIDDEN");
+      const file3 = await (0, import_promises69.open)(resolved, import_node_fs129.constants.O_RDONLY | import_node_fs129.constants.O_NOFOLLOW);
       try {
         const before2 = await file3.stat();
         if (!before2.isFile() || before2.size > DESIGN_MAX_BYTES) throw designError("DESIGN_LIMIT");
         const bytes = await file3.readFile(), after2 = await file3.stat();
         if (before2.size !== after2.size || before2.mtimeMs !== after2.mtimeMs || bytes.length !== before2.size) throw designError("DESIGN_CONFLICT");
-        return { name: (0, import_node_path143.basename)(path13), bytes: new Uint8Array(bytes) };
+        return { name: (0, import_node_path142.basename)(path13), bytes: new Uint8Array(bytes) };
       } finally {
         await file3.close();
       }
@@ -585173,7 +585246,7 @@ function registerCreativeDesignIpc() {
     exportFile: async (input) => {
       service7.instance(input);
       if (!(input.bytes instanceof Uint8Array) || input.bytes.length > DESIGN_MAX_BYTES || input.name.length > 255 || /[\\/\u0000]/.test(input.name)) throw designError("DESIGN_INVALID");
-      const chosen = await import_electron34.dialog.showSaveDialog(await window2(), { defaultPath: input.name, filters: [{ name: (0, import_node_path143.extname)(input.name) === ".png" ? tr("\u56FE\u7247", "Image") : tr("\u8BBE\u8BA1\u6587\u4EF6", "Design file"), extensions: [(0, import_node_path143.extname)(input.name).slice(1) || "fig"] }] });
+      const chosen = await import_electron34.dialog.showSaveDialog(await window2(), { defaultPath: input.name, filters: [{ name: (0, import_node_path142.extname)(input.name) === ".png" ? tr("\u56FE\u7247", "Image") : tr("\u8BBE\u8BA1\u6587\u4EF6", "Design file"), extensions: [(0, import_node_path142.extname)(input.name).slice(1) || "fig"] }] });
       if (chosen.canceled || !chosen.filePath) return false;
       service7.instance(input);
       await (0, import_promises69.writeFile)(chosen.filePath, input.bytes, { flag: "wx", mode: 384 });
@@ -585204,15 +585277,15 @@ function registerCreativeDesignIpc() {
     });
   });
 }
-var import_electron34, import_node_crypto149, import_promises69, import_node_fs130, import_node_path143;
+var import_electron34, import_node_crypto149, import_promises69, import_node_fs129, import_node_path142;
 var init_creative_design_ipc = __esm({
   "../electron/src/main/creative-design-ipc.ts"() {
     "use strict";
     import_electron34 = __toESM(require_electron(), 1);
     import_node_crypto149 = require("node:crypto");
     import_promises69 = require("node:fs/promises");
-    import_node_fs130 = require("node:fs");
-    import_node_path143 = require("node:path");
+    import_node_fs129 = require("node:fs");
+    import_node_path142 = require("node:path");
     init_src();
     init_knowledge_ipc();
     init_creative_design_service();
@@ -585226,8 +585299,8 @@ var init_creative_design_ipc = __esm({
 
 // ../electron/src/main/lib/artifact-ooxml-read.ts
 function resolvePart(from2, target) {
-  const path13 = target.startsWith("/") ? target.slice(1) : import_node_path144.posix.join(import_node_path144.posix.dirname(from2), target);
-  return import_node_path144.posix.normalize(decodeURIComponent(path13)).replace(/^\/+/, "");
+  const path13 = target.startsWith("/") ? target.slice(1) : import_node_path143.posix.join(import_node_path143.posix.dirname(from2), target);
+  return import_node_path143.posix.normalize(decodeURIComponent(path13)).replace(/^\/+/, "");
 }
 function parseXml(source) {
   if (/<!DOCTYPE/i.test(source.slice(0, 2048))) return null;
@@ -585284,18 +585357,18 @@ function cachedRegister(register) {
     let pending5 = done2.get(part);
     if (!pending5) {
       const bytes = pkg.bytes(part);
-      pending5 = bytes ? normalizeImage(bytes).then((image) => image ? register(image, name2 || import_node_path144.posix.basename(part)) : null).catch(() => null) : Promise.resolve(null);
+      pending5 = bytes ? normalizeImage(bytes).then((image) => image ? register(image, name2 || import_node_path143.posix.basename(part)) : null).catch(() => null) : Promise.resolve(null);
       done2.set(part, pending5);
     }
     return pending5;
   };
 }
-var import_node_path144, OFFICE_IMPORT_MAX_BYTES, EXPANDED_MAX, XML_ENTRY_MAX, OoxmlPackage, parser2, LossLog;
+var import_node_path143, OFFICE_IMPORT_MAX_BYTES, EXPANDED_MAX, XML_ENTRY_MAX, OoxmlPackage, parser2, LossLog;
 var init_artifact_ooxml_read = __esm({
   "../electron/src/main/lib/artifact-ooxml-read.ts"() {
     "use strict";
     init_esm();
-    import_node_path144 = require("node:path");
+    import_node_path143 = require("node:path");
     init_src();
     OFFICE_IMPORT_MAX_BYTES = 200 * 1024 * 1024;
     EXPANDED_MAX = 600 * 1024 * 1024;
@@ -585325,7 +585398,7 @@ var init_artifact_ooxml_read = __esm({
         const cached4 = this.relCache.get(part);
         if (cached4) return cached4;
         const map6 = /* @__PURE__ */ new Map();
-        const relsPart = import_node_path144.posix.join(import_node_path144.posix.dirname(part), "_rels", `${import_node_path144.posix.basename(part)}.rels`);
+        const relsPart = import_node_path143.posix.join(import_node_path143.posix.dirname(part), "_rels", `${import_node_path143.posix.basename(part)}.rels`);
         const root3 = this.xml(relsPart);
         for (const rel2 of root3 ? kids(root3, "Relationship") : []) {
           const id19 = attr2(rel2, "Id"), target = attr2(rel2, "Target"), type = attr2(rel2, "Type").split("/").pop() ?? "";
@@ -585553,11 +585626,11 @@ var init_artifact_pptx_import = __esm({
 // ../electron/src/main/lib/artifact-office-import.ts
 function parseInWorker(kind, bytes) {
   const unreadable = () => new Error(kind === "document" ? tr("\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4E2A Word \u6587\u4EF6\uFF1A\u6587\u4EF6\u592A\u5927\u6216\u592A\u590D\u6742", "Couldn\u2019t read this Word file: the file is too large or complex") : tr("\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4E2A PowerPoint \u6587\u4EF6\uFF1A\u6587\u4EF6\u592A\u5927\u6216\u592A\u590D\u6742", "Couldn\u2019t read this PowerPoint file: the file is too large or complex"));
-  const built = (0, import_node_path145.join)(__dirname, "artifact-office-import-worker.cjs");
+  const built = (0, import_node_path144.join)(__dirname, "artifact-office-import-worker.cjs");
   return new Promise((resolve38, reject3) => {
     let worker;
     try {
-      worker = new import_node_worker_threads9.Worker((0, import_node_fs131.existsSync)(built) ? built : (0, import_node_path145.join)(__dirname, "artifact-office-import-worker.ts"), { workerData: { kind, bytes, language: getLanguage() }, resourceLimits: { maxOldGenerationSizeMb: WORKER_HEAP_MB } });
+      worker = new import_node_worker_threads9.Worker((0, import_node_fs130.existsSync)(built) ? built : (0, import_node_path144.join)(__dirname, "artifact-office-import-worker.ts"), { workerData: { kind, bytes, language: getLanguage() }, resourceLimits: { maxOldGenerationSizeMb: WORKER_HEAP_MB } });
     } catch {
       reject3(unreadable());
       return;
@@ -585597,13 +585670,13 @@ async function createArtifactFromOffice(deps2, input) {
   const result8 = await deps2.artifacts.create({ operationId: input.operationId, actor: "user", kind: input.kind, title: input.title, owner: scope, content: doc3 });
   return { ...result8, lost: lost.map(document4 ? docxImportLossLabel : pptxImportLossLabel) };
 }
-var import_node_crypto150, import_node_fs131, import_node_path145, import_node_worker_threads9, WORKER_HEAP_MB, PLACEHOLDER_ID;
+var import_node_crypto150, import_node_fs130, import_node_path144, import_node_worker_threads9, WORKER_HEAP_MB, PLACEHOLDER_ID;
 var init_artifact_office_import = __esm({
   "../electron/src/main/lib/artifact-office-import.ts"() {
     "use strict";
     import_node_crypto150 = require("node:crypto");
-    import_node_fs131 = require("node:fs");
-    import_node_path145 = require("node:path");
+    import_node_fs130 = require("node:fs");
+    import_node_path144 = require("node:path");
     import_node_worker_threads9 = require("node:worker_threads");
     init_src();
     init_artifact_document();
@@ -585812,13 +585885,13 @@ __export(document_styles_exports, {
 });
 function readStyleFile(path13) {
   try {
-    return (0, import_node_fs132.statSync)(path13).size <= STYLE_MAX_BYTES ? (0, import_node_fs132.readFileSync)(path13, "utf8") : null;
+    return (0, import_node_fs131.statSync)(path13).size <= STYLE_MAX_BYTES ? (0, import_node_fs131.readFileSync)(path13, "utf8") : null;
   } catch {
     return null;
   }
 }
 function listDocumentStyles(dir = documentStylesDir()) {
-  const files = (0, import_node_fs132.existsSync)(dir) ? (0, import_node_fs132.readdirSync)(dir).filter((name2) => name2.endsWith(".css") && ID2.test(name2.slice(0, -4))).map((name2) => name2.slice(0, -4)).sort() : [];
+  const files = (0, import_node_fs131.existsSync)(dir) ? (0, import_node_fs131.readdirSync)(dir).filter((name2) => name2.endsWith(".css") && ID2.test(name2.slice(0, -4))).map((name2) => name2.slice(0, -4)).sort() : [];
   const builtin = BUILTIN_DOCUMENT_STYLES.map((style) => {
     const own4 = files.includes(style.id) ? readStyleFile(fileOf(style.id, dir)) : null;
     return { id: style.id, css: own4 ?? style.css, builtin: true, modified: own4 !== null };
@@ -585831,9 +585904,9 @@ function listDocumentStyles(dir = documentStylesDir()) {
 }
 async function editDocumentStyle(id19) {
   const builtin = BUILTIN_DOCUMENT_STYLES.find((style) => style.id === id19);
-  if (!ID2.test(id19) || id19 === DEFAULT_DOCUMENT_STYLE || !builtin && !(0, import_node_fs132.existsSync)(fileOf(id19))) throw invalid6();
-  (0, import_node_fs132.mkdirSync)(documentStylesDir(), { recursive: true });
-  if (builtin && !(0, import_node_fs132.existsSync)(fileOf(id19))) (0, import_node_fs132.writeFileSync)(fileOf(id19), builtin.css, { flag: "wx" });
+  if (!ID2.test(id19) || id19 === DEFAULT_DOCUMENT_STYLE || !builtin && !(0, import_node_fs131.existsSync)(fileOf(id19))) throw invalid6();
+  (0, import_node_fs131.mkdirSync)(documentStylesDir(), { recursive: true });
+  if (builtin && !(0, import_node_fs131.existsSync)(fileOf(id19))) (0, import_node_fs131.writeFileSync)(fileOf(id19), builtin.css, { flag: "wx" });
   const { shell: shell11 } = await Promise.resolve().then(() => __toESM(require_electron(), 1));
   const error50 = await shell11.openPath(fileOf(id19));
   if (error50) throw new Error(error50);
@@ -585842,24 +585915,24 @@ function duplicateDocumentStyle(id19, dir = documentStylesDir()) {
   if (!ID2.test(id19)) throw invalid6();
   const source = id19 === DEFAULT_DOCUMENT_STYLE ? DOCUMENT_STYLE_TEMPLATE : listDocumentStyles(dir).find((style) => style.id === id19)?.css;
   if (source === void 0) throw invalid6();
-  (0, import_node_fs132.mkdirSync)(dir, { recursive: true });
+  (0, import_node_fs131.mkdirSync)(dir, { recursive: true });
   const base2 = `${id19 === DEFAULT_DOCUMENT_STYLE ? "my-style" : id19.replace(/-copy(?:-\d+)?$/, "")}-copy`;
   let next = base2;
-  for (let n = 2; (0, import_node_fs132.existsSync)(fileOf(next, dir)); n++) next = `${base2}-${n}`;
+  for (let n = 2; (0, import_node_fs131.existsSync)(fileOf(next, dir)); n++) next = `${base2}-${n}`;
   const css2 = source.replace(/(--theme-name:\s*["'])([^"']*)(["'])/, (_all, open26, name2, close3) => `${open26}${name2} \u526F\u672C${close3}`).replace(/(--theme-name-en:\s*["'])([^"']*)(["'])/, (_all, open26, name2, close3) => `${open26}${name2} copy${close3}`);
-  (0, import_node_fs132.writeFileSync)(fileOf(next, dir), css2, { flag: "wx" });
+  (0, import_node_fs131.writeFileSync)(fileOf(next, dir), css2, { flag: "wx" });
   return next;
 }
 function resetDocumentStyle(id19, dir = documentStylesDir()) {
   if (!BUILTIN_DOCUMENT_STYLES.some((style) => style.id === id19)) throw invalid6();
-  (0, import_node_fs132.rmSync)(fileOf(id19, dir), { force: true });
+  (0, import_node_fs131.rmSync)(fileOf(id19, dir), { force: true });
 }
 function watchDocumentStyles(notify2) {
   if (watcher2) return;
-  (0, import_node_fs132.mkdirSync)(documentStylesDir(), { recursive: true });
+  (0, import_node_fs131.mkdirSync)(documentStylesDir(), { recursive: true });
   let timer;
   try {
-    watcher2 = (0, import_node_fs132.watch)(documentStylesDir(), () => {
+    watcher2 = (0, import_node_fs131.watch)(documentStylesDir(), () => {
       clearTimeout(timer);
       timer = setTimeout(notify2, 200);
     });
@@ -585871,19 +585944,19 @@ function watchDocumentStyles(notify2) {
     console.warn("[\u6587\u6863\u98CE\u683C] \u65E0\u6CD5\u76D1\u542C\u98CE\u683C\u6587\u4EF6\u5939", error50);
   }
 }
-var import_node_fs132, import_node_path146, ID2, STYLE_MAX_BYTES, documentStylesDir, fileOf, invalid6, watcher2;
+var import_node_fs131, import_node_path145, ID2, STYLE_MAX_BYTES, documentStylesDir, fileOf, invalid6, watcher2;
 var init_document_styles2 = __esm({
   "../electron/src/main/lib/document-styles.ts"() {
     "use strict";
-    import_node_fs132 = require("node:fs");
-    import_node_path146 = require("node:path");
+    import_node_fs131 = require("node:fs");
+    import_node_path145 = require("node:path");
     init_src();
     init_document_styles();
     init_config_paths();
     ID2 = /^[a-z0-9][a-z0-9-]{0,40}$/;
     STYLE_MAX_BYTES = 64 * 1024;
-    documentStylesDir = () => (0, import_node_path146.join)(getConfigDir(), "document-styles");
-    fileOf = (id19, dir = documentStylesDir()) => (0, import_node_path146.join)(dir, `${id19}.css`);
+    documentStylesDir = () => (0, import_node_path145.join)(getConfigDir(), "document-styles");
+    fileOf = (id19, dir = documentStylesDir()) => (0, import_node_path145.join)(dir, `${id19}.css`);
     invalid6 = () => new Error(tr("\u8BF7\u6C42\u65E0\u6548", "Invalid request"));
     watcher2 = null;
   }
@@ -585898,7 +585971,7 @@ function scopeOf(input) {
 }
 function coversOf(input) {
   const scope = scopeOf(input);
-  const projects = readCreativeSessionProjects((0, import_node_path147.dirname)(getArtifactStore().root));
+  const projects = readCreativeSessionProjects((0, import_node_path146.dirname)(getArtifactStore().root));
   return (owner) => creativeScopeCovers(scope, owner, (id19) => projects.get(id19));
 }
 function authorize4(input, includeDeleted = false) {
@@ -585910,8 +585983,8 @@ async function pickedFile() {
   const picked = window2 ? await import_electron35.dialog.showOpenDialog(window2, options2) : await import_electron35.dialog.showOpenDialog(options2);
   if (picked.canceled || !picked.filePaths[0]) return null;
   const path13 = await (0, import_promises70.realpath)(picked.filePaths[0]);
-  const inside6 = (0, import_node_path147.relative)(getKnowledgeDir(), path13);
-  if (!inside6 || inside6 !== ".." && !inside6.startsWith(`..${import_node_path147.sep}`) && !(0, import_node_path147.isAbsolute)(inside6)) throw new Error(tr("\u77E5\u8BC6\u5E93\u4E2D\u7684\u539F\u4EF6\u4E0D\u80FD\u76F4\u63A5\u653E\u8FDB\u4F5C\u54C1\u3002", "Original files from a knowledge base can\u2019t be attached directly."));
+  const inside6 = (0, import_node_path146.relative)(getKnowledgeDir(), path13);
+  if (!inside6 || inside6 !== ".." && !inside6.startsWith(`..${import_node_path146.sep}`) && !(0, import_node_path146.isAbsolute)(inside6)) throw new Error(tr("\u77E5\u8BC6\u5E93\u4E2D\u7684\u539F\u4EF6\u4E0D\u80FD\u76F4\u63A5\u653E\u8FDB\u4F5C\u54C1\u3002", "Original files from a knowledge base can\u2019t be attached directly."));
   return path13;
 }
 function registerArtifactIpc() {
@@ -586004,7 +586077,7 @@ function registerArtifactIpc() {
       const path13 = await pickedFile();
       if (!path13) return null;
       const { sha256: sha25610, size: size2 } = await store().importFile(input.artifactId, path13, coversOf(input));
-      return { sha256: sha25610, size: size2, name: cleanFileName((0, import_node_path147.basename)(path13)) || "attachment", mime: getMimeType((0, import_node_path147.extname)(path13)) };
+      return { sha256: sha25610, size: size2, name: cleanFileName((0, import_node_path146.basename)(path13)) || "attachment", mime: getMimeType((0, import_node_path146.extname)(path13)) };
     },
     openFile: async (input) => {
       if (input.action !== "reveal" && input.action !== "save") throw new Error(tr("\u8BF7\u6C42\u65E0\u6548", "Invalid request"));
@@ -586017,10 +586090,10 @@ function registerArtifactIpc() {
         await (0, import_promises70.copyFile)(source, chosen.filePath);
         return true;
       }
-      const folder = (0, import_node_path147.join)(import_electron35.app.getPath("temp"), "cortex-attachments", input.artifactId, String(input.sha256).slice(0, 16));
-      const copy2 = (0, import_node_path147.join)(folder, name2);
+      const folder = (0, import_node_path146.join)(import_electron35.app.getPath("temp"), "cortex-attachments", input.artifactId, String(input.sha256).slice(0, 16));
+      const copy2 = (0, import_node_path146.join)(folder, name2);
       await (0, import_promises70.mkdir)(folder, { recursive: true });
-      if (!(0, import_node_fs133.existsSync)(copy2)) await (0, import_promises70.copyFile)(source, copy2);
+      if (!(0, import_node_fs132.existsSync)(copy2)) await (0, import_promises70.copyFile)(source, copy2);
       import_electron35.shell.showItemInFolder(copy2);
       return true;
     },
@@ -586175,13 +586248,13 @@ function registerArtifactIpc() {
   handleTrustedIpc(DOCUMENT_STYLE_IPC_CHANNELS.DUPLICATE, async (input) => (await Promise.resolve().then(() => (init_document_styles2(), document_styles_exports))).duplicateDocumentStyle(styleId(input)));
   handleTrustedIpc(DOCUMENT_STYLE_IPC_CHANNELS.RESET, async (input) => (await Promise.resolve().then(() => (init_document_styles2(), document_styles_exports))).resetDocumentStyle(styleId(input)));
 }
-var import_node_fs133, import_promises70, import_node_path147, import_electron35, MARKDOWN_IMPORT_MAX, safeFileName;
+var import_node_fs132, import_promises70, import_node_path146, import_electron35, MARKDOWN_IMPORT_MAX, safeFileName;
 var init_artifact_ipc = __esm({
   "../electron/src/main/artifact-ipc.ts"() {
     "use strict";
-    import_node_fs133 = require("node:fs");
+    import_node_fs132 = require("node:fs");
     import_promises70 = require("node:fs/promises");
-    import_node_path147 = require("node:path");
+    import_node_path146 = require("node:path");
     import_electron35 = __toESM(require_electron(), 1);
     init_src();
     init_knowledge_ipc();
@@ -586207,14 +586280,14 @@ var init_artifact_ipc = __esm({
     init_artifact_mentions();
     init_artifact_document_schema();
     MARKDOWN_IMPORT_MAX = 2e6;
-    safeFileName = (name2) => (typeof name2 === "string" ? (0, import_node_path147.basename)(name2) : "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").trim().slice(0, 200) || "attachment";
+    safeFileName = (name2) => (typeof name2 === "string" ? (0, import_node_path146.basename)(name2) : "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").trim().slice(0, 200) || "attachment";
   }
 });
 
 // ../electron/src/main/dashboard-ipc.ts
 function queryStore(artifactId) {
   let found2 = stores.get(artifactId);
-  if (!found2) stores.set(artifactId, found2 = new DashboardQueryStore((0, import_node_path148.join)(getArtifactStore().root, artifactId)));
+  if (!found2) stores.set(artifactId, found2 = new DashboardQueryStore((0, import_node_path147.join)(getArtifactStore().root, artifactId)));
   return found2;
 }
 function sourcesOf(artifactId, version6) {
@@ -586224,7 +586297,7 @@ function sourcesOf(artifactId, version6) {
 function embedTarget(input) {
   if (typeof input?.artifactId !== "string" || input.part !== void 0 && (typeof input.part !== "string" || !DASHBOARD_PART_RE.test(input.part))) throw new Error(tr("\u8BF7\u6C42\u65E0\u6548", "Invalid request"));
   const host2 = authorize4({ scope: input.scope, artifactId: input.hostArtifactId });
-  const store = getArtifactStore(), projects = readCreativeSessionProjects((0, import_node_path148.dirname)(store.root));
+  const store = getArtifactStore(), projects = readCreativeSessionProjects((0, import_node_path147.dirname)(store.root));
   return { store, host: host2, target: { artifactId: input.artifactId, part: input.part }, projectOf: (id19) => projects.get(id19) };
 }
 function registerDashboardIpc() {
@@ -586300,12 +586373,12 @@ function registerDashboardIpc() {
   };
   for (const name2 of Object.keys(api)) handleTrustedIpc(channels[name2], api[name2]);
 }
-var import_promises71, import_node_path148, import_electron36, stores;
+var import_promises71, import_node_path147, import_electron36, stores;
 var init_dashboard_ipc = __esm({
   "../electron/src/main/dashboard-ipc.ts"() {
     "use strict";
     import_promises71 = require("node:fs/promises");
-    import_node_path148 = require("node:path");
+    import_node_path147 = require("node:path");
     import_electron36 = __toESM(require_electron(), 1);
     init_src();
     init_artifact_ipc();
@@ -586322,11 +586395,11 @@ var init_dashboard_ipc = __esm({
 
 // ../electron/src/main/lib/file-groups.ts
 function load(rootPath, workspacesRoot, storageDir) {
-  const root3 = (0, import_node_fs134.realpathSync)(resolveWorkspaceFilePath(rootPath, workspacesRoot));
-  if (!(0, import_node_fs134.statSync)(root3).isDirectory()) throw new Error(tr("\u8BF7\u9009\u62E9\u6587\u4EF6\u5939", "Choose a folder"));
-  const path13 = (0, import_node_path149.join)(storageDir, (0, import_node_crypto151.createHash)("sha256").update(root3).digest("hex") + ".json");
+  const root3 = (0, import_node_fs133.realpathSync)(resolveWorkspaceFilePath(rootPath, workspacesRoot));
+  if (!(0, import_node_fs133.statSync)(root3).isDirectory()) throw new Error(tr("\u8BF7\u9009\u62E9\u6587\u4EF6\u5939", "Choose a folder"));
+  const path13 = (0, import_node_path148.join)(storageDir, (0, import_node_crypto151.createHash)("sha256").update(root3).digest("hex") + ".json");
   const value2 = readJsonFileSafe(path13);
-  if (value2 === null && [path13, path13 + ".bak", path13 + ".tmp"].some(import_node_fs134.existsSync)) throw new Error(tr("\u65E0\u6CD5\u8BFB\u53D6\u5206\u7EC4\uFF0C\u8BF7\u6062\u590D\u914D\u7F6E\u540E\u91CD\u8BD5", "Couldn\u2019t load groups. Restore the config and try again."));
+  if (value2 === null && [path13, path13 + ".bak", path13 + ".tmp"].some(import_node_fs133.existsSync)) throw new Error(tr("\u65E0\u6CD5\u8BFB\u53D6\u5206\u7EC4\uFF0C\u8BF7\u6062\u590D\u914D\u7F6E\u540E\u91CD\u8BD5", "Couldn\u2019t load groups. Restore the config and try again."));
   const groups = value2 ?? [];
   if (!Array.isArray(groups) || !groups.every((g2) => g2 && typeof g2.id === "string" && typeof g2.name === "string" && Array.isArray(g2.paths) && g2.paths.every((p) => typeof p === "string"))) throw new Error(tr("\u5206\u7EC4\u8BB0\u5F55\u683C\u5F0F\u65E0\u6548", "File groups are in an invalid format"));
   return { root: root3, path: path13, groups };
@@ -586334,7 +586407,7 @@ function load(rootPath, workspacesRoot, storageDir) {
 function visible(groups, root3) {
   return groups.map((group2) => ({ ...group2, paths: group2.paths.filter((path13) => {
     try {
-      return (0, import_node_fs134.statSync)(resolveWorkspaceFilePath(path13, root3)).isFile();
+      return (0, import_node_fs133.statSync)(resolveWorkspaceFilePath(path13, root3)).isFile();
     } catch {
       return false;
     }
@@ -586355,7 +586428,7 @@ function updateFileGroups(rootPath, action, workspacesRoot, storageDir) {
   const checkedFile = (file3) => {
     if (typeof file3 !== "string") throw new Error(tr("\u6587\u4EF6\u8DEF\u5F84\u65E0\u6548", "Invalid file path"));
     const safe2 = resolveWorkspaceFilePath(file3, root3);
-    if (!(0, import_node_fs134.statSync)(safe2).isFile()) throw new Error(tr("\u5206\u7EC4\u53EA\u80FD\u5305\u542B\u6587\u4EF6", "Groups can only contain files"));
+    if (!(0, import_node_fs133.statSync)(safe2).isFile()) throw new Error(tr("\u5206\u7EC4\u53EA\u80FD\u5305\u542B\u6587\u4EF6", "Groups can only contain files"));
     return safe2;
   };
   const paths = "paths" in action ? (() => {
@@ -586398,17 +586471,17 @@ function updateFileGroups(rootPath, action, workspacesRoot, storageDir) {
     default:
       throw new Error(tr("\u5206\u7EC4\u64CD\u4F5C\u65E0\u6548", "Invalid group action"));
   }
-  (0, import_node_fs134.mkdirSync)(storageDir, { recursive: true });
+  (0, import_node_fs133.mkdirSync)(storageDir, { recursive: true });
   writeJsonFileAtomic(path13, groups);
   return visible(groups, root3);
 }
-var import_node_crypto151, import_node_fs134, import_node_path149;
+var import_node_crypto151, import_node_fs133, import_node_path148;
 var init_file_groups = __esm({
   "../electron/src/main/lib/file-groups.ts"() {
     "use strict";
     import_node_crypto151 = require("node:crypto");
-    import_node_fs134 = require("node:fs");
-    import_node_path149 = require("node:path");
+    import_node_fs133 = require("node:fs");
+    import_node_path148 = require("node:path");
     init_workspace_file_path();
     init_safe_file();
     init_src();
@@ -586482,7 +586555,7 @@ function createDefaultProbes() {
       runtime3 ??= buildAgentRuntimeEnv({ runtimeStatus: getRuntimeStatus(), officeCliPath: getBundledOfficeCliPath(), skillEnv: skillEnvLayout() });
       return probeCommand(name2, runtime3);
     },
-    sandboxExec: () => (0, import_node_fs135.existsSync)("/usr/bin/sandbox-exec"),
+    sandboxExec: () => (0, import_node_fs134.existsSync)("/usr/bin/sandbox-exec"),
     officeCli: getInstalledOfficeCliPath,
     documentPython: checkDocumentPython,
     shellEnv: () => getRuntimeStatus()?.shellEnv,
@@ -586615,11 +586688,11 @@ async function checkEnvironment(probes = createDefaultProbes()) {
   console.log("[\u73AF\u5883\u68C0\u6D4B] \u68C0\u6D4B\u5B8C\u6210:", result8);
   return result8;
 }
-var import_node_fs135, ITEM_TIMEOUT_MS, UV_INSTALL_URL, BUN_URL, PYTHON_URL;
+var import_node_fs134, ITEM_TIMEOUT_MS, UV_INSTALL_URL, BUN_URL, PYTHON_URL;
 var init_environment_checker = __esm({
   "../electron/src/main/lib/environment-checker.ts"() {
     "use strict";
-    import_node_fs135 = require("node:fs");
+    import_node_fs134 = require("node:fs");
     init_src();
     init_node_detector();
     init_git_detector();
@@ -587247,7 +587320,7 @@ function buildMemoryShare(selection, exporter, now = Date.now()) {
 }
 function exportMemoryShare(selection, targetPath, exporter = resolveExporter(), now = Date.now()) {
   const { bytes, memories, projects } = buildMemoryShare(selection, exporter, now);
-  (0, import_node_fs136.writeFileSync)(targetPath, bytes);
+  (0, import_node_fs135.writeFileSync)(targetPath, bytes);
   return { path: targetPath, memories, projects };
 }
 function pruneExportExclusions(candidates) {
@@ -587259,8 +587332,8 @@ function pruneExportExclusions(candidates) {
 function importProjectShare(input, now = Date.now()) {
   const workspace = listAgentWorkspaces().find((item) => item.slug === input.workspaceSlug);
   if (!workspace) throw new Error(tr("\u9879\u76EE\u4E0D\u5B58\u5728", "Project not found"));
-  if ((0, import_node_fs136.statSync)(input.path).size > MAX_SHARE_BYTES) throw new Error(tr("\u5206\u4EAB\u5305\u8D85\u8FC7 64 MB", "The share package exceeds 64 MB"));
-  const bytes = (0, import_node_fs136.readFileSync)(input.path);
+  if ((0, import_node_fs135.statSync)(input.path).size > MAX_SHARE_BYTES) throw new Error(tr("\u5206\u4EAB\u5305\u8D85\u8FC7 64 MB", "The share package exceeds 64 MB"));
+  const bytes = (0, import_node_fs135.readFileSync)(input.path);
   const pkg = readMemoryShareZip(new Uint8Array(bytes));
   if (!pkg.projects.length) throw new Error(tr("\u8FD9\u4E2A\u5206\u4EAB\u5305\u91CC\u6CA1\u6709\u9879\u76EE\u8BB0\u5FC6", "This share package has no project memory"));
   const wanted2 = normalizeProjectName(input.projectName ?? shareProjectName(workspace));
@@ -587282,12 +587355,12 @@ function removeTeamMemorySource(workspaceSlug, sourceKey2) {
   removeTeamMemorySourceFile(getTeamMemoryPaths(workspaceSlug), workspaceSlug, sourceKey2);
   notifyMemoryChanged();
 }
-var import_node_crypto152, import_node_fs136, MIN_VALID_DAYS, MAX_VALID_DAYS;
+var import_node_crypto152, import_node_fs135, MIN_VALID_DAYS, MAX_VALID_DAYS;
 var init_memory_share_service = __esm({
   "../electron/src/main/lib/memory-share-service.ts"() {
     "use strict";
     import_node_crypto152 = require("node:crypto");
-    import_node_fs136 = require("node:fs");
+    import_node_fs135 = require("node:fs");
     init_src();
     init_agent_workspace_manager();
     init_memory_center_service();
@@ -587329,20 +587402,20 @@ function memberFields(memberName, title) {
 }
 function realFolder(folder) {
   try {
-    return (0, import_node_fs137.realpathSync)(folder);
+    return (0, import_node_fs136.realpathSync)(folder);
   } catch {
     return folder;
   }
 }
 function isDirectory3(path13) {
   try {
-    return (0, import_node_fs137.statSync)(path13).isDirectory();
+    return (0, import_node_fs136.statSync)(path13).isDirectory();
   } catch {
     return false;
   }
 }
 function joinOrganization(input, now = Date.now()) {
-  if (!(0, import_node_path150.isAbsolute)(input.folder)) throw new Error(tr("\u7EC4\u7EC7\u6587\u4EF6\u5939\u4E0D\u53EF\u7528\uFF0C\u8BF7\u786E\u8BA4\u5171\u4EAB\u76D8\u5DF2\u8FDE\u63A5", "The organization folder isn\u2019t available. Check that the shared drive is connected."));
+  if (!(0, import_node_path149.isAbsolute)(input.folder)) throw new Error(tr("\u7EC4\u7EC7\u6587\u4EF6\u5939\u4E0D\u53EF\u7528\uFF0C\u8BF7\u786E\u8BA4\u5171\u4EAB\u76D8\u5DF2\u8FDE\u63A5", "The organization folder isn\u2019t available. Check that the shared drive is connected."));
   const info2 = readOrganizationFolder(input.folder);
   if (!info2.departments.includes(input.department)) throw new Error(tr("\u8FD9\u4E2A\u7EC4\u7EC7\u91CC\u6CA1\u6709\u8FD9\u4E2A\u90E8\u95E8", "That department isn\u2019t in this organization"));
   const fields = memberFields(input.memberName, input.title);
@@ -587448,11 +587521,11 @@ function migrateLegacyEnterpriseMembership(legacyRecall, now = Date.now()) {
 function legacyMembership(selection, now) {
   if (!selection?.companyId || !selection.departmentId) return null;
   try {
-    const catalog2 = parseEnterpriseMemoryCatalog(JSON.parse((0, import_node_fs137.readFileSync)((0, import_node_path150.join)(getConfigDir(), "enterprise-memory", "catalog.json"), "utf-8")));
+    const catalog2 = parseEnterpriseMemoryCatalog(JSON.parse((0, import_node_fs136.readFileSync)((0, import_node_path149.join)(getConfigDir(), "enterprise-memory", "catalog.json"), "utf-8")));
     const folder = catalog2.imports.find((item) => item.companyId === selection.companyId)?.sourceDirectory;
     const company = catalog2.scopes.find((scope) => scope.level === "company" && scope.id === selection.companyId);
     const department = catalog2.scopes.find((scope) => scope.level === "department" && scope.id === selection.departmentId && scope.parentId === selection.companyId);
-    if (!folder || !(0, import_node_path150.isAbsolute)(folder) || !company || !department) return null;
+    if (!folder || !(0, import_node_path149.isAbsolute)(folder) || !company || !department) return null;
     const userName = getUserProfile().userName.trim();
     return {
       id: (0, import_node_crypto153.randomUUID)(),
@@ -587468,13 +587541,13 @@ function legacyMembership(selection, now) {
     return null;
   }
 }
-var import_node_crypto153, import_node_fs137, import_node_path150, MAX_NAME_LENGTH;
+var import_node_crypto153, import_node_fs136, import_node_path149, MAX_NAME_LENGTH;
 var init_org_memory_service = __esm({
   "../electron/src/main/lib/org-memory-service.ts"() {
     "use strict";
     import_node_crypto153 = require("node:crypto");
-    import_node_fs137 = require("node:fs");
-    import_node_path150 = require("node:path");
+    import_node_fs136 = require("node:fs");
+    import_node_path149 = require("node:path");
     init_src();
     init_config_paths();
     init_enterprise_memory_store();
@@ -587538,9 +587611,9 @@ function isQuickPhrase(value2) {
 }
 function readPhraseFile() {
   const filePath = getQuickPhrasesPath();
-  if (!(0, import_node_fs138.existsSync)(filePath)) return { version: 1, phrases: [] };
+  if (!(0, import_node_fs137.existsSync)(filePath)) return { version: 1, phrases: [] };
   try {
-    const file3 = JSON.parse((0, import_node_fs138.readFileSync)(filePath, "utf-8"));
+    const file3 = JSON.parse((0, import_node_fs137.readFileSync)(filePath, "utf-8"));
     if (file3?.version !== 1) {
       const version6 = String(file3?.version);
       throw new Error(tr(`\u4E0D\u652F\u6301\u7684\u7248\u672C ${version6}`, `Unsupported version ${version6}`));
@@ -587615,12 +587688,12 @@ function deleteQuickPhrase(id19) {
     phrases.splice(index5, 1);
   });
 }
-var import_node_crypto154, import_node_fs138;
+var import_node_crypto154, import_node_fs137;
 var init_quick_phrase_service = __esm({
   "../electron/src/main/lib/quick-phrase-service.ts"() {
     "use strict";
     import_node_crypto154 = require("node:crypto");
-    import_node_fs138 = require("node:fs");
+    import_node_fs137 = require("node:fs");
     init_src();
     init_config_paths();
     init_file_lock();
@@ -587830,15 +587903,15 @@ function inferExtension(mediaType) {
   return SAFE_IMAGE_EXTENSIONS[sub2] ?? "jpg";
 }
 function ensurePathWithin(targetPath, parentDir) {
-  const resolved = (0, import_node_path151.resolve)(targetPath);
-  const resolvedParent = (0, import_node_path151.resolve)(parentDir);
-  const rel2 = (0, import_node_path151.relative)(resolvedParent, resolved);
-  if (rel2.startsWith("..") || (0, import_node_path151.resolve)(resolvedParent, rel2) !== resolved) {
+  const resolved = (0, import_node_path150.resolve)(targetPath);
+  const resolvedParent = (0, import_node_path150.resolve)(parentDir);
+  const rel2 = (0, import_node_path150.relative)(resolvedParent, resolved);
+  if (rel2.startsWith("..") || (0, import_node_path150.resolve)(resolvedParent, rel2) !== resolved) {
     throw new Error(tr(`\u8DEF\u5F84\u7A7F\u8D8A\uFF1A${resolved} \u8D85\u51FA ${resolvedParent}`, `Path traversal: ${resolved} is outside ${resolvedParent}`));
   }
 }
 function sanitizeFileName(name2) {
-  return (0, import_node_path151.basename)(name2).replace(/[/\\:*?"<>|]/g, "_");
+  return (0, import_node_path150.basename)(name2).replace(/[/\\:*?"<>|]/g, "_");
 }
 function sessionAttachmentDir(workspaceSlug, sessionId2) {
   return workspaceSlug ? getAgentSessionWorkspacePath(workspaceSlug, sessionId2) : getStandaloneAgentSessionWorkspacePath(sessionId2);
@@ -587847,19 +587920,19 @@ function saveImageToSession(workspaceSlug, sessionId2, fileNameHint, mediaType, 
   const sessionDir2 = sessionAttachmentDir(workspaceSlug, sessionId2);
   const ext = inferExtension(mediaType);
   const filename = `${sanitizeFileName(fileNameHint)}.${ext}`;
-  const targetPath = (0, import_node_path151.join)(sessionDir2, filename);
+  const targetPath = (0, import_node_path150.join)(sessionDir2, filename);
   ensurePathWithin(targetPath, sessionDir2);
-  (0, import_node_fs139.mkdirSync)(sessionDir2, { recursive: true });
-  (0, import_node_fs139.writeFileSync)(targetPath, data3);
+  (0, import_node_fs138.mkdirSync)(sessionDir2, { recursive: true });
+  (0, import_node_fs138.writeFileSync)(targetPath, data3);
   console.log(`[Bridge \u9644\u4EF6] \u56FE\u7247\u5DF2\u4FDD\u5B58: ${targetPath} (${data3.length} bytes)`);
   return targetPath;
 }
 function saveFileToSession(workspaceSlug, sessionId2, fileName, data3) {
   const sessionDir2 = sessionAttachmentDir(workspaceSlug, sessionId2);
-  const targetPath = (0, import_node_path151.join)(sessionDir2, sanitizeFileName(fileName));
+  const targetPath = (0, import_node_path150.join)(sessionDir2, sanitizeFileName(fileName));
   ensurePathWithin(targetPath, sessionDir2);
-  (0, import_node_fs139.mkdirSync)(sessionDir2, { recursive: true });
-  (0, import_node_fs139.writeFileSync)(targetPath, data3);
+  (0, import_node_fs138.mkdirSync)(sessionDir2, { recursive: true });
+  (0, import_node_fs138.writeFileSync)(targetPath, data3);
   console.log(`[Bridge \u9644\u4EF6] \u6587\u4EF6\u5DF2\u4FDD\u5B58: ${targetPath} (${data3.length} bytes)`);
   return targetPath;
 }
@@ -587872,12 +587945,12 @@ ${lines.join("\n")}
 
 `;
 }
-var import_node_fs139, import_node_path151, MAX_IMAGE_SIZE, SAFE_IMAGE_EXTENSIONS;
+var import_node_fs138, import_node_path150, MAX_IMAGE_SIZE, SAFE_IMAGE_EXTENSIONS;
 var init_bridge_attachment_utils = __esm({
   "../electron/src/main/lib/bridge-attachment-utils.ts"() {
     "use strict";
-    import_node_fs139 = require("node:fs");
-    import_node_path151 = require("node:path");
+    import_node_fs138 = require("node:fs");
+    import_node_path150 = require("node:path");
     init_src();
     init_config_paths();
     MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -587956,7 +588029,7 @@ function pickAllowedWorkspaceId(allowed, preferred) {
   const ids2 = listAgentWorkspacesByUpdatedAt().filter((w2) => allowed.includes(w2.id)).map((w2) => w2.id);
   return preferred && ids2.includes(preferred) ? preferred : ids2[0];
 }
-var import_node_fs140, MAX_QUEUED_PER_RUN, BUSY_REPLY, OWNER_COMMANDS, NO_ALLOWED_PROJECTS_REPLY, CHAT_PROJECT_NOT_ALLOWED_REPLY, BridgeCommandHandler;
+var import_node_fs139, MAX_QUEUED_PER_RUN, BUSY_REPLY, OWNER_COMMANDS, NO_ALLOWED_PROJECTS_REPLY, CHAT_PROJECT_NOT_ALLOWED_REPLY, BridgeCommandHandler;
 var init_bridge_command_handler = __esm({
   "../electron/src/main/lib/bridge-command-handler.ts"() {
     "use strict";
@@ -587975,7 +588048,7 @@ var init_bridge_command_handler = __esm({
     init_bridge_attachment_utils();
     init_bridge_outbound_files();
     init_cola_service();
-    import_node_fs140 = require("node:fs");
+    import_node_fs139 = require("node:fs");
     init_safe_file();
     MAX_QUEUED_PER_RUN = 5;
     BUSY_REPLY = () => tr("\u23F3 \u4E0A\u4E00\u6761\u6D88\u606F\u4ECD\u5728\u5904\u7406\u4E2D\uFF0C\u8FD9\u6761\u6CA1\u6709\u5904\u7406\uFF0C\u5B8C\u6210\u540E\u8BF7\u91CD\u65B0\u53D1\u9001", "\u23F3 Still working on the last message, so this one wasn\u2019t processed. Send it again when that\u2019s done.");
@@ -588114,9 +588187,9 @@ var init_bridge_command_handler = __esm({
       /** 从磁盘恢复绑定（重启后同一聊天仍进同一条对话）；对话已删除的绑定丢弃 */
       loadBindings() {
         const path13 = this.config.bindingsPath;
-        if (!path13 || !(0, import_node_fs140.existsSync)(path13)) return;
+        if (!path13 || !(0, import_node_fs139.existsSync)(path13)) return;
         try {
-          const parsed = JSON.parse((0, import_node_fs140.readFileSync)(path13, "utf-8"));
+          const parsed = JSON.parse((0, import_node_fs139.readFileSync)(path13, "utf-8"));
           if (!Array.isArray(parsed)) return;
           for (const item of parsed) {
             const b3 = item;
@@ -588426,7 +588499,7 @@ var init_bridge_command_handler = __esm({
           }
           try {
             const wsPath = getAgentWorkspacePath(workspace.slug);
-            const entries = (0, import_node_fs140.readdirSync)(wsPath, { withFileTypes: true });
+            const entries = (0, import_node_fs139.readdirSync)(wsPath, { withFileTypes: true });
             const fileList = entries.filter((e) => !e.name.startsWith(".") && e.name !== "mcp.json" && e.name !== "config.json" && e.name !== "skills" && e.name !== "skills-inactive").map((e) => e.isDirectory() ? `\u{1F4C1} ${e.name}/` : `\u{1F4C4} ${e.name}`);
             if (fileList.length > 0) {
               lines.push("");
@@ -588904,7 +588977,7 @@ function isFeishuPermissionError(error50) {
   return typeof code2 === "number" && FEISHU_PERMISSION_CODES.has(code2);
 }
 function feishuFileType(name2) {
-  const ext = (0, import_node_path152.extname)(name2).toLowerCase().slice(1);
+  const ext = (0, import_node_path151.extname)(name2).toLowerCase().slice(1);
   if (ext === "pdf" || ext === "mp4") return ext;
   if (ext === "doc" || ext === "docx") return "doc";
   if (ext === "xls" || ext === "xlsx") return "xls";
@@ -588924,7 +588997,7 @@ function feishuPlainText(messageType, content4) {
     return "";
   }
 }
-var import_node_fs141, import_node_path152, FEISHU_PERMISSION_CODES, MAX_QUEUED_PER_RUN2, OWNER_COMMANDS2, FEISHU_IMAGE_LIMIT, FEISHU_FILE_LIMIT, FeishuBridge;
+var import_node_fs140, import_node_path151, FEISHU_PERMISSION_CODES, MAX_QUEUED_PER_RUN2, OWNER_COMMANDS2, FEISHU_IMAGE_LIMIT, FEISHU_FILE_LIMIT, FeishuBridge;
 var init_feishu_bridge = __esm({
   "../electron/src/main/lib/feishu-bridge.ts"() {
     "use strict";
@@ -588943,9 +589016,9 @@ var init_feishu_bridge = __esm({
     init_agent_external_content();
     init_agent_workspace_manager();
     init_config_paths();
-    import_node_fs141 = require("node:fs");
+    import_node_fs140 = require("node:fs");
     init_safe_file();
-    import_node_path152 = require("node:path");
+    import_node_path151 = require("node:path");
     init_bridge_outbound_files();
     init_bridge_attachment_utils();
     init_settings_service();
@@ -589116,9 +589189,9 @@ var init_feishu_bridge = __esm({
       /** 从磁盘恢复聊天绑定（应用重启后延续之前的会话） */
       loadBindings() {
         const bindingsPath = getFeishuBotBindingsPath(this.botConfig.id);
-        if (!(0, import_node_fs141.existsSync)(bindingsPath)) return;
+        if (!(0, import_node_fs140.existsSync)(bindingsPath)) return;
         try {
-          const raw = (0, import_node_fs141.readFileSync)(bindingsPath, "utf-8");
+          const raw = (0, import_node_fs140.readFileSync)(bindingsPath, "utf-8");
           const bindings = JSON.parse(raw);
           for (const b3 of bindings) {
             const session3 = getAgentSessionMeta(b3.sessionId);
@@ -589793,7 +589866,7 @@ var init_feishu_bridge = __esm({
           const { getAgentWorkspacePath: getWsPath } = await Promise.resolve().then(() => (init_config_paths(), config_paths_exports));
           const wsPath = getWsPath(workspace.slug);
           try {
-            const entries = (0, import_node_fs141.readdirSync)(wsPath, { withFileTypes: true });
+            const entries = (0, import_node_fs140.readdirSync)(wsPath, { withFileTypes: true });
             const fileList = entries.filter((e) => !e.name.startsWith(".") && e.name !== "mcp.json" && e.name !== "config.json" && e.name !== "skills" && e.name !== "skills-inactive").map((e) => e.isDirectory() ? `\u{1F4C1} ${e.name}/` : `\u{1F4C4} ${e.name}`);
             if (fileList.length > 0) {
               lines.push("");
@@ -590919,8 +590992,8 @@ function decryptToken(encrypted) {
 }
 function readConfigStrict() {
   const configPath = getTelegramConfigPath();
-  if (!(0, import_node_fs142.existsSync)(configPath)) return { version: 1, bots: [] };
-  const data3 = JSON.parse((0, import_node_fs142.readFileSync)(configPath, "utf-8"));
+  if (!(0, import_node_fs141.existsSync)(configPath)) return { version: 1, bots: [] };
+  const data3 = JSON.parse((0, import_node_fs141.readFileSync)(configPath, "utf-8"));
   if (!Array.isArray(data3.bots)) throw new Error("telegram.json \u7F3A\u5C11 bots \u6570\u7EC4");
   return { version: 1, bots: data3.bots };
 }
@@ -591011,12 +591084,12 @@ function getDecryptedTelegramToken(botId) {
   const bot = getTelegramBotById(botId);
   return bot?.botToken ? decryptToken(bot.botToken) : void 0;
 }
-var import_node_crypto156, import_node_fs142, import_electron39, TELEGRAM_TOKEN_PATTERN;
+var import_node_crypto156, import_node_fs141, import_electron39, TELEGRAM_TOKEN_PATTERN;
 var init_telegram_config = __esm({
   "../electron/src/main/lib/telegram-config.ts"() {
     "use strict";
     import_node_crypto156 = require("node:crypto");
-    import_node_fs142 = require("node:fs");
+    import_node_fs141 = require("node:fs");
     import_electron39 = __toESM(require_electron(), 1);
     init_src();
     init_config_paths();
@@ -605620,7 +605693,7 @@ var init_dist39 = __esm({
 });
 
 // ../electron/src/main/lib/dingtalk-bridge.ts
-var import_electron41, import_node_path153, DINGTALK_MEDIA_LIMIT, DingTalkBridge;
+var import_electron41, import_node_path152, DINGTALK_MEDIA_LIMIT, DingTalkBridge;
 var init_dingtalk_bridge = __esm({
   "../electron/src/main/lib/dingtalk-bridge.ts"() {
     "use strict";
@@ -605633,7 +605706,7 @@ var init_dingtalk_bridge = __esm({
     init_bridge_attachment_utils();
     init_agent_workspace_manager();
     init_config_paths();
-    import_node_path153 = require("node:path");
+    import_node_path152 = require("node:path");
     DINGTALK_MEDIA_LIMIT = 20 * 1024 * 1024;
     DingTalkBridge = class _DingTalkBridge {
       client = null;
@@ -606066,7 +606139,7 @@ var init_dingtalk_bridge = __esm({
         const staffId = this.privateChats.get(chatId)?.staffId;
         if (!group2 && !staffId) throw new Error("\u79C1\u804A\u6CA1\u6709\u53D1\u9001\u8005\u7684 staffId\uFF0C\u65E0\u6CD5\u53D1\u56FE\u7247\u548C\u6587\u4EF6");
         const mediaId = await this.uploadMedia(file3);
-        const ext = (0, import_node_path153.extname)(file3.name).slice(1).toLowerCase();
+        const ext = (0, import_node_path152.extname)(file3.name).slice(1).toLowerCase();
         const message8 = file3.kind === "image" ? { msgKey: "sampleImageMsg", msgParam: JSON.stringify({ photoURL: mediaId }) } : { msgKey: "sampleFile", msgParam: JSON.stringify({ mediaId, fileName: file3.name, fileType: ext }) };
         const robotCode = this.robotCode || this.botConfig.clientId;
         const [path13, target] = group2 ? ["groupMessages/send", { openConversationId: chatId }] : ["oToMessages/batchSend", { userIds: [staffId] }];
@@ -606256,8 +606329,8 @@ function decryptToken2(encryptedToken) {
 }
 function readWeChatConfigStrict() {
   const configPath = getWeChatConfigPath();
-  if (!(0, import_node_fs143.existsSync)(configPath)) return { ...DEFAULT_CONFIG2 };
-  const data3 = JSON.parse((0, import_node_fs143.readFileSync)(configPath, "utf-8"));
+  if (!(0, import_node_fs142.existsSync)(configPath)) return { ...DEFAULT_CONFIG2 };
+  const data3 = JSON.parse((0, import_node_fs142.readFileSync)(configPath, "utf-8"));
   return { ...DEFAULT_CONFIG2, ...data3 };
 }
 function getWeChatConfig() {
@@ -606330,11 +606403,11 @@ function clearWeChatCredentials() {
   writeJsonFileAtomic(configPath, config5);
   console.log("[\u5FAE\u4FE1\u914D\u7F6E] \u51ED\u8BC1\u5DF2\u6E05\u9664");
 }
-var import_node_fs143, import_electron42, DEFAULT_CONFIG2;
+var import_node_fs142, import_electron42, DEFAULT_CONFIG2;
 var init_wechat_config = __esm({
   "../electron/src/main/lib/wechat-config.ts"() {
     "use strict";
-    import_node_fs143 = require("node:fs");
+    import_node_fs142 = require("node:fs");
     init_safe_file();
     import_electron42 = __toESM(require_electron(), 1);
     init_config_paths();
@@ -606745,7 +606818,7 @@ function isWeChatOwnerChat(chatId) {
   if (chatId !== ownerId) console.warn(`[\u5FAE\u4FE1 Bridge] \u6D88\u606F\u53D1\u9001\u8005 ${chatId.slice(0, 8)}... \u4E0E\u767B\u5F55\u8D26\u53F7 ${ownerId.slice(0, 8)}... \u4E0D\u4E00\u81F4\uFF0C\u6309\u975E\u4E3B\u4EBA\u5904\u7406`);
   return chatId === ownerId;
 }
-var import_electron43, import_node_fs144, import_qrcode2, MAX_CONSECUTIVE_FAILURES, INITIAL_BACKOFF_MS, MAX_BACKOFF_MS, MAX_FILE_SIZE, HANDLE_MESSAGE_TIMEOUT_MS, PENDING_IMAGES_CLEANUP_INTERVAL, WeChatBridge, wechatBridge;
+var import_electron43, import_node_fs143, import_qrcode2, MAX_CONSECUTIVE_FAILURES, INITIAL_BACKOFF_MS, MAX_BACKOFF_MS, MAX_FILE_SIZE, HANDLE_MESSAGE_TIMEOUT_MS, PENDING_IMAGES_CLEANUP_INTERVAL, WeChatBridge, wechatBridge;
 var init_wechat_bridge = __esm({
   "../electron/src/main/lib/wechat-bridge.ts"() {
     "use strict";
@@ -606757,7 +606830,7 @@ var init_wechat_bridge = __esm({
     init_wechat_media();
     init_bridge_attachment_utils();
     init_agent_workspace_manager();
-    import_node_fs144 = require("node:fs");
+    import_node_fs143 = require("node:fs");
     import_qrcode2 = __toESM(require_lib18(), 1);
     init_wechat_client();
     MAX_CONSECUTIVE_FAILURES = 5;
@@ -607146,9 +607219,9 @@ var init_wechat_bridge = __esm({
       // ===== 同步游标持久化 =====
       loadSyncBuf() {
         const syncPath = getWeChatSyncPath();
-        if (!(0, import_node_fs144.existsSync)(syncPath)) return;
+        if (!(0, import_node_fs143.existsSync)(syncPath)) return;
         try {
-          const data3 = JSON.parse((0, import_node_fs144.readFileSync)(syncPath, "utf-8"));
+          const data3 = JSON.parse((0, import_node_fs143.readFileSync)(syncPath, "utf-8"));
           if (data3.get_updates_buf) {
             this.getUpdatesBuf = data3.get_updates_buf;
             console.log("[\u5FAE\u4FE1 Bridge] \u5DF2\u52A0\u8F7D\u540C\u6B65\u6E38\u6807");
@@ -607159,7 +607232,7 @@ var init_wechat_bridge = __esm({
       saveSyncBuf() {
         const syncPath = getWeChatSyncPath();
         try {
-          (0, import_node_fs144.writeFileSync)(syncPath, JSON.stringify({ get_updates_buf: this.getUpdatesBuf }), "utf-8");
+          (0, import_node_fs143.writeFileSync)(syncPath, JSON.stringify({ get_updates_buf: this.getUpdatesBuf }), "utf-8");
         } catch (error50) {
           console.warn("[\u5FAE\u4FE1 Bridge] \u4FDD\u5B58\u540C\u6B65\u6E38\u6807\u5931\u8D25:", error50);
         }
@@ -607276,7 +607349,7 @@ __export(file_open_apps_exports, {
   rememberOpenApp: () => rememberOpenApp,
   savedOpenApps: () => savedOpenApps
 });
-function assertOpenableFile(filePath, stat17 = import_node_fs145.statSync) {
+function assertOpenableFile(filePath, stat17 = import_node_fs144.statSync) {
   let isFile2 = false;
   try {
     isFile2 = stat17(filePath).isFile();
@@ -607285,8 +607358,8 @@ function assertOpenableFile(filePath, stat17 = import_node_fs145.statSync) {
   if (!isFile2) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u4E0D\u662F\u6587\u4EF6", "The file doesn\u2019t exist or isn\u2019t a file"));
   return filePath;
 }
-function isValidAppPath(appPath, platform = process.platform, stat17 = import_node_fs145.statSync, executable = (path13) => (0, import_node_fs145.accessSync)(path13, import_node_fs145.constants.X_OK)) {
-  if (typeof appPath !== "string" || !(0, import_node_path154.isAbsolute)(appPath) || appPath.includes("\0")) return false;
+function isValidAppPath(appPath, platform = process.platform, stat17 = import_node_fs144.statSync, executable = (path13) => (0, import_node_fs144.accessSync)(path13, import_node_fs144.constants.X_OK)) {
+  if (typeof appPath !== "string" || !(0, import_node_path153.isAbsolute)(appPath) || appPath.includes("\0")) return false;
   try {
     const info2 = stat17(appPath);
     if (platform === "darwin") return info2.isDirectory() && /\.app$/i.test(appPath.replace(/[/\\]+$/, ""));
@@ -607306,10 +607379,10 @@ function rememberOpenApp(list5, used) {
   return [{ path: used.path, name: used.name }, ...list5.filter((item) => item.path !== used.path)].slice(0, RECENT_OPEN_APPS);
 }
 function appNameFromPath(appPath) {
-  return (0, import_node_path154.basename)(appPath.replace(/[/\\]+$/, "")).replace(/\.(app|exe)$/i, "");
+  return (0, import_node_path153.basename)(appPath.replace(/[/\\]+$/, "")).replace(/\.(app|exe)$/i, "");
 }
 function inAppFolders(appPath, home = (0, import_node_os16.homedir)()) {
-  return ["/Applications", "/System/Applications", (0, import_node_path154.join)(home, "Applications"), "/System/Library/CoreServices"].some((root3) => appPath === root3 || appPath.startsWith(root3 + import_node_path154.sep));
+  return ["/Applications", "/System/Applications", (0, import_node_path153.join)(home, "Applications"), "/System/Library/CoreServices"].some((root3) => appPath === root3 || appPath.startsWith(root3 + import_node_path153.sep));
 }
 function claimScore(claims, extension2) {
   let best = 0;
@@ -607366,7 +607439,7 @@ async function listFileOpenApps(filePath) {
   const defaultApp = result8?.defaultApp ?? void 0;
   const others = recent.filter((item) => item.path !== defaultApp);
   const shown = /* @__PURE__ */ new Set([defaultApp, ...others.map((item) => item.path)]);
-  const candidates = rankCandidates((result8?.candidates ?? []).filter(({ path: path13 }) => !shown.has(path13) && inAppFolders(path13) && isValidAppPath(path13)), (0, import_node_path154.extname)(filePath).slice(1).toLowerCase());
+  const candidates = rankCandidates((result8?.candidates ?? []).filter(({ path: path13 }) => !shown.has(path13) && inAppFolders(path13) && isValidAppPath(path13)), (0, import_node_path153.extname)(filePath).slice(1).toLowerCase());
   const info2 = new Map((await appInfo([...defaultApp ? [defaultApp] : [], ...others.map((item) => item.path), ...candidates])).map((item) => [item.path, item]));
   const describe6 = (path13, fallback) => {
     const found2 = info2.get(path13);
@@ -607404,7 +607477,7 @@ async function openFileWith(filePath, appPath, parent) {
   if (appPath === void 0) {
     const mac9 = process.platform === "darwin";
     const options2 = {
-      title: tr(`\u9009\u62E9\u6253\u5F00\u201C${(0, import_node_path154.basename)(filePath)}\u201D\u7684\u5E94\u7528`, `Choose an app to open \u201C${(0, import_node_path154.basename)(filePath)}\u201D`),
+      title: tr(`\u9009\u62E9\u6253\u5F00\u201C${(0, import_node_path153.basename)(filePath)}\u201D\u7684\u5E94\u7528`, `Choose an app to open \u201C${(0, import_node_path153.basename)(filePath)}\u201D`),
       properties: ["openFile"],
       ...mac9 ? { defaultPath: "/Applications", filters: [{ name: tr("\u5E94\u7528", "Applications"), extensions: ["app"] }] } : process.platform === "win32" ? { filters: [{ name: tr("\u5E94\u7528", "Applications"), extensions: ["exe"] }] } : {}
     };
@@ -607431,14 +607504,14 @@ async function openFileWith(filePath, appPath, parent) {
   updateSettings({ fileOpenApps: rememberOpenApp(recent, chosen) });
   return chosen;
 }
-var import_node_child_process19, import_node_fs145, import_node_os16, import_node_path154, import_node_util20, execFileAsync8, RECENT_OPEN_APPS, MAX_CANDIDATES, GENERIC_TYPES, LAUNCH_SERVICES_SCRIPT;
+var import_node_child_process19, import_node_fs144, import_node_os16, import_node_path153, import_node_util20, execFileAsync8, RECENT_OPEN_APPS, MAX_CANDIDATES, GENERIC_TYPES, LAUNCH_SERVICES_SCRIPT;
 var init_file_open_apps = __esm({
   "../electron/src/main/lib/file-open-apps.ts"() {
     "use strict";
     import_node_child_process19 = require("node:child_process");
-    import_node_fs145 = require("node:fs");
+    import_node_fs144 = require("node:fs");
     import_node_os16 = require("node:os");
-    import_node_path154 = require("node:path");
+    import_node_path153 = require("node:path");
     import_node_util20 = require("node:util");
     init_src();
     init_settings_service();
@@ -607504,12 +607577,12 @@ __export(file_preview_service_exports, {
 });
 function resolveVendorDir() {
   if (import_electron44.app.isPackaged) {
-    return (0, import_node_path155.join)(process.resourcesPath, "vendor");
+    return (0, import_node_path154.join)(process.resourcesPath, "vendor");
   }
-  return (0, import_node_path155.join)(__dirname, "..", "vendor");
+  return (0, import_node_path154.join)(__dirname, "..", "vendor");
 }
 function vendorUrl(...segments) {
-  return (0, import_node_url6.pathToFileURL)((0, import_node_path155.join)(resolveVendorDir(), ...segments)).href;
+  return (0, import_node_url6.pathToFileURL)((0, import_node_path154.join)(resolveVendorDir(), ...segments)).href;
 }
 function hljsThemeLink(isDark) {
   return `<link rel="stylesheet" href="${vendorUrl("highlight", "styles", isDark ? "github-dark.min.css" : "github.min.css")}">`;
@@ -607534,10 +607607,10 @@ function isEditableType(previewType) {
   return previewType === "markdown" || previewType === "code";
 }
 function isEditablePreviewPath(filePath) {
-  return isEditableType(getPreviewType(filePath, (0, import_node_path155.extname)(filePath).toLowerCase()));
+  return isEditableType(getPreviewType(filePath, (0, import_node_path154.extname)(filePath).toLowerCase()));
 }
 function detectLanguage(filePath, ext) {
-  const base2 = (0, import_node_path155.basename)(filePath).toLowerCase();
+  const base2 = (0, import_node_path154.basename)(filePath).toLowerCase();
   if (isEnvFile(base2)) return "bash";
   if (SPECIAL_FILENAME_LANG[base2]) return SPECIAL_FILENAME_LANG[base2];
   return EXT_LANG_MAP[ext] || "plaintext";
@@ -607570,7 +607643,7 @@ function ensureIpcRegistered() {
     if (!state3 || state3.type !== "pdf" || state3.reading || !Number.isSafeInteger(begin) || !Number.isSafeInteger(end) || begin < 0 || end <= begin || end > state3.size || end - begin > 1024 * 1024) throw new Error("PREVIEW_RANGE_INVALID");
     state3.reading = true;
     try {
-      const handle2 = await (0, import_promises74.open)(state3.filePath, import_node_fs146.constants.O_RDONLY | import_node_fs146.constants.O_NOFOLLOW);
+      const handle2 = await (0, import_promises74.open)(state3.filePath, import_node_fs145.constants.O_RDONLY | import_node_fs145.constants.O_NOFOLLOW);
       try {
         const before2 = await handle2.stat({ bigint: true });
         if (!before2.isFile() || previewFileIdentity(before2) !== state3.baselineVersion) throw new Error(tr("\u6587\u4EF6\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u3002", "The file changed. Reopen it."));
@@ -607609,7 +607682,7 @@ function ensureIpcRegistered() {
     if (!state3 || !win || !isEditableType(state3.type) || typeof content4 !== "string" || Buffer.byteLength(content4) > MAX_FILE_SIZE2) return { success: false };
     const choice = await import_electron44.dialog.showSaveDialog(win, { defaultPath: state3.filePath });
     if (choice.canceled || !choice.filePath) return { success: false, canceled: true };
-    if ((0, import_node_path155.resolve)(choice.filePath) === state3.filePath) return saveWindowContent(state3, content4, win);
+    if ((0, import_node_path154.resolve)(choice.filePath) === state3.filePath) return saveWindowContent(state3, content4, win);
     try {
       let version6 = null;
       try {
@@ -607673,7 +607746,7 @@ function getPreviewType(filePath, ext) {
   if (CODE_EXTENSIONS.has(ext)) return "code";
   if (PDF_EXTENSIONS.has(ext)) return "pdf";
   if (DOCX_EXTENSIONS.has(ext)) return "docx";
-  const base2 = (0, import_node_path155.basename)(filePath).toLowerCase();
+  const base2 = (0, import_node_path154.basename)(filePath).toLowerCase();
   if (isEnvFile(base2)) return "code";
   if (SPECIAL_FILENAME_LANG[base2]) return "code";
   return "unsupported";
@@ -607683,15 +607756,15 @@ function escapeHtml5(text17) {
 }
 function getPreviewTmpDir() {
   const dir = PREVIEW_TMP_DIR;
-  if (!(0, import_node_fs146.existsSync)(dir)) {
-    (0, import_node_fs146.mkdirSync)(dir, { recursive: true });
+  if (!(0, import_node_fs145.existsSync)(dir)) {
+    (0, import_node_fs145.mkdirSync)(dir, { recursive: true });
   }
   return dir;
 }
 function writeTempHtml(html2) {
   const tmpDir = getPreviewTmpDir();
-  const tmpFile = (0, import_node_path155.join)(tmpDir, `preview-${Date.now()}.html`);
-  (0, import_node_fs146.writeFileSync)(tmpFile, html2, "utf-8");
+  const tmpFile = (0, import_node_path154.join)(tmpDir, `preview-${Date.now()}.html`);
+  (0, import_node_fs145.writeFileSync)(tmpFile, html2, "utf-8");
   return tmpFile;
 }
 function baseStyles() {
@@ -608749,7 +608822,7 @@ function createPreviewWindow(filename) {
     ...titleBarOptions,
     backgroundColor: import_electron44.nativeTheme.shouldUseDarkColors ? "#1e1e1e" : "#fafaf8",
     webPreferences: {
-      preload: (0, import_node_path155.join)(__dirname, "file-preview-preload.cjs"),
+      preload: (0, import_node_path154.join)(__dirname, "file-preview-preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       zoomFactor: 1.15
@@ -608823,8 +608896,8 @@ function watchExternalChange(previewWindow2, state3) {
     if (debounceTimer) clearTimeout(debounceTimer);
   };
   try {
-    state3.watcher = (0, import_node_fs146.watch)((0, import_node_path155.dirname)(state3.filePath), (_event, filename) => {
-      if (filename && filename.toString() !== (0, import_node_path155.basename)(state3.filePath)) return;
+    state3.watcher = (0, import_node_fs145.watch)((0, import_node_path154.dirname)(state3.filePath), (_event, filename) => {
+      if (filename && filename.toString() !== (0, import_node_path154.basename)(state3.filePath)) return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         if (previewWindow2.isDestroyed()) return;
@@ -608844,29 +608917,29 @@ function watchExternalChange(previewWindow2, state3) {
 }
 function resolveTargetPath(filePath, basePaths) {
   if (filePath.startsWith("/") || /^[A-Za-z]:[\\/]/.test(filePath)) {
-    return (0, import_node_path155.resolve)(filePath);
+    return (0, import_node_path154.resolve)(filePath);
   }
   if (basePaths && basePaths.length > 0) {
     for (const base2 of basePaths) {
       if (!base2) continue;
-      const candidate = (0, import_node_path155.resolve)(base2, filePath);
-      if ((0, import_node_fs146.existsSync)(candidate)) return candidate;
+      const candidate = (0, import_node_path154.resolve)(base2, filePath);
+      if ((0, import_node_fs145.existsSync)(candidate)) return candidate;
     }
-    return (0, import_node_path155.resolve)(basePaths[0], filePath);
+    return (0, import_node_path154.resolve)(basePaths[0], filePath);
   }
-  return (0, import_node_path155.resolve)(filePath);
+  return (0, import_node_path154.resolve)(filePath);
 }
 function openFilePreview(filePath, basePaths, options2) {
-  const safePath = (0, import_node_fs146.realpathSync)(resolveTargetPath(filePath, basePaths));
-  const filename = (0, import_node_path155.basename)(safePath);
-  const ext = (0, import_node_path155.extname)(safePath).toLowerCase();
+  const safePath = (0, import_node_fs145.realpathSync)(resolveTargetPath(filePath, basePaths));
+  const filename = (0, import_node_path154.basename)(safePath);
+  const ext = (0, import_node_path154.extname)(safePath).toLowerCase();
   const previewType = getPreviewType(safePath, ext);
   if (options2?.edit === true && !isEditableType(previewType)) throw new Error("PREVIEW_NOT_EDITABLE");
   if (previewType === "unsupported") {
     import_electron44.shell.showItemInFolder(safePath);
     return;
   }
-  const stat17 = (0, import_node_fs146.statSync)(safePath);
+  const stat17 = (0, import_node_fs145.statSync)(safePath);
   if (stat17.size > MAX_FILE_SIZE2) {
     if (options2?.edit === true) throw new Error("PREVIEW_NOT_EDITABLE");
     console.warn(`[\u6587\u4EF6\u9884\u89C8] \u6587\u4EF6\u8FC7\u5927 (${(stat17.size / 1024 / 1024).toFixed(1)}MB)\uFF0C\u5728\u6587\u4EF6\u5939\u4E2D\u663E\u793A`);
@@ -608883,14 +608956,14 @@ function openFilePreview(filePath, basePaths, options2) {
   } else if (previewType === "video") {
     html2 = videoPreviewHtml(safePath, filename);
   } else if (previewType === "docx") {
-    const buffer = (0, import_node_fs146.readFileSync)(safePath);
+    const buffer = (0, import_node_fs145.readFileSync)(safePath);
     const base645 = buffer.toString("base64");
     html2 = docxPreviewHtml(safePath, filename, base645);
   } else {
     initialContent = snapshot2.content;
     html2 = previewType === "markdown" ? markdownPreviewHtml(safePath, filename, initialContent) : codePreviewHtml(safePath, filename, initialContent, ext);
   }
-  const tmpHtmlPath = previewType === "pdf" ? (0, import_node_path155.join)(__dirname, "renderer", "file-preview.html") : writeTempHtml(html2);
+  const tmpHtmlPath = previewType === "pdf" ? (0, import_node_path154.join)(__dirname, "renderer", "file-preview.html") : writeTempHtml(html2);
   const previewWindow2 = createPreviewWindow(filename);
   const state3 = {
     filePath: safePath,
@@ -608899,7 +608972,7 @@ function openFilePreview(filePath, basePaths, options2) {
     language: detectLanguage(safePath, ext),
     initialContent,
     isDirty: false,
-    baselineVersion: snapshot2?.version ?? (previewType === "pdf" ? previewFileIdentity((0, import_node_fs146.statSync)(safePath, { bigint: true })) : ""),
+    baselineVersion: snapshot2?.version ?? (previewType === "pdf" ? previewFileIdentity((0, import_node_fs145.statSync)(safePath, { bigint: true })) : ""),
     observedVersion: null,
     closing: false,
     size: stat17.size,
@@ -608913,14 +608986,14 @@ function openFilePreview(filePath, basePaths, options2) {
   }
   previewWindow2.loadFile(tmpHtmlPath);
 }
-var import_electron44, import_node_path155, import_node_url6, import_node_fs146, import_promises74, MAX_FILE_SIZE2, IMAGE_EXTENSIONS3, VIDEO_EXTENSIONS, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS, SPECIAL_FILENAME_LANG, EXT_LANG_MAP, HLJS_LANG_OVERRIDES, previewStates, ipcRegistered, PREVIEW_IPC, PDF_EXTENSIONS, DOCX_EXTENSIONS;
+var import_electron44, import_node_path154, import_node_url6, import_node_fs145, import_promises74, MAX_FILE_SIZE2, IMAGE_EXTENSIONS3, VIDEO_EXTENSIONS, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS, SPECIAL_FILENAME_LANG, EXT_LANG_MAP, HLJS_LANG_OVERRIDES, previewStates, ipcRegistered, PREVIEW_IPC, PDF_EXTENSIONS, DOCX_EXTENSIONS;
 var init_file_preview_service = __esm({
   "../electron/src/main/lib/file-preview-service.ts"() {
     "use strict";
     import_electron44 = __toESM(require_electron(), 1);
-    import_node_path155 = require("node:path");
+    import_node_path154 = require("node:path");
     import_node_url6 = require("node:url");
-    import_node_fs146 = require("node:fs");
+    import_node_fs145 = require("node:fs");
     init_titlebar_overlay();
     init_settings_service();
     init_src();
@@ -609086,7 +609159,7 @@ async function resolveAllowedPath(filePath, sessionId2, workspaceSlug, allowMiss
   if (!filePath || typeof filePath !== "string") {
     throw new Error(tr("\u6587\u4EF6\u8DEF\u5F84\u65E0\u6548", "Invalid file path"));
   }
-  const safePath = await (0, import_promises75.realpath)((0, import_node_path156.resolve)(filePath)).catch((error50) => {
+  const safePath = await (0, import_promises75.realpath)((0, import_node_path155.resolve)(filePath)).catch((error50) => {
     if (allowMissing) return resolveGuardedRealPath(filePath);
     const missing2 = new Error(tr(`\u6587\u4EF6\u4E0D\u5B58\u5728\uFF1A${filePath}`, `File not found: ${filePath}`));
     throw error50?.code === "ENOENT" ? Object.assign(missing2, { name: "InlinePreviewError[file_missing]" }) : missing2;
@@ -609102,9 +609175,9 @@ async function resolveAllowedPath(filePath, sessionId2, workspaceSlug, allowMiss
   }
   allowedDirs.push(...getAgentFileRoots());
   const resolvedAllowedDirs = await Promise.all(
-    allowedDirs.map((dir) => (0, import_promises75.realpath)((0, import_node_path156.resolve)(dir)).catch(() => (0, import_node_path156.resolve)(dir)))
+    allowedDirs.map((dir) => (0, import_promises75.realpath)((0, import_node_path155.resolve)(dir)).catch(() => (0, import_node_path155.resolve)(dir)))
   );
-  const isAllowed = resolvedAllowedDirs.some((dir) => safePath.startsWith(dir + import_node_path156.sep) || safePath === dir);
+  const isAllowed = resolvedAllowedDirs.some((dir) => safePath.startsWith(dir + import_node_path155.sep) || safePath === dir);
   if (!isAllowed) {
     throw new Error(tr("\u8BBF\u95EE\u8DEF\u5F84\u4E0D\u5728\u5141\u8BB8\u8303\u56F4\u5185", "This path is outside the allowed folders"));
   }
@@ -609137,7 +609210,7 @@ async function readFileForPreview(filePath, sessionId2, workspaceSlug) {
     throw new Error(tr(`\u6587\u4EF6\u8FC7\u5927\uFF08${Math.round(fileStat.size / 1024 / 1024)} MB\uFF09\uFF0C\u6700\u5927\u652F\u6301 20 MB`, `File is too large (${Math.round(fileStat.size / 1024 / 1024)} MB). The limit is 20 MB.`));
   }
   const { bytes, version: version6 } = await readStableBytes(safePath);
-  const payload = await formatPreviewBytes(bytes, { filePath: safePath, filename: (0, import_node_path156.basename)(safePath), size: bytes.length, modifiedAt: fileStat.mtimeMs });
+  const payload = await formatPreviewBytes(bytes, { filePath: safePath, filename: (0, import_node_path155.basename)(safePath), size: bytes.length, modifiedAt: fileStat.mtimeMs });
   if (payload.kind !== "text") return payload;
   const editable = isEditablePreviewPath(safePath);
   const readOnlyReason = skill ? "skill" : inlineReadOnlyReason(bytes, payload.truncated, editable);
@@ -609147,9 +609220,9 @@ async function resolvePreviewReadPath(filePath, sessionId2, workspaceSlug) {
   try {
     return { safePath: await resolveAllowedPath(filePath, sessionId2, workspaceSlug), skill: false };
   } catch (error50) {
-    const safePath = await (0, import_promises75.realpath)((0, import_node_path156.resolve)(filePath)).catch(() => void 0);
+    const safePath = await (0, import_promises75.realpath)((0, import_node_path155.resolve)(filePath)).catch(() => void 0);
     const root3 = await (0, import_promises75.realpath)(getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG)).catch(() => void 0);
-    if (safePath && root3 && safePath.startsWith(root3 + import_node_path156.sep)) return { safePath, skill: true };
+    if (safePath && root3 && safePath.startsWith(root3 + import_node_path155.sep)) return { safePath, skill: true };
     throw error50;
   }
 }
@@ -609183,8 +609256,8 @@ async function saveInlinePreviewFile(input, chooseSavePath) {
     if (input.saveAs) {
       const chosen = await chooseSavePath(safePath);
       if (!chosen) return { status: "canceled" };
-      if ((0, import_node_path156.resolve)(chosen) !== safePath) {
-        target = (0, import_node_path156.resolve)(chosen);
+      if ((0, import_node_path155.resolve)(chosen) !== safePath) {
+        target = (0, import_node_path155.resolve)(chosen);
         try {
           expected = readPreviewFile(target).version;
         } catch (error50) {
@@ -609205,11 +609278,11 @@ async function listFileRevisions(sessionId2, filePath, workspaceSlug) {
   const safePath = await resolveAllowedPath(filePath, sessionId2, workspaceSlug, true);
   return readFileRevisions(sessionId2, safePath);
 }
-var import_node_path156, import_promises75, MAX_PREVIEW_SIZE2, MAX_SAVE_SIZE;
+var import_node_path155, import_promises75, MAX_PREVIEW_SIZE2, MAX_SAVE_SIZE;
 var init_inline_preview_service = __esm({
   "../electron/src/main/lib/inline-preview-service.ts"() {
     "use strict";
-    import_node_path156 = require("node:path");
+    import_node_path155 = require("node:path");
     import_promises75 = require("node:fs/promises");
     init_agent_session_manager();
     init_file_revision_store();
@@ -609235,8 +609308,8 @@ function deidSaveFilter(ext) {
   return { name: name2, extensions: [ext.slice(1)] };
 }
 function renderTarget(target, ext, displayName) {
-  if (!(0, import_node_fs147.existsSync)(target)) throw new DeidNotFoundError(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "File not found or expired"));
-  return { ...openDeidDocument(target, ext).render(), name: displayName, size: (0, import_node_fs147.statSync)(target).size };
+  if (!(0, import_node_fs146.existsSync)(target)) throw new DeidNotFoundError(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "File not found or expired"));
+  return { ...openDeidDocument(target, ext).render(), name: displayName, size: (0, import_node_fs146.statSync)(target).size };
 }
 function registerDeidIpc() {
   if (registered) return;
@@ -609267,7 +609340,7 @@ function registerDeidIpc() {
         if (result8.canceled || !result8.filePaths[0]) return null;
         sourcePath = result8.filePaths[0];
       }
-      return uploadDocument(sourcePath, (0, import_node_path157.basename)(sourcePath), profile);
+      return uploadDocument(sourcePath, (0, import_node_path156.basename)(sourcePath), profile);
     }
   );
   const analyses = /* @__PURE__ */ new Map();
@@ -609312,7 +609385,7 @@ function registerDeidIpc() {
         if (!isWithinOutputs(path13)) throw new Error(tr("\u8DEF\u5F84\u4E0D\u5728\u5141\u8BB8\u7684\u6587\u4EF6\u5939\u5185", "The path is outside the allowed folder"));
         const ext = deidExtension(path13);
         if (!ext) throw new Error(tr("\u4E0D\u652F\u6301\u8FD9\u79CD\u6587\u4EF6", "This file type isn\u2019t supported"));
-        return renderTarget(path13, ext, displayName || (0, import_node_path157.basename)(path13));
+        return renderTarget(path13, ext, displayName || (0, import_node_path156.basename)(path13));
       }
       throw new Error(tr("\u9700\u8981 docId \u6216 path", "A docId or path is required"));
     }
@@ -609329,15 +609402,15 @@ function registerDeidIpc() {
     AGENT_IPC_CHANNELS.DEID_SAVE_AS,
     async (event2, path13, suggestedName) => {
       if (!isWithinOutputs(path13)) throw new Error(tr("\u53EA\u5141\u8BB8\u4FDD\u5B58\u8131\u654F\u5DE5\u5177\u751F\u6210\u7684\u6587\u4EF6", "Only files generated by the redaction tool can be saved"));
-      if (!(0, import_node_fs147.existsSync)(path13)) throw new DeidNotFoundError(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "File not found or expired"));
+      if (!(0, import_node_fs146.existsSync)(path13)) throw new DeidNotFoundError(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "File not found or expired"));
       const win = import_electron45.BrowserWindow.fromWebContents(event2.sender);
       const result8 = await import_electron45.dialog.showSaveDialog(win ?? import_electron45.BrowserWindow.getFocusedWindow(), {
-        defaultPath: suggestedName || (0, import_node_path157.basename)(path13),
+        defaultPath: suggestedName || (0, import_node_path156.basename)(path13),
         // 按产物的扩展名给过滤器（文件名由主进程生成，扩展名与上传时一致）
         filters: [deidSaveFilter(deidExtension(path13) ?? ".docx")]
       });
       if (result8.canceled || !result8.filePath) return false;
-      (0, import_node_fs147.copyFileSync)(path13, result8.filePath);
+      (0, import_node_fs146.copyFileSync)(path13, result8.filePath);
       return true;
     }
   );
@@ -609360,19 +609433,19 @@ function registerDeidIpc() {
       ].filter((p) => Boolean(p));
       return {
         state: state3,
-        sourceAvailable: (0, import_node_fs147.existsSync)(uploadPath(docId)),
-        livePaths: candidates.filter((p) => isWithinOutputs(p) && (0, import_node_fs147.existsSync)(p))
+        sourceAvailable: (0, import_node_fs146.existsSync)(uploadPath(docId)),
+        livePaths: candidates.filter((p) => isWithinOutputs(p) && (0, import_node_fs146.existsSync)(p))
       };
     }
   );
 }
-var import_electron45, import_node_fs147, import_node_path157, registered;
+var import_electron45, import_node_fs146, import_node_path156, registered;
 var init_ipc = __esm({
   "../electron/src/main/lib/deid/ipc.ts"() {
     "use strict";
     import_electron45 = __toESM(require_electron(), 1);
-    import_node_fs147 = require("node:fs");
-    import_node_path157 = require("node:path");
+    import_node_fs146 = require("node:fs");
+    import_node_path156 = require("node:path");
     init_src();
     init_profiles();
     init_document2();
@@ -621920,13 +621993,13 @@ where.op \u53EF\u9009 equals / not_equals / contains / gt / gte / lt / lte\u3002
 
 // ../electron/src/main/lib/xlsx/store.ts
 function xlsxDir() {
-  const dir = (0, import_node_path158.join)(getConfigDir(), "xlsx");
-  (0, import_node_fs148.mkdirSync)(dir, { recursive: true });
+  const dir = (0, import_node_path157.join)(getConfigDir(), "xlsx");
+  (0, import_node_fs147.mkdirSync)(dir, { recursive: true });
   return dir;
 }
 function subDir2(name2) {
-  const dir = (0, import_node_path158.join)(xlsxDir(), name2);
-  (0, import_node_fs148.mkdirSync)(dir, { recursive: true });
+  const dir = (0, import_node_path157.join)(xlsxDir(), name2);
+  (0, import_node_fs147.mkdirSync)(dir, { recursive: true });
   return dir;
 }
 function newDocId2() {
@@ -621936,7 +622009,7 @@ function isValidDocId2(id19) {
   return /^[0-9a-f]{6,32}$/.test(id19);
 }
 function uploadPath2(docId) {
-  return (0, import_node_path158.join)(uploadsDir2(), `${docId}.xlsx`);
+  return (0, import_node_path157.join)(uploadsDir2(), `${docId}.xlsx`);
 }
 function isWithinOutputs2(path13) {
   const root3 = outputsDir2();
@@ -621949,13 +622022,13 @@ function safeStem2(name2) {
   return (cleaned || "workbook").slice(0, 120);
 }
 function writeSidecar2(docId, sidecar) {
-  (0, import_node_fs148.writeFileSync)((0, import_node_path158.join)(uploadsDir2(), `${docId}.json`), JSON.stringify(sidecar, null, 2), "utf-8");
+  (0, import_node_fs147.writeFileSync)((0, import_node_path157.join)(uploadsDir2(), `${docId}.json`), JSON.stringify(sidecar, null, 2), "utf-8");
 }
 function readSidecar2(docId) {
-  const path13 = (0, import_node_path158.join)(uploadsDir2(), `${docId}.json`);
-  if ((0, import_node_fs148.existsSync)(path13)) {
+  const path13 = (0, import_node_path157.join)(uploadsDir2(), `${docId}.json`);
+  if ((0, import_node_fs147.existsSync)(path13)) {
     try {
-      return JSON.parse((0, import_node_fs148.readFileSync)(path13, "utf-8"));
+      return JSON.parse((0, import_node_fs147.readFileSync)(path13, "utf-8"));
     } catch {
     }
   }
@@ -621963,18 +622036,18 @@ function readSidecar2(docId) {
 }
 async function commitRevision(docId, revision3, bytes, validate2 = () => {
 }) {
-  const source = uploadPath2(docId), backup = (0, import_node_path158.join)(revisionsDir(docId), `${revision3}.xlsx`);
+  const source = uploadPath2(docId), backup = (0, import_node_path157.join)(revisionsDir(docId), `${revision3}.xlsx`);
   const temporary = `${source}.${(0, import_node_crypto157.randomUUID)()}.tmp`, backupTemporary = `${backup}.${(0, import_node_crypto157.randomUUID)()}.tmp`;
   let backedUp = false;
   try {
-    if ((0, import_node_fs148.existsSync)(backup)) throw new Error("XlsxError[revision_conflict]");
+    if ((0, import_node_fs147.existsSync)(backup)) throw new Error("XlsxError[revision_conflict]");
     await (0, import_promises76.writeFile)(temporary, bytes, { flag: "wx" });
     validate2();
     await (0, import_promises76.copyFile)(source, backupTemporary);
     await (0, import_promises76.rename)(backupTemporary, backup);
     backedUp = true;
     validate2();
-    (0, import_node_fs148.renameSync)(temporary, source);
+    (0, import_node_fs147.renameSync)(temporary, source);
   } catch (error50) {
     if (backedUp) await (0, import_promises76.rm)(backup, { force: true });
     throw error50;
@@ -621984,28 +622057,28 @@ async function commitRevision(docId, revision3, bytes, validate2 = () => {
 }
 function restoreRevision(docId, revision3) {
   if (!isValidDocId2(docId)) return false;
-  const backup = (0, import_node_path158.join)(revisionsDir(docId), `${revision3}.xlsx`);
-  if (!(0, import_node_fs148.existsSync)(backup)) return false;
+  const backup = (0, import_node_path157.join)(revisionsDir(docId), `${revision3}.xlsx`);
+  if (!(0, import_node_fs147.existsSync)(backup)) return false;
   const source = uploadPath2(docId), temporary = `${source}.${(0, import_node_crypto157.randomUUID)()}.tmp`, consumed = `${backup}.${(0, import_node_crypto157.randomUUID)()}.tmp`;
   let movedBackup = false;
   try {
-    (0, import_node_fs148.copyFileSync)(backup, temporary);
-    (0, import_node_fs148.renameSync)(backup, consumed);
+    (0, import_node_fs147.copyFileSync)(backup, temporary);
+    (0, import_node_fs147.renameSync)(backup, consumed);
     movedBackup = true;
-    (0, import_node_fs148.renameSync)(temporary, source);
+    (0, import_node_fs147.renameSync)(temporary, source);
   } catch (error50) {
-    if (movedBackup) (0, import_node_fs148.renameSync)(consumed, backup);
+    if (movedBackup) (0, import_node_fs147.renameSync)(consumed, backup);
     throw error50;
   } finally {
-    if ((0, import_node_fs148.existsSync)(temporary)) {
+    if ((0, import_node_fs147.existsSync)(temporary)) {
       try {
-        (0, import_node_fs148.unlinkSync)(temporary);
+        (0, import_node_fs147.unlinkSync)(temporary);
       } catch {
       }
     }
   }
   try {
-    (0, import_node_fs148.unlinkSync)(consumed);
+    (0, import_node_fs147.unlinkSync)(consumed);
   } catch {
   }
   return true;
@@ -622013,37 +622086,37 @@ function restoreRevision(docId, revision3) {
 function listRevisions(docId) {
   if (!isValidDocId2(docId)) return [];
   try {
-    return (0, import_node_fs148.readdirSync)(revisionsDir(docId)).filter((name2) => /^(0|[1-9]\d*)\.xlsx$/.test(name2)).map((name2) => Number(name2.slice(0, -5))).filter((revision3) => Number.isSafeInteger(revision3)).sort((a, b3) => b3 - a);
+    return (0, import_node_fs147.readdirSync)(revisionsDir(docId)).filter((name2) => /^(0|[1-9]\d*)\.xlsx$/.test(name2)).map((name2) => Number(name2.slice(0, -5))).filter((revision3) => Number.isSafeInteger(revision3)).sort((a, b3) => b3 - a);
   } catch {
     return [];
   }
 }
 function writeTaskState2(docId, state3) {
   if (!isValidDocId2(docId)) return;
-  (0, import_node_fs148.writeFileSync)((0, import_node_path158.join)(uploadsDir2(), `${docId}.state.json`), JSON.stringify(state3), "utf-8");
+  (0, import_node_fs147.writeFileSync)((0, import_node_path157.join)(uploadsDir2(), `${docId}.state.json`), JSON.stringify(state3), "utf-8");
 }
 function readTaskState2(docId) {
   if (!isValidDocId2(docId)) return null;
-  const path13 = (0, import_node_path158.join)(uploadsDir2(), `${docId}.state.json`);
-  if (!(0, import_node_fs148.existsSync)(path13)) return null;
+  const path13 = (0, import_node_path157.join)(uploadsDir2(), `${docId}.state.json`);
+  if (!(0, import_node_fs147.existsSync)(path13)) return null;
   try {
-    return JSON.parse((0, import_node_fs148.readFileSync)(path13, "utf-8"));
+    return JSON.parse((0, import_node_fs147.readFileSync)(path13, "utf-8"));
   } catch {
     return null;
   }
 }
-var import_node_fs148, import_node_path158, import_promises76, import_node_crypto157, uploadsDir2, outputsDir2, revisionsDir;
+var import_node_fs147, import_node_path157, import_promises76, import_node_crypto157, uploadsDir2, outputsDir2, revisionsDir;
 var init_store2 = __esm({
   "../electron/src/main/lib/xlsx/store.ts"() {
     "use strict";
-    import_node_fs148 = require("node:fs");
-    import_node_path158 = require("node:path");
+    import_node_fs147 = require("node:fs");
+    import_node_path157 = require("node:path");
     import_promises76 = require("node:fs/promises");
     import_node_crypto157 = require("node:crypto");
     init_config_paths();
     uploadsDir2 = () => subDir2("uploads");
     outputsDir2 = () => subDir2("outputs");
-    revisionsDir = (docId) => subDir2((0, import_node_path158.join)("revisions", docId));
+    revisionsDir = (docId) => subDir2((0, import_node_path157.join)("revisions", docId));
   }
 });
 
@@ -622062,7 +622135,7 @@ function failure6(code2, message8) {
   return error50;
 }
 function signature4(docId) {
-  const s = (0, import_node_fs149.statSync)(uploadPath2(docId), { bigint: true });
+  const s = (0, import_node_fs148.statSync)(uploadPath2(docId), { bigint: true });
   return [s.dev, s.ino, s.size, s.mtimeNs, s.ctimeNs].join(":");
 }
 function documentState(docId, reload2 = false) {
@@ -622095,14 +622168,14 @@ function cancelPlan(senderId, requestId) {
   for (const [id19, plan] of plans) if (plan.senderId === senderId && (!requestId || plan.requestId === requestId)) plans.delete(id19);
 }
 function openWorkbookFile(sourcePath, filename) {
-  if (!(0, import_node_fs149.existsSync)(sourcePath)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728", "File not found"));
+  if (!(0, import_node_fs148.existsSync)(sourcePath)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728", "File not found"));
   if (!/\.xlsx$/i.test(filename) && !/\.xlsx$/i.test(sourcePath)) {
     throw new Error(tr("\u76EE\u524D\u53EA\u652F\u6301 .xlsx \u683C\u5F0F\uFF1B.xls \u8BF7\u5148\u7528 Excel \u53E6\u5B58\u4E3A .xlsx", "Only .xlsx is supported. Save .xls files as .xlsx in Excel first."));
   }
-  const size2 = (0, import_node_fs149.statSync)(sourcePath).size;
+  const size2 = (0, import_node_fs148.statSync)(sourcePath).size;
   if (size2 > 80 * 1024 * 1024) throw new Error(tr("\u6587\u4EF6\u8D85\u8FC7 80 MB\uFF0C\u6682\u4E0D\u652F\u6301", "Files over 80 MB aren\u2019t supported"));
   const docId = newDocId2();
-  (0, import_node_fs149.copyFileSync)(sourcePath, uploadPath2(docId));
+  (0, import_node_fs148.copyFileSync)(sourcePath, uploadPath2(docId));
   writeSidecar2(docId, { filename, createdAt: Date.now() });
   revisions.set(docId, 0);
   return { docId, filename, size: size2, sheetNames: [] };
@@ -622112,7 +622185,7 @@ async function renderDoc(docId, reload2 = false) {
     const state3 = documentState(docId, reload2), path13 = uploadPath2(docId);
     const book = await Workbook.open(path13);
     assertVersion(docId, state3.token);
-    return { ...renderWorkbook(book, { docId, filename: readSidecar2(docId).filename, size: (0, import_node_fs149.statSync)(path13).size, revision: currentRevision(docId) }), mutationToken: state3.token };
+    return { ...renderWorkbook(book, { docId, filename: readSidecar2(docId).filename, size: (0, import_node_fs148.statSync)(path13).size, revision: currentRevision(docId) }), mutationToken: state3.token };
   });
 }
 async function sheetNamesOf(docId) {
@@ -622181,7 +622254,7 @@ async function applyOps(docId, ops, token) {
 async function applyOpsUnlocked(docId, ops, token) {
   if (!isValidDocId2(docId)) throw new Error(tr("\u8868\u683C ID \u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u8868\u683C", "Invalid spreadsheet ID. Open the spreadsheet again."));
   const path13 = uploadPath2(docId);
-  if (!(0, import_node_fs149.existsSync)(path13)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "The file is missing or expired"));
+  if (!(0, import_node_fs148.existsSync)(path13)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "The file is missing or expired"));
   if (!ops.length) throw new Error(tr("\u65B9\u6848\u4E2D\u6CA1\u6709\u53EF\u5E94\u7528\u7684\u6539\u52A8", "The plan has no changes to apply"));
   const previous4 = assertVersion(docId, token);
   const rev2 = currentRevision(docId);
@@ -622247,7 +622320,7 @@ async function exportDoc(docId) {
   return serial2(docId, async () => {
     if (!isValidDocId2(docId)) throw new Error(tr("\u8868\u683C ID \u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u8868\u683C", "Invalid spreadsheet ID. Open the spreadsheet again."));
     const src = uploadPath2(docId);
-    if (!(0, import_node_fs149.existsSync)(src)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "The file is missing or expired"));
+    if (!(0, import_node_fs148.existsSync)(src)) throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u5DF2\u8FC7\u671F", "The file is missing or expired"));
     const state3 = documentState(docId);
     if (!state3.verified && currentRevision(docId) > 0) {
       const book = await Workbook.open(src);
@@ -622263,19 +622336,19 @@ async function exportDoc(docId) {
     const stem = safeStem2(sidecar.filename);
     const name2 = tr(`${stem}_\u5DF2\u4FEE\u6539.xlsx`, `${stem}_edited.xlsx`);
     const dir = outputsDir2();
-    (0, import_node_fs149.mkdirSync)(dir, { recursive: true });
-    const dest = (0, import_node_path159.join)(dir, `${stem}_${docId}_${(0, import_node_crypto158.randomUUID)()}${(0, import_node_path159.extname)(name2) || ".xlsx"}`);
-    (0, import_node_fs149.copyFileSync)(src, dest);
+    (0, import_node_fs148.mkdirSync)(dir, { recursive: true });
+    const dest = (0, import_node_path158.join)(dir, `${stem}_${docId}_${(0, import_node_crypto158.randomUUID)()}${(0, import_node_path158.extname)(name2) || ".xlsx"}`);
+    (0, import_node_fs148.copyFileSync)(src, dest);
     return { path: dest, name: name2 };
   });
 }
-var import_node_crypto158, import_node_fs149, import_node_path159, MAX_CHANGES_RETURNED, PLAN_TTL_MS, revisions, documents, writing, plans, planning;
+var import_node_crypto158, import_node_fs148, import_node_path158, MAX_CHANGES_RETURNED, PLAN_TTL_MS, revisions, documents, writing, plans, planning;
 var init_service2 = __esm({
   "../electron/src/main/lib/xlsx/service.ts"() {
     "use strict";
     import_node_crypto158 = require("node:crypto");
-    import_node_fs149 = require("node:fs");
-    import_node_path159 = require("node:path");
+    import_node_fs148 = require("node:fs");
+    import_node_path158 = require("node:path");
     init_src();
     init_workbook();
     init_render();
@@ -622306,11 +622379,11 @@ function registerXlsxIpc() {
     AGENT_IPC_CHANNELS.XLSX_OPEN,
     async (event2, presetPath, bytes, bytesName) => {
       let source = presetPath;
-      let filename = presetPath ? (0, import_node_path160.basename)(presetPath) : "";
+      let filename = presetPath ? (0, import_node_path159.basename)(presetPath) : "";
       if (bytes && bytesName) {
-        const dir = (0, import_node_fs150.mkdtempSync)((0, import_node_path160.join)((0, import_node_os17.tmpdir)(), "cortex-xlsx-"));
-        const tmp = (0, import_node_path160.join)(dir, bytesName);
-        (0, import_node_fs150.writeFileSync)(tmp, Buffer.from(bytes));
+        const dir = (0, import_node_fs149.mkdtempSync)((0, import_node_path159.join)((0, import_node_os17.tmpdir)(), "cortex-xlsx-"));
+        const tmp = (0, import_node_path159.join)(dir, bytesName);
+        (0, import_node_fs149.writeFileSync)(tmp, Buffer.from(bytes));
         source = tmp;
         filename = bytesName;
       }
@@ -622323,7 +622396,7 @@ function registerXlsxIpc() {
         });
         if (result8.canceled || !result8.filePaths[0]) return null;
         source = result8.filePaths[0];
-        filename = (0, import_node_path160.basename)(source);
+        filename = (0, import_node_path159.basename)(source);
       }
       const info2 = openWorkbookFile(source, filename);
       return { ...info2, sheetNames: await sheetNamesOf(info2.docId) };
@@ -622373,7 +622446,7 @@ function registerXlsxIpc() {
         filters: [{ name: tr("Excel \u5DE5\u4F5C\u7C3F", "Excel workbook"), extensions: ["xlsx"] }]
       });
       if (result8.canceled || !result8.filePath) return false;
-      (0, import_node_fs150.copyFileSync)(out.path, result8.filePath);
+      (0, import_node_fs149.copyFileSync)(out.path, result8.filePath);
       return true;
     }
   );
@@ -622389,17 +622462,17 @@ function registerXlsxIpc() {
       if (!isValidDocId2(docId)) return null;
       const state3 = readTaskState2(docId);
       if (!state3) return null;
-      return { state: state3, sourceAvailable: (0, import_node_fs150.existsSync)(uploadPath2(docId)) };
+      return { state: state3, sourceAvailable: (0, import_node_fs149.existsSync)(uploadPath2(docId)) };
     }
   );
 }
-var import_electron46, import_node_fs150, import_node_path160, import_node_os17, registered2, watchedSenders;
+var import_electron46, import_node_fs149, import_node_path159, import_node_os17, registered2, watchedSenders;
 var init_ipc2 = __esm({
   "../electron/src/main/lib/xlsx/ipc.ts"() {
     "use strict";
     import_electron46 = __toESM(require_electron(), 1);
-    import_node_fs150 = require("node:fs");
-    import_node_path160 = require("node:path");
+    import_node_fs149 = require("node:fs");
+    import_node_path159 = require("node:path");
     import_node_os17 = require("node:os");
     init_src();
     init_service2();
@@ -622444,17 +622517,17 @@ async function defaultCliProbe(target) {
       return typeof version6 === "string" ? version6 : void 0;
     },
     hasSkills() {
-      return (0, import_node_fs151.existsSync)((0, import_node_path161.join)(getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG), target.skillMarker, "SKILL.md"));
+      return (0, import_node_fs150.existsSync)((0, import_node_path160.join)(getWorkspaceSkillsDir(GLOBAL_CAPABILITY_SLUG), target.skillMarker, "SKILL.md"));
     }
   };
 }
-var import_node_child_process20, import_node_fs151, import_node_path161, import_node_util21, FEISHU_CLI, execFileAsync9;
+var import_node_child_process20, import_node_fs150, import_node_path160, import_node_util21, FEISHU_CLI, execFileAsync9;
 var init_feishu_cli_status = __esm({
   "../electron/src/main/lib/feishu-cli-status.ts"() {
     "use strict";
     import_node_child_process20 = require("node:child_process");
-    import_node_fs151 = require("node:fs");
-    import_node_path161 = require("node:path");
+    import_node_fs150 = require("node:fs");
+    import_node_path160 = require("node:path");
     import_node_util21 = require("node:util");
     init_src();
     init_config_paths();
@@ -625335,7 +625408,7 @@ async function sizeOf(path13) {
     const stat17 = await (0, import_promises78.lstat)(path13);
     if (!stat17.isDirectory()) return stat17.size;
     const names = await (0, import_promises78.readdir)(path13);
-    const sizes2 = await Promise.all(names.map((name2) => sizeOf((0, import_node_path162.join)(path13, name2))));
+    const sizes2 = await Promise.all(names.map((name2) => sizeOf((0, import_node_path161.join)(path13, name2))));
     return sizes2.reduce((sum, size2) => sum + size2, 0);
   } catch {
     return 0;
@@ -625361,17 +625434,17 @@ async function getStorageUsage() {
   };
   const perSession = async (dir) => {
     await Promise.all((await children(dir)).map(async (child) => {
-      if (child === "workspaces" && dir.endsWith("agent-sessions")) return perSession((0, import_node_path162.join)(dir, child));
+      if (child === "workspaces" && dir.endsWith("agent-sessions")) return perSession((0, import_node_path161.join)(dir, child));
       const category = storageCategoryOf("agent-sessions", child, archivedIds);
-      const size2 = await add3(category, (0, import_node_path162.join)(dir, child));
+      const size2 = await add3(category, (0, import_node_path161.join)(dir, child));
       if (category === "archived") archivedSizes[child.split(".")[0]] += size2;
     }));
   };
   await Promise.all((await children(root3)).map(async (top) => {
-    const topPath = (0, import_node_path162.join)(root3, top);
+    const topPath = (0, import_node_path161.join)(root3, top);
     if (PER_SESSION_DIRS.has(top)) return perSession(topPath);
     if (top === "cola") {
-      await Promise.all((await children(topPath)).map((child) => add3(storageCategoryOf(top, child, archivedIds), (0, import_node_path162.join)(topPath, child))));
+      await Promise.all((await children(topPath)).map((child) => add3(storageCategoryOf(top, child, archivedIds), (0, import_node_path161.join)(topPath, child))));
       return;
     }
     await add3(storageCategoryOf(top, void 0, archivedIds), topPath);
@@ -625379,12 +625452,12 @@ async function getStorageUsage() {
   const totalBytes = Object.values(bytes).reduce((sum, size2) => sum + size2, 0);
   return { path: root3, totalBytes, bytes, archivedCount: archived.length, archivedSizes };
 }
-var import_promises78, import_node_path162, TOP_LEVEL, PER_SESSION_DIRS;
+var import_promises78, import_node_path161, TOP_LEVEL, PER_SESSION_DIRS;
 var init_storage_usage2 = __esm({
   "../electron/src/main/lib/storage-usage.ts"() {
     "use strict";
     import_promises78 = require("node:fs/promises");
-    import_node_path162 = require("node:path");
+    import_node_path161 = require("node:path");
     init_src();
     init_config_paths();
     init_agent_session_manager();
@@ -625890,7 +625963,7 @@ function registerIpcHandlers() {
     const { documentPythonCacheDir: documentPythonCacheDir2, ensureDocumentPythonRuntime: ensureDocumentPythonRuntime2, resolveDocumentPythonRuntime: resolveDocumentPythonRuntime2 } = await Promise.resolve().then(() => (init_document_python_runtime(), document_python_runtime_exports));
     const { documentInstallIpcError: documentInstallIpcError2, installDocumentPython: installDocumentPython2 } = await Promise.resolve().then(() => (init_document_python_installer(), document_python_installer_exports));
     try {
-      if (force === true) await installDocumentPython2(documentPythonCacheDir2(), (0, import_node_path163.dirname)(resolveDocumentPythonRuntime2().script), env2);
+      if (force === true) await installDocumentPython2(documentPythonCacheDir2(), (0, import_node_path162.dirname)(resolveDocumentPythonRuntime2().script), env2);
       else await ensureDocumentPythonRuntime2(env2);
     } catch (error50) {
       throw documentInstallIpcError2(error50);
@@ -626578,7 +626651,7 @@ function registerIpcHandlers() {
         const selection = await import_electron53.dialog.showOpenDialog({ title: tr("\u5BFC\u5165\u540C\u4E8B\u7684\u8BB0\u5FC6", "Import a colleague\u2019s memory"), properties: ["openFile"], filters: [{ name: tr("\u8BB0\u5FC6\u5206\u4EAB\u5305", "Memory share package"), extensions: ["zip"] }] });
         if (selection.canceled || !selection.filePaths[0]) return { canceled: true };
         path13 = selection.filePaths[0];
-      } else if (typeof path13 !== "string" || !(0, import_node_path163.isAbsolute)(path13)) {
+      } else if (typeof path13 !== "string" || !(0, import_node_path162.isAbsolute)(path13)) {
         throw new Error(tr("\u8DEF\u5F84\u65E0\u6548", "Invalid path"));
       }
       return importProjectShare({ workspaceSlug: input.workspaceSlug, path: path13, ...input.projectName ? { projectName: input.projectName } : {} });
@@ -626917,7 +626990,7 @@ function registerIpcHandlers() {
       ];
       return roots.flatMap((display) => {
         try {
-          const real = (0, import_node_fs152.realpathSync)(display);
+          const real = (0, import_node_fs151.realpathSync)(display);
           return real === display ? [] : [{ display, real }];
         } catch {
           return [];
@@ -626929,8 +627002,8 @@ function registerIpcHandlers() {
     const ws = getAgentWorkspace(workspaceId);
     return ws ? getAgentWorkspacePath(ws.slug) : null;
   });
-  import_electron53.ipcMain.handle(AGENT_IPC_CHANNELS.FILE_GROUPS_READ, (_4, rootPath) => readFileGroups(rootPath, getAgentFileRoots(), (0, import_node_path163.join)(getConfigDir(), "file-groups")));
-  import_electron53.ipcMain.handle(AGENT_IPC_CHANNELS.FILE_GROUPS_UPDATE, (_4, rootPath, action) => updateFileGroups(rootPath, action, getAgentFileRoots(), (0, import_node_path163.join)(getConfigDir(), "file-groups")));
+  import_electron53.ipcMain.handle(AGENT_IPC_CHANNELS.FILE_GROUPS_READ, (_4, rootPath) => readFileGroups(rootPath, getAgentFileRoots(), (0, import_node_path162.join)(getConfigDir(), "file-groups")));
+  import_electron53.ipcMain.handle(AGENT_IPC_CHANNELS.FILE_GROUPS_UPDATE, (_4, rootPath, action) => updateFileGroups(rootPath, action, getAgentFileRoots(), (0, import_node_path162.join)(getConfigDir(), "file-groups")));
   import_electron53.ipcMain.handle(
     AGENT_IPC_CHANNELS.LIST_DIRECTORY,
     async (_4, dirPath) => {
@@ -627051,11 +627124,11 @@ function registerIpcHandlers() {
     AGENT_IPC_CHANNELS.MOVE_FILE,
     async (_4, filePath, targetDir) => {
       const { renameSync: renameSync28 } = await import("node:fs");
-      const { basename: basename57, join: join169 } = await import("node:path");
+      const { basename: basename56, join: join169 } = await import("node:path");
       const workspacesRoot = getAgentFileRoots();
       const safePath = resolveWorkspaceFilePath(filePath, workspacesRoot);
       const safeTarget = resolveWorkspaceFilePath(targetDir, workspacesRoot);
-      const newPath = resolveWorkspaceFilePath(join169(safeTarget, basename57(safePath)), workspacesRoot);
+      const newPath = resolveWorkspaceFilePath(join169(safeTarget, basename56(safePath)), workspacesRoot);
       renameSync28(safePath, newPath);
       console.log(`[Agent \u6587\u4EF6] \u5DF2\u79FB\u52A8: ${safePath} \u2192 ${newPath}`);
     }
@@ -627140,10 +627213,10 @@ function registerIpcHandlers() {
   import_electron53.ipcMain.handle(AGENT_IPC_CHANNELS.ARTIFACT_SAVE_AS, async (event2, filePath, sessionId2, workspaceSlug) => {
     const { resolveAllowedPath: resolveAllowedPath2 } = await Promise.resolve().then(() => (init_inline_preview_service(), inline_preview_service_exports));
     const { copyFile: copyFile5, stat: stat17 } = await import("node:fs/promises");
-    const { basename: basename57 } = await import("node:path");
+    const { basename: basename56 } = await import("node:path");
     const safePath = await resolveAllowedPath2(filePath, sessionId2, workspaceSlug);
     if (!(await stat17(safePath)).isFile()) throw new Error(tr("\u76EE\u6807\u4E0D\u662F\u6587\u4EF6", "Not a file"));
-    const options2 = { defaultPath: basename57(safePath) };
+    const options2 = { defaultPath: basename56(safePath) };
     const win = import_electron53.BrowserWindow.fromWebContents(event2.sender);
     const result8 = win ? await import_electron53.dialog.showSaveDialog(win, options2) : await import_electron53.dialog.showSaveDialog(options2);
     if (result8.canceled || !result8.filePath) return false;
@@ -627154,7 +627227,7 @@ function registerIpcHandlers() {
     if (!Array.isArray(filePaths) || filePaths.length === 0 || filePaths.length > 50 || filePaths.some((path13) => typeof path13 !== "string")) throw new Error(tr("\u6587\u4EF6\u5217\u8868\u65E0\u6548", "Invalid file list"));
     const { resolveAllowedPath: resolveAllowedPath2 } = await Promise.resolve().then(() => (init_inline_preview_service(), inline_preview_service_exports));
     const { copyFile: copyFile5, stat: stat17, constants: constants34 } = await import("node:fs/promises");
-    const { basename: basename57, extname: extname32, join: join169 } = await import("node:path");
+    const { basename: basename56, extname: extname32, join: join169 } = await import("node:path");
     for (const filePath of filePaths) {
       if (!(await stat17(await resolveAllowedPath2(filePath, sessionId2, workspaceSlug))).isFile()) throw new Error(tr("\u76EE\u6807\u4E0D\u662F\u6587\u4EF6", "Not a file"));
     }
@@ -627167,7 +627240,7 @@ function registerIpcHandlers() {
     for (const filePath of filePaths) {
       const source = await resolveAllowedPath2(filePath, sessionId2, workspaceSlug);
       const ext = extname32(source);
-      const stem = basename57(source, ext);
+      const stem = basename56(source, ext);
       for (let n = 1; ; n++) {
         const target = join169(folder, n === 1 ? `${stem}${ext}` : `${stem} (${n})${ext}`);
         if (target === source) continue;
@@ -627245,9 +627318,9 @@ function registerIpcHandlers() {
     AGENT_IPC_CHANNELS.MOVE_ATTACHED_FILE,
     async (_4, filePath, targetDir) => {
       const { renameSync: renameSync28 } = await import("node:fs");
-      const { resolve: resolve38, basename: basename57, join: join169 } = await import("node:path");
+      const { resolve: resolve38, basename: basename56, join: join169 } = await import("node:path");
       const safePath = resolve38(filePath);
-      const newPath = join169(resolve38(targetDir), basename57(safePath));
+      const newPath = join169(resolve38(targetDir), basename56(safePath));
       renameSync28(safePath, newPath);
       console.log(`[\u9644\u52A0\u76EE\u5F55] \u5DF2\u79FB\u52A8: ${safePath} \u2192 ${newPath}`);
     }
@@ -627255,12 +627328,12 @@ function registerIpcHandlers() {
   import_electron53.ipcMain.handle(
     AGENT_IPC_CHANNELS.CHECK_PATHS_TYPE,
     async (_4, paths) => {
-      const { statSync: statSync48 } = await import("node:fs");
+      const { statSync: statSync47 } = await import("node:fs");
       const directories = [];
       const files = [];
       for (const p of paths) {
         try {
-          const stat17 = statSync48(p);
+          const stat17 = statSync47(p);
           if (stat17.isDirectory()) {
             directories.push(p);
           } else {
@@ -627862,7 +627935,7 @@ function validSearchCredentialDraft(draft) {
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) return false;
   return Object.entries(draft).every(([key3, value2]) => ["apiKey", "channelId", "option"].includes(key3) && typeof value2 === "string" && value2.length <= 4096);
 }
-var import_electron53, import_node_path163, import_node_fs152, HIDDEN_FS_ENTRIES;
+var import_electron53, import_node_path162, import_node_fs151, HIDDEN_FS_ENTRIES;
 var init_ipc3 = __esm({
   "../electron/src/main/ipc.ts"() {
     "use strict";
@@ -627906,8 +627979,8 @@ var init_ipc3 = __esm({
     init_agent_runtime_env();
     init_office_runtime();
     init_config_paths();
-    import_node_path163 = require("node:path");
-    import_node_fs152 = require("node:fs");
+    import_node_path162 = require("node:path");
+    import_node_fs151 = require("node:fs");
     init_file_groups();
     init_config_paths();
     init_workspace_file_path();
@@ -628099,45 +628172,45 @@ function saveFilesToAgentSession(input) {
   const sessionDir2 = input.workspaceSlug ? getAgentSessionWorkspacePath(input.workspaceSlug, input.sessionId) : getStandaloneAgentSessionWorkspacePath(input.sessionId);
   const results = [];
   const usedPaths = /* @__PURE__ */ new Set();
-  const configDir = import_node_fs153.realpathSync.native(getConfigDir());
+  const configDir = import_node_fs152.realpathSync.native(getConfigDir());
   const sources = input.files.map((file3) => {
     if (!("sourcePath" in file3)) return void 0;
-    const source = typeof file3.sourcePath === "string" && (0, import_node_path164.isAbsolute)(file3.sourcePath) ? realpathIfExists(file3.sourcePath) : void 0;
-    if (!source || !(0, import_node_fs153.statSync)(source, { throwIfNoEntry: false })?.isFile() || source === configDir || source.startsWith(configDir + import_node_path164.sep)) {
+    const source = typeof file3.sourcePath === "string" && (0, import_node_path163.isAbsolute)(file3.sourcePath) ? realpathIfExists(file3.sourcePath) : void 0;
+    if (!source || !(0, import_node_fs152.statSync)(source, { throwIfNoEntry: false })?.isFile() || source === configDir || source.startsWith(configDir + import_node_path163.sep)) {
       throw new Error(tr(`\u9644\u4EF6\u4E0D\u53EF\u7528\uFF1A${file3.filename}\uFF0C\u8BF7\u91CD\u65B0\u6DFB\u52A0`, `Attachment unavailable: ${file3.filename}. Add it again.`));
     }
     return source;
   });
   for (const [index5, file3] of input.files.entries()) {
-    let targetPath = (0, import_node_path164.join)(sessionDir2, file3.filename);
-    if (usedPaths.has(targetPath) || (0, import_node_fs153.existsSync)(targetPath)) {
+    let targetPath = (0, import_node_path163.join)(sessionDir2, file3.filename);
+    if (usedPaths.has(targetPath) || (0, import_node_fs152.existsSync)(targetPath)) {
       const dotIdx = file3.filename.lastIndexOf(".");
       const baseName = dotIdx > 0 ? file3.filename.slice(0, dotIdx) : file3.filename;
       const ext = dotIdx > 0 ? file3.filename.slice(dotIdx) : "";
       let counter = 1;
-      let candidate = (0, import_node_path164.join)(sessionDir2, `${baseName}-${counter}${ext}`);
-      while (usedPaths.has(candidate) || (0, import_node_fs153.existsSync)(candidate)) {
+      let candidate = (0, import_node_path163.join)(sessionDir2, `${baseName}-${counter}${ext}`);
+      while (usedPaths.has(candidate) || (0, import_node_fs152.existsSync)(candidate)) {
         counter++;
-        candidate = (0, import_node_path164.join)(sessionDir2, `${baseName}-${counter}${ext}`);
+        candidate = (0, import_node_path163.join)(sessionDir2, `${baseName}-${counter}${ext}`);
       }
       targetPath = candidate;
     }
     usedPaths.add(targetPath);
-    (0, import_node_fs153.mkdirSync)((0, import_node_path164.dirname)(targetPath), { recursive: true });
-    if ("sourcePath" in file3) (0, import_node_fs153.copyFileSync)(sources[index5], targetPath);
-    else (0, import_node_fs153.writeFileSync)(targetPath, Buffer.from(file3.data, "base64"));
+    (0, import_node_fs152.mkdirSync)((0, import_node_path163.dirname)(targetPath), { recursive: true });
+    if ("sourcePath" in file3) (0, import_node_fs152.copyFileSync)(sources[index5], targetPath);
+    else (0, import_node_fs152.writeFileSync)(targetPath, Buffer.from(file3.data, "base64"));
     const actualFilename = targetPath.slice(sessionDir2.length + 1);
     results.push({ filename: actualFilename, targetPath });
     console.log(`[Agent \u670D\u52A1] \u6587\u4EF6\u5DF2\u4FDD\u5B58: ${targetPath}`);
   }
   return results;
 }
-var import_node_path164, import_node_fs153;
+var import_node_path163, import_node_fs152;
 var init_agent_session_files = __esm({
   "../electron/src/main/lib/agent-session-files.ts"() {
     "use strict";
-    import_node_path164 = require("node:path");
-    import_node_fs153 = require("node:fs");
+    import_node_path163 = require("node:path");
+    import_node_fs152 = require("node:fs");
     init_src();
     init_config_paths();
     init_agent_path_policy();
@@ -628156,7 +628229,7 @@ function uid() {
   return process.getuid();
 }
 function checkDirectory(path13, privateOnly) {
-  const stat17 = (0, import_node_fs154.lstatSync)(path13);
+  const stat17 = (0, import_node_fs153.lstatSync)(path13);
   if (!stat17.isDirectory() || stat17.isSymbolicLink() || stat17.uid !== uid() || privateOnly && (stat17.mode & 511) !== 448) {
     throw failure7(tr("\u76EE\u5F55\u5FC5\u987B\u7531\u5F53\u524D\u7528\u6237\u6301\u6709\uFF0C\u4E14\u670D\u52A1\u76EE\u5F55\u6743\u9650\u4E3A 700", "The directory must be owned by the current user with 700 permissions"));
   }
@@ -628164,7 +628237,7 @@ function checkDirectory(path13, privateOnly) {
 function privateDirectory(path13, create2) {
   if (create2) {
     try {
-      (0, import_node_fs154.mkdirSync)(path13, { mode: 448 });
+      (0, import_node_fs153.mkdirSync)(path13, { mode: 448 });
     } catch (error50) {
       if (errorCode3(error50) !== "EEXIST") throw error50;
     }
@@ -628173,13 +628246,13 @@ function privateDirectory(path13, create2) {
 }
 function endpoint2(input, create2) {
   const userId = uid();
-  const profileDir = (0, import_node_fs154.realpathSync)((0, import_node_path165.resolve)(input));
+  const profileDir = (0, import_node_fs153.realpathSync)((0, import_node_path164.resolve)(input));
   checkDirectory(profileDir, false);
-  const root3 = (0, import_node_path165.join)((0, import_node_fs154.realpathSync)("/tmp"), `cortex-runtime-${userId}`);
+  const root3 = (0, import_node_path164.join)((0, import_node_fs153.realpathSync)("/tmp"), `cortex-runtime-${userId}`);
   privateDirectory(root3, create2);
-  const directory = (0, import_node_path165.join)(root3, (0, import_node_crypto163.createHash)("sha256").update(profileDir).digest("hex").slice(0, 24));
+  const directory = (0, import_node_path164.join)(root3, (0, import_node_crypto163.createHash)("sha256").update(profileDir).digest("hex").slice(0, 24));
   privateDirectory(directory, create2);
-  return { directory, socket: (0, import_node_path165.join)(directory, "s"), credential: (0, import_node_path165.join)(directory, "service.json"), profileDir };
+  return { directory, socket: (0, import_node_path164.join)(directory, "s"), credential: (0, import_node_path164.join)(directory, "service.json"), profileDir };
 }
 function record9(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
@@ -628188,20 +628261,20 @@ function compatibleVersion(version6, expected) {
   return typeof version6 === "string" && /^\d+\.\d+\.\d+(?:[-+].*)?$/.test(version6) && version6.split(".")[0] === expected.split(".")[0];
 }
 function credentialAt(paths) {
-  const descriptor = (0, import_node_fs154.openSync)(paths.credential, import_node_fs154.constants.O_RDONLY | import_node_fs154.constants.O_NOFOLLOW);
+  const descriptor = (0, import_node_fs153.openSync)(paths.credential, import_node_fs153.constants.O_RDONLY | import_node_fs153.constants.O_NOFOLLOW);
   try {
-    const stat17 = (0, import_node_fs154.fstatSync)(descriptor);
+    const stat17 = (0, import_node_fs153.fstatSync)(descriptor);
     if (!stat17.isFile() || stat17.uid !== uid() || (stat17.mode & 511) !== 384 || stat17.size > 8192) throw failure7(tr("\u670D\u52A1\u51ED\u8BC1\u6743\u9650\u6216\u683C\u5F0F\u65E0\u6548", "Invalid service credential permissions or format"));
     let value2;
     try {
-      value2 = JSON.parse((0, import_node_fs154.readFileSync)(descriptor, "utf8"));
+      value2 = JSON.parse((0, import_node_fs153.readFileSync)(descriptor, "utf8"));
     } catch {
       throw failure7(tr("\u670D\u52A1\u51ED\u8BC1\u683C\u5F0F\u65E0\u6548", "Invalid service credential format"));
     }
     if (!record9(value2) || value2.protocol !== LOCAL_PROTOCOL_VERSION || !compatibleVersion(value2.runtimeVersion, RUNTIME_VERSION) || typeof value2.instanceId !== "string" || !/^[a-f0-9-]{36}$/.test(value2.instanceId) || value2.profileDir !== paths.profileDir || typeof value2.token !== "string" || !/^[a-f0-9]{64}$/.test(value2.token) || typeof value2.pid !== "number" || !Number.isSafeInteger(value2.pid) || value2.pid <= 0) throw failure7(tr("\u670D\u52A1\u51ED\u8BC1\u683C\u5F0F\u6216\u534F\u8BAE\u4E0D\u517C\u5BB9", "Incompatible service credential format or protocol"));
     return value2;
   } finally {
-    (0, import_node_fs154.closeSync)(descriptor);
+    (0, import_node_fs153.closeSync)(descriptor);
   }
 }
 function alive(pid) {
@@ -628214,7 +628287,7 @@ function alive(pid) {
   }
 }
 function checkedSocket(paths) {
-  const stat17 = (0, import_node_fs154.lstatSync)(paths.socket);
+  const stat17 = (0, import_node_fs153.lstatSync)(paths.socket);
   if (!stat17.isSocket() || stat17.isSymbolicLink() || stat17.uid !== uid() || (stat17.mode & 511) !== 384) throw failure7(tr("socket \u6743\u9650\u6216\u7C7B\u578B\u65E0\u6548", "Invalid socket permissions or type"));
   return stat17;
 }
@@ -628335,36 +628408,36 @@ async function startLocalTransport(options2) {
   };
   const transaction2 = (run3) => withFileLock(paths.credential, run3, { recoverDeadOwner: true });
   let staleSocket;
-  const existingCredential = (0, import_node_fs154.lstatSync)(paths.credential, { throwIfNoEntry: false });
+  const existingCredential = (0, import_node_fs153.lstatSync)(paths.credential, { throwIfNoEntry: false });
   if (existingCredential) {
     const previous4 = credentialAt(paths);
     if (alive(previous4.pid)) throw failure7(tr("\u6B64\u914D\u7F6E\u76EE\u5F55\u5DF2\u6709\u670D\u52A1\u8FD0\u884C", "A service is already running for this config directory"));
-    if ((0, import_node_fs154.lstatSync)(paths.socket, { throwIfNoEntry: false })) {
+    if ((0, import_node_fs153.lstatSync)(paths.socket, { throwIfNoEntry: false })) {
       staleSocket = checkedSocket(paths);
       if (await socketIsLive(paths.socket)) throw failure7(tr("\u6B64\u914D\u7F6E\u76EE\u5F55\u4ECD\u6709 socket \u670D\u52A1\u8FD0\u884C", "A socket service is still running for this config directory"));
     }
   }
   transaction2(() => {
-    if ((0, import_node_fs154.lstatSync)(paths.credential, { throwIfNoEntry: false })) {
+    if ((0, import_node_fs153.lstatSync)(paths.credential, { throwIfNoEntry: false })) {
       const previous4 = credentialAt(paths);
       if (alive(previous4.pid)) throw failure7(tr("\u6B64\u914D\u7F6E\u76EE\u5F55\u5DF2\u6709\u670D\u52A1\u8FD0\u884C", "A service is already running for this config directory"));
-      const socket = (0, import_node_fs154.lstatSync)(paths.socket, { throwIfNoEntry: false });
+      const socket = (0, import_node_fs153.lstatSync)(paths.socket, { throwIfNoEntry: false });
       if (socket) {
         checkedSocket(paths);
         if (!staleSocket || socket.ino !== staleSocket.ino || socket.dev !== staleSocket.dev) throw failure7(tr("\u65E7 socket \u5F52\u5C5E\u53D1\u751F\u53D8\u5316\uFF0C\u8BF7\u91CD\u8BD5", "The old socket\u2019s owner changed. Try again."));
-        (0, import_node_fs154.rmSync)(paths.socket);
+        (0, import_node_fs153.rmSync)(paths.socket);
       }
-      (0, import_node_fs154.rmSync)(paths.credential);
-    } else if ((0, import_node_fs154.lstatSync)(paths.socket, { throwIfNoEntry: false })) throw failure7(tr("\u53D1\u73B0\u65E0\u6CD5\u786E\u8BA4\u5F52\u5C5E\u7684 socket\uFF0C\u8BF7\u5148\u68C0\u67E5\u670D\u52A1\u72B6\u6001", "Found a socket with unknown ownership. Check the service status first."));
-    (0, import_node_fs154.writeFileSync)(paths.credential, JSON.stringify(credential), { flag: "wx", mode: 384 });
+      (0, import_node_fs153.rmSync)(paths.credential);
+    } else if ((0, import_node_fs153.lstatSync)(paths.socket, { throwIfNoEntry: false })) throw failure7(tr("\u53D1\u73B0\u65E0\u6CD5\u786E\u8BA4\u5F52\u5C5E\u7684 socket\uFF0C\u8BF7\u5148\u68C0\u67E5\u670D\u52A1\u72B6\u6001", "Found a socket with unknown ownership. Check the service status first."));
+    (0, import_node_fs153.writeFileSync)(paths.credential, JSON.stringify(credential), { flag: "wx", mode: 384 });
   });
   const sockets = /* @__PURE__ */ new Map();
   let socketStat;
   const cleanup = () => transaction2(() => {
-    if (!(0, import_node_fs154.lstatSync)(paths.credential, { throwIfNoEntry: false }) || credentialAt(paths).instanceId !== credential.instanceId) return;
-    const current5 = (0, import_node_fs154.lstatSync)(paths.socket, { throwIfNoEntry: false });
-    if (current5 && socketStat && current5.ino === socketStat.ino && current5.dev === socketStat.dev) (0, import_node_fs154.rmSync)(paths.socket);
-    (0, import_node_fs154.rmSync)(paths.credential);
+    if (!(0, import_node_fs153.lstatSync)(paths.credential, { throwIfNoEntry: false }) || credentialAt(paths).instanceId !== credential.instanceId) return;
+    const current5 = (0, import_node_fs153.lstatSync)(paths.socket, { throwIfNoEntry: false });
+    if (current5 && socketStat && current5.ino === socketStat.ino && current5.dev === socketStat.dev) (0, import_node_fs153.rmSync)(paths.socket);
+    (0, import_node_fs153.rmSync)(paths.credential);
   });
   const server = (0, import_node_net6.createServer)((socket) => {
     if (sockets.size >= 32) {
@@ -628403,7 +628476,7 @@ async function startLocalTransport(options2) {
         resolve38();
       });
     });
-    (0, import_node_fs154.chmodSync)(paths.socket, 384);
+    (0, import_node_fs153.chmodSync)(paths.socket, 384);
     socketStat = checkedSocket(paths);
   } catch (error50) {
     await new Promise((resolve38) => server.close(() => resolve38()));
@@ -628424,14 +628497,14 @@ async function startLocalTransport(options2) {
     });
   }) };
 }
-var import_node_crypto163, import_node_fs154, import_node_net6, import_node_path165, LOCAL_PROTOCOL_VERSION, RUNTIME_VERSION, MAX_FRAME_BYTES, MAX_WRITE_BYTES, HANDSHAKE_TIMEOUT_MS, CLOSE_TIMEOUT_MS;
+var import_node_crypto163, import_node_fs153, import_node_net6, import_node_path164, LOCAL_PROTOCOL_VERSION, RUNTIME_VERSION, MAX_FRAME_BYTES, MAX_WRITE_BYTES, HANDSHAKE_TIMEOUT_MS, CLOSE_TIMEOUT_MS;
 var init_local_transport = __esm({
   "../electron/src/main/runtime/local-transport.ts"() {
     "use strict";
     import_node_crypto163 = require("node:crypto");
-    import_node_fs154 = require("node:fs");
+    import_node_fs153 = require("node:fs");
     import_node_net6 = require("node:net");
-    import_node_path165 = require("node:path");
+    import_node_path164 = require("node:path");
     init_src();
     init_file_lock();
     LOCAL_PROTOCOL_VERSION = 1;
@@ -628458,13 +628531,13 @@ function isEntry(value2) {
   if (!isRecord12(value2) || Object.keys(value2).length !== ENTRY_KEYS.length || !ENTRY_KEYS.every((key3) => key3 in value2)) return false;
   return typeof value2.requestId === "string" && UUID6.test(value2.requestId) && value2.requestId === value2.requestId.toLowerCase() && typeof value2.fingerprint === "string" && /^[0-9a-f]{64}$/.test(value2.fingerprint) && isIdentifier2(value2.sessionId) && isIdentifier2(value2.runId) && !(value2.runId && !value2.sessionId) && typeof value2.status === "string" && STATUSES3.has(value2.status) && typeof value2.createdAt === "number" && Number.isSafeInteger(value2.createdAt) && value2.createdAt >= 0 && typeof value2.updatedAt === "number" && Number.isSafeInteger(value2.updatedAt) && value2.updatedAt >= value2.createdAt && typeof value2.persistence === "string" && ["pending", "saved", "failed"].includes(value2.persistence) && (value2.exitCode === null || typeof value2.exitCode === "number" && Number.isInteger(value2.exitCode) && value2.exitCode >= 0 && value2.exitCode <= 255) && Array.isArray(value2.errors) && value2.errors.length <= 32 && value2.errors.every((error50) => isRecord12(error50) && Object.keys(error50).length === 1 && typeof error50.code === "string" && ERROR_CODE.test(error50.code)) && (value2.status !== "running" || value2.sessionId !== null) && (value2.status === "pending" || value2.status === "running" ? value2.exitCode === null : value2.exitCode !== null);
 }
-var import_node_crypto164, import_node_fs155, import_node_path166, UUID6, IDENTIFIER2, ERROR_CODE, STATUSES3, ENTRY_KEYS, RuntimeRequestLedger;
+var import_node_crypto164, import_node_fs154, import_node_path165, UUID6, IDENTIFIER2, ERROR_CODE, STATUSES3, ENTRY_KEYS, RuntimeRequestLedger;
 var init_request_ledger = __esm({
   "../electron/src/main/runtime/request-ledger.ts"() {
     "use strict";
     import_node_crypto164 = require("node:crypto");
-    import_node_fs155 = require("node:fs");
-    import_node_path166 = require("node:path");
+    import_node_fs154 = require("node:fs");
+    import_node_path165 = require("node:path");
     init_src();
     init_safe_file();
     init_protocol();
@@ -628477,12 +628550,12 @@ var init_request_ledger = __esm({
       filePath;
       entries = /* @__PURE__ */ new Map();
       constructor(directory) {
-        this.filePath = (0, import_node_path166.join)(directory, "runtime-requests.json");
-        if (!(0, import_node_fs155.existsSync)(this.filePath)) {
-          if ((0, import_node_fs155.existsSync)(this.filePath + ".tmp") || (0, import_node_fs155.existsSync)(this.filePath + ".bak")) throw new Error(tr("\u8FD0\u884C\u8BF7\u6C42\u65E5\u5FD7\u7F3A\u5931\uFF0C\u6B8B\u7559\u6587\u4EF6\u9700\u4EBA\u5DE5\u6838\u5BF9", "The run request log is missing and leftover files need manual review"));
+        this.filePath = (0, import_node_path165.join)(directory, "runtime-requests.json");
+        if (!(0, import_node_fs154.existsSync)(this.filePath)) {
+          if ((0, import_node_fs154.existsSync)(this.filePath + ".tmp") || (0, import_node_fs154.existsSync)(this.filePath + ".bak")) throw new Error(tr("\u8FD0\u884C\u8BF7\u6C42\u65E5\u5FD7\u7F3A\u5931\uFF0C\u6B8B\u7559\u6587\u4EF6\u9700\u4EBA\u5DE5\u6838\u5BF9", "The run request log is missing and leftover files need manual review"));
           return;
         }
-        const data3 = JSON.parse((0, import_node_fs155.readFileSync)(this.filePath, "utf8"));
+        const data3 = JSON.parse((0, import_node_fs154.readFileSync)(this.filePath, "utf8"));
         if (!isRecord12(data3) || Object.keys(data3).length !== 2 || data3.version !== 1 || !Array.isArray(data3.requests)) {
           throw new Error(tr("\u8FD0\u884C\u8BF7\u6C42\u65E5\u5FD7\u683C\u5F0F\u635F\u574F", "The run request log is damaged"));
         }
@@ -628650,7 +628723,7 @@ function targetOf(meta5, messages = getAgentSessionSDKMessages(meta5.id)) {
 function cwdOf(meta5) {
   const workspace = meta5.workspaceId ? getAgentWorkspace(meta5.workspaceId) : void 0;
   const cwd = meta5.cliCwd ?? (workspace ? getAgentSessionWorkspacePath(workspace.slug, meta5.id) : getStandaloneAgentSessionWorkspacePath(meta5.id));
-  return (0, import_node_fs156.realpathSync)(applyWorktree([cwd], meta5.worktree)[0]);
+  return (0, import_node_fs155.realpathSync)(applyWorktree([cwd], meta5.worktree)[0]);
 }
 function interactionOf(event2) {
   if (event2.payload.kind !== "cortex_event") return;
@@ -628887,7 +628960,7 @@ async function startDesktopRuntime(options2) {
     if (request2.sessionId) {
       const meta6 = getAgentSessionMeta(request2.sessionId);
       if (!meta6) throw new Error(tr("\u4F1A\u8BDD\u4E0D\u5B58\u5728", "Session not found"));
-      if (request2.cwd && (0, import_node_fs156.realpathSync)(request2.cwd) !== cwdOf(meta6)) throw new Error(tr("\u6062\u590D\u4F1A\u8BDD\u4E0D\u80FD\u6539\u53D8\u5DE5\u4F5C\u76EE\u5F55", "A resumed session can\u2019t change its working directory."));
+      if (request2.cwd && (0, import_node_fs155.realpathSync)(request2.cwd) !== cwdOf(meta6)) throw new Error(tr("\u6062\u590D\u4F1A\u8BDD\u4E0D\u80FD\u6539\u53D8\u5DE5\u4F5C\u76EE\u5F55", "A resumed session can\u2019t change its working directory."));
       if (request2.permissionMode && request2.permissionMode !== (meta6.permissionMode ?? "auto")) {
         throw new Error(tr("\u6062\u590D\u4F1A\u8BDD\u4E0D\u80FD\u901A\u8FC7\u53C2\u6570\u6539\u53D8\u6743\u9650\u6A21\u5F0F", "A resumed session can\u2019t change its permission mode through arguments."));
       }
@@ -628896,9 +628969,9 @@ async function startDesktopRuntime(options2) {
       if (request2.model && request2.model !== target.modelId) throw new Error(tr("\u8BF7\u5728\u7A7A\u95F2\u7684\u4EA4\u4E92\u4F1A\u8BDD\u4E2D\u7528 /model \u5207\u6362\u6A21\u578B", "Use /model in an idle interactive session to switch models."));
       return meta6;
     }
-    if (!request2.cwd || !(0, import_node_path167.isAbsolute)(request2.cwd)) throw new Error(tr("\u65B0\u4F1A\u8BDD\u9700\u8981\u7EDD\u5BF9\u5DE5\u4F5C\u76EE\u5F55", "New sessions need an absolute working directory."));
-    const cwd = (0, import_node_fs156.realpathSync)(request2.cwd);
-    if (!(0, import_node_fs156.statSync)(cwd).isDirectory()) throw new Error(tr("\u5DE5\u4F5C\u76EE\u5F55\u4E0D\u662F\u6587\u4EF6\u5939", "The working directory isn\u2019t a folder."));
+    if (!request2.cwd || !(0, import_node_path166.isAbsolute)(request2.cwd)) throw new Error(tr("\u65B0\u4F1A\u8BDD\u9700\u8981\u7EDD\u5BF9\u5DE5\u4F5C\u76EE\u5F55", "New sessions need an absolute working directory."));
+    const cwd = (0, import_node_fs155.realpathSync)(request2.cwd);
+    if (!(0, import_node_fs155.statSync)(cwd).isDirectory()) throw new Error(tr("\u5DE5\u4F5C\u76EE\u5F55\u4E0D\u662F\u6587\u4EF6\u5939", "The working directory isn\u2019t a folder."));
     const defaults2 = getSettings();
     const source = request2.newSessionFrom ? getAgentSessionMeta(request2.newSessionFrom) : void 0;
     if (request2.newSessionFrom && !source) throw new Error(tr("\u6765\u6E90\u4F1A\u8BDD\u4E0D\u5B58\u5728", "Source session not found"));
@@ -629594,7 +629667,7 @@ async function startDesktopRuntime(options2) {
           if (!file3) throw new Error("\u6210\u679C\u4E0D\u53EF\u7528");
           const { resolveAllowedPath: resolveAllowedPath2 } = await Promise.resolve().then(() => (init_inline_preview_service(), inline_preview_service_exports));
           const path13 = await resolveAllowedPath2(file3.filePath, sessionId2);
-          const stat17 = (0, import_node_fs156.statSync)(path13);
+          const stat17 = (0, import_node_fs155.statSync)(path13);
           if (!stat17.isFile() || stat17.size !== file3.size || stat17.mtimeMs !== file3.modifiedAt) throw new Error("\u6210\u679C\u5DF2\u53D8\u5316");
           prepared = prepared.slice(0, token.offset) + `@file:${encodeURIComponent(file3.filePath)}` + prepared.slice(token.offset + token.token.length);
         }
@@ -629971,7 +630044,7 @@ async function startDesktopRuntime(options2) {
           sessionId: sessionId2,
           files: taken.filter((file3) => !native(file3)).map((file3) => ({ filename: file3.filename, data: readAttachmentAsBase64(file3.localPath, MAX_ATTACHMENT_BYTES + 1) }))
         }) : [];
-        for (const file3 of taken) if (!native(file3)) (0, import_node_fs156.rmSync)(resolveAttachmentPath(file3.localPath), { force: true });
+        for (const file3 of taken) if (!native(file3)) (0, import_node_fs155.rmSync)(resolveAttachmentPath(file3.localPath), { force: true });
         const fileReferences = referenced.length ? `<attached_files>
 ${referenced.map((file3) => `- ${file3.filename}: ${file3.targetPath}`).join("\n")}
 </attached_files>
@@ -630042,7 +630115,7 @@ ${referenced.map((file3) => `- ${file3.filename}: ${file3.targetPath}`).join("\n
     void transport.close();
   } };
 }
-var import_node_crypto165, import_node_fs156, import_node_path167, TOOLS, MOBILE_TOOLS, UUID7;
+var import_node_crypto165, import_node_fs155, import_node_path166, TOOLS, MOBILE_TOOLS, UUID7;
 var init_desktop_service = __esm({
   "../electron/src/main/runtime/desktop-service.ts"() {
     "use strict";
@@ -630060,8 +630133,8 @@ var init_desktop_service = __esm({
     import_node_crypto165 = require("node:crypto");
     init_cola_mobile_privacy();
     init_cola_sharing_guard();
-    import_node_fs156 = require("node:fs");
-    import_node_path167 = require("node:path");
+    import_node_fs155 = require("node:fs");
+    import_node_path166 = require("node:path");
     init_utils();
     init_src();
     init_model_thinking_service();
@@ -649498,7 +649571,7 @@ async function disposeMitmCA(ca) {
 function disposeMitmCASync(ca) {
   for (const dir of ownedDirs(ca)) {
     try {
-      (0, import_node_fs157.rmSync)(dir, { recursive: true, force: true });
+      (0, import_node_fs156.rmSync)(dir, { recursive: true, force: true });
     } catch (err2) {
       logForDebugging(`[mitm-ca] cleanup failed: ${err2.message}`, {
         level: "warn"
@@ -649507,9 +649580,9 @@ function disposeMitmCASync(ca) {
   }
 }
 function ownedDirs(ca) {
-  const dirs = /* @__PURE__ */ new Set([(0, import_node_path168.dirname)(ca.trustBundlePath)]);
+  const dirs = /* @__PURE__ */ new Set([(0, import_node_path167.dirname)(ca.trustBundlePath)]);
   if (ca.ephemeral)
-    dirs.add((0, import_node_path168.dirname)(ca.certPath));
+    dirs.add((0, import_node_path167.dirname)(ca.certPath));
   return dirs;
 }
 function writeTrustBundle(dir, caCertPem, extraCaCertPaths) {
@@ -649517,14 +649590,14 @@ function writeTrustBundle(dir, caCertPem, extraCaCertPaths) {
   const extra = process.env.NODE_EXTRA_CA_CERTS;
   if (extra) {
     try {
-      parts.push((0, import_node_fs157.readFileSync)(extra, "utf8").trim());
+      parts.push((0, import_node_fs156.readFileSync)(extra, "utf8").trim());
     } catch {
     }
   }
   for (const extraPath of extraCaCertPaths ?? []) {
     let raw;
     try {
-      raw = (0, import_node_fs157.readFileSync)(extraPath, "utf8");
+      raw = (0, import_node_fs156.readFileSync)(extraPath, "utf8");
     } catch (err2) {
       const code2 = err2.code ?? String(err2);
       logForDebugging(`[mitm-ca] extraCaCertPaths: cannot read ${extraPath} (${code2}); skipping`, { level: "warn" });
@@ -649537,8 +649610,8 @@ function writeTrustBundle(dir, caCertPem, extraCaCertPaths) {
     }
     parts.push(...certs);
   }
-  const path13 = (0, import_node_path168.join)(dir, "trust-bundle.crt");
-  (0, import_node_fs157.writeFileSync)(path13, parts.join("\n") + "\n", { mode: 420 });
+  const path13 = (0, import_node_path167.join)(dir, "trust-bundle.crt");
+  (0, import_node_fs156.writeFileSync)(path13, parts.join("\n") + "\n", { mode: 420 });
   return path13;
 }
 function generateEmptyCrl(cert, keyPem) {
@@ -649612,7 +649685,7 @@ function loadCA(certPath, keyPath, extraCaCertPaths) {
   });
 }
 function buildMitmCA(certPem, keyPem, cert, key3, opts) {
-  const bundleDir = (0, import_node_fs157.mkdtempSync)((0, import_node_path168.join)((0, import_node_os18.tmpdir)(), "srt-ca-"));
+  const bundleDir = (0, import_node_fs156.mkdtempSync)((0, import_node_path167.join)((0, import_node_os18.tmpdir)(), "srt-ca-"));
   return {
     certPath: opts.certPath,
     keyPath: opts.keyPath,
@@ -649701,11 +649774,11 @@ function validateCaPair(certPem, keyPem) {
 }
 function generateEphemeralCA(extraCaCertPaths) {
   const { certPem, keyPem, cert, key: key3 } = generateCa();
-  const dir = (0, import_node_fs157.mkdtempSync)((0, import_node_path168.join)((0, import_node_os18.tmpdir)(), "srt-ca-"));
-  const certPath = (0, import_node_path168.join)(dir, "ca.crt");
-  const keyPath = (0, import_node_path168.join)(dir, "ca.key");
-  (0, import_node_fs157.writeFileSync)(certPath, certPem, { mode: 420 });
-  (0, import_node_fs157.writeFileSync)(keyPath, keyPem, { mode: 384 });
+  const dir = (0, import_node_fs156.mkdtempSync)((0, import_node_path167.join)((0, import_node_os18.tmpdir)(), "srt-ca-"));
+  const certPath = (0, import_node_path167.join)(dir, "ca.crt");
+  const keyPath = (0, import_node_path167.join)(dir, "ca.key");
+  (0, import_node_fs156.writeFileSync)(certPath, certPem, { mode: 420 });
+  (0, import_node_fs156.writeFileSync)(keyPath, keyPem, { mode: 384 });
   logForDebugging(`[mitm-ca] generated ephemeral CA at ${certPath}`);
   return buildMitmCA(certPem, keyPem, cert, key3, {
     certPath,
@@ -649717,7 +649790,7 @@ function generateEphemeralCA(extraCaCertPaths) {
 function readPem(path13, label2, field2) {
   let pem;
   try {
-    pem = (0, import_node_fs157.readFileSync)(path13, "utf8");
+    pem = (0, import_node_fs156.readFileSync)(path13, "utf8");
   } catch (err2) {
     const code2 = err2.code ?? String(err2);
     throw new Error(`${field2}: cannot read ${path13} (${code2})`);
@@ -649737,15 +649810,15 @@ function daysFromNow(days) {
   d.setDate(d.getDate() + days);
   return d;
 }
-var import_node_forge, import_node_crypto166, import_node_fs157, import_promises79, import_node_os18, import_node_path168, import_node_tls, asn1, pki, md2, random3, util4, getTBSCertificate, PEM_CERT_BLOCK, CRL_PATH, C2, T5;
+var import_node_forge, import_node_crypto166, import_node_fs156, import_promises79, import_node_os18, import_node_path167, import_node_tls, asn1, pki, md2, random3, util4, getTBSCertificate, PEM_CERT_BLOCK, CRL_PATH, C2, T5;
 var init_mitm_ca = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/mitm-ca.js"() {
     import_node_forge = __toESM(require_lib19(), 1);
     import_node_crypto166 = require("node:crypto");
-    import_node_fs157 = require("node:fs");
+    import_node_fs156 = require("node:fs");
     import_promises79 = require("node:fs/promises");
     import_node_os18 = require("node:os");
-    import_node_path168 = require("node:path");
+    import_node_path167 = require("node:path");
     import_node_tls = require("node:tls");
     init_debug();
     ({ asn1, pki, md: md2, random: random3, util: util4 } = import_node_forge.default);
@@ -653426,7 +653499,7 @@ var init_listen_in_range = __esm({
 
 // ../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/mux-proxy.js
 function unixSocketPath() {
-  return (0, import_node_path169.join)((0, import_node_os20.tmpdir)(), `srt-mux-${process.pid}-${(backendSeq++).toString(36)}.sock`);
+  return (0, import_node_path168.join)((0, import_node_os20.tmpdir)(), `srt-mux-${process.pid}-${(backendSeq++).toString(36)}.sock`);
 }
 function createMuxProxyServer(opts) {
   const firstByteTimeoutMs = opts.firstByteTimeoutMs ?? DEFAULT_FIRST_BYTE_TIMEOUT_MS;
@@ -653538,7 +653611,7 @@ mux backend dial failed (${code2})
     removeBackendSocketSync() {
       try {
         if (backendSocketPath)
-          (0, import_node_fs158.rmSync)(backendSocketPath, { force: true });
+          (0, import_node_fs157.rmSync)(backendSocketPath, { force: true });
       } catch {
       }
     },
@@ -653548,13 +653621,13 @@ mux backend dial failed (${code2})
     }
   };
 }
-var import_node_net14, import_node_path169, import_node_os20, import_node_fs158, import_promises80, SOCKS_FIRST_BYTES, DEFAULT_FIRST_BYTE_TIMEOUT_MS, backendSeq;
+var import_node_net14, import_node_path168, import_node_os20, import_node_fs157, import_promises80, SOCKS_FIRST_BYTES, DEFAULT_FIRST_BYTE_TIMEOUT_MS, backendSeq;
 var init_mux_proxy = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/mux-proxy.js"() {
     import_node_net14 = require("node:net");
-    import_node_path169 = require("node:path");
+    import_node_path168 = require("node:path");
     import_node_os20 = require("node:os");
-    import_node_fs158 = require("node:fs");
+    import_node_fs157 = require("node:fs");
     import_promises80 = require("node:fs/promises");
     init_debug();
     init_platform2();
@@ -653933,13 +654006,13 @@ function buildMaskedFileBinds(files, allowedDomains, registry3, store) {
   }
   return { binds, degradeToDenyPaths };
 }
-var import_node_crypto169, fs5, import_node_os21, import_node_path170, FILE_KEY_PREFIX, MaskedFileStore;
+var import_node_crypto169, fs5, import_node_os21, import_node_path169, FILE_KEY_PREFIX, MaskedFileStore;
 var init_credential_mask_files = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/credential-mask-files.js"() {
     import_node_crypto169 = require("node:crypto");
     fs5 = __toESM(require("node:fs"), 1);
     import_node_os21 = require("node:os");
-    import_node_path170 = require("node:path");
+    import_node_path169 = require("node:path");
     init_debug();
     init_credential_extract();
     init_sandbox_utils();
@@ -653957,11 +654030,11 @@ var init_credential_mask_files = __esm({
        */
       write(key3, sentinel) {
         if (this.dir === void 0) {
-          this.dir = fs5.mkdtempSync((0, import_node_path170.join)((0, import_node_os21.tmpdir)(), "srt-credmask-"));
+          this.dir = fs5.mkdtempSync((0, import_node_path169.join)((0, import_node_os21.tmpdir)(), "srt-credmask-"));
         }
         let fakePath = this.byKey.get(key3);
         if (fakePath === void 0) {
-          fakePath = (0, import_node_path170.join)(this.dir, `${this.byKey.size}.fake`);
+          fakePath = (0, import_node_path169.join)(this.dir, `${this.byKey.size}.fake`);
           this.byKey.set(key3, fakePath);
         }
         fs5.rmSync(fakePath, { force: true });
@@ -654352,18 +654425,18 @@ function buildGlobalNpmPaths(npmRootOutput) {
   const paths = [];
   const npmRoot = npmRootOutput?.trim();
   if (npmRoot) {
-    paths.push((0, import_node_path171.join)(npmRoot, "@anthropic-ai", "sandbox-runtime"));
+    paths.push((0, import_node_path170.join)(npmRoot, "@anthropic-ai", "sandbox-runtime"));
   }
   const home = (0, import_node_os22.homedir)();
   paths.push(
     // npm global (Linux/macOS)
-    (0, import_node_path171.join)("/usr", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
-    (0, import_node_path171.join)("/usr", "local", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
+    (0, import_node_path170.join)("/usr", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
+    (0, import_node_path170.join)("/usr", "local", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
     // npm global with prefix (common on macOS with homebrew)
-    (0, import_node_path171.join)("/opt", "homebrew", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
+    (0, import_node_path170.join)("/opt", "homebrew", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
     // User-local npm global
-    (0, import_node_path171.join)(home, ".npm", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
-    (0, import_node_path171.join)(home, ".npm-global", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime")
+    (0, import_node_path170.join)(home, ".npm", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime"),
+    (0, import_node_path170.join)(home, ".npm-global", "lib", "node_modules", "@anthropic-ai", "sandbox-runtime")
   );
   return paths;
 }
@@ -654386,14 +654459,14 @@ function getLocalSeccompPaths(filename) {
   const arch = getVendorArchitecture();
   if (!arch)
     return [];
-  const baseDir = (0, import_node_path171.dirname)((0, import_node_url9.fileURLToPath)(__importMetaUrl));
-  const relativePath = (0, import_node_path171.join)("vendor", "seccomp", arch, filename);
+  const baseDir = (0, import_node_path170.dirname)((0, import_node_url9.fileURLToPath)(__importMetaUrl));
+  const relativePath = (0, import_node_path170.join)("vendor", "seccomp", arch, filename);
   return [
-    (0, import_node_path171.join)(baseDir, relativePath),
+    (0, import_node_path170.join)(baseDir, relativePath),
     // bundled: same directory as bundle (e.g., when bundled into claude-cli)
-    (0, import_node_path171.join)(baseDir, "..", "..", relativePath),
+    (0, import_node_path170.join)(baseDir, "..", "..", relativePath),
     // package root: vendor/seccomp/...
-    (0, import_node_path171.join)(baseDir, "..", relativePath)
+    (0, import_node_path170.join)(baseDir, "..", relativePath)
     // dist: dist/vendor/seccomp/...
   ];
 }
@@ -654444,7 +654517,7 @@ function findGlobalApplySeccompPath(globalBases) {
   if (!arch)
     return null;
   for (const globalBase of globalBases) {
-    const binaryPath = (0, import_node_path171.join)(globalBase, "vendor", "seccomp", arch, "apply-seccomp");
+    const binaryPath = (0, import_node_path170.join)(globalBase, "vendor", "seccomp", arch, "apply-seccomp");
     if (fs6.existsSync(binaryPath)) {
       logForDebugging(`[SeccompFilter] Found apply-seccomp binary in global install: ${binaryPath} (${arch})`);
       return binaryPath;
@@ -654453,10 +654526,10 @@ function findGlobalApplySeccompPath(globalBases) {
   logForDebugging(`[SeccompFilter] apply-seccomp binary not found in any expected location (${arch})`);
   return null;
 }
-var import_node_path171, import_node_url9, fs6, import_node_child_process23, import_node_os22, applySeccompPathCache, cachedGlobalNpmPaths, pendingGlobalNpmPaths, NPM_ROOT_COMMAND, NPM_ROOT_TIMEOUT_MS;
+var import_node_path170, import_node_url9, fs6, import_node_child_process23, import_node_os22, applySeccompPathCache, cachedGlobalNpmPaths, pendingGlobalNpmPaths, NPM_ROOT_COMMAND, NPM_ROOT_TIMEOUT_MS;
 var init_generate_seccomp_filter = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/generate-seccomp-filter.js"() {
-    import_node_path171 = require("node:path");
+    import_node_path170 = require("node:path");
     import_node_url9 = require("node:url");
     fs6 = __toESM(require("node:fs"), 1);
     import_node_child_process23 = require("node:child_process");
@@ -654482,22 +654555,22 @@ async function getJavaProxyAgentJarPathAsync(explicitPath) {
 }
 function findLocalJar(explicitPath) {
   if (explicitPath) {
-    if ((0, import_node_fs159.existsSync)(explicitPath))
+    if ((0, import_node_fs158.existsSync)(explicitPath))
       return explicitPath;
     logForDebugging(`[java-proxy-agent] javaAgentJarPath not found: ${explicitPath}`, { level: "warn" });
   }
-  const baseDir = (0, import_node_path172.dirname)((0, import_node_url10.fileURLToPath)(__importMetaUrl));
+  const baseDir = (0, import_node_path171.dirname)((0, import_node_url10.fileURLToPath)(__importMetaUrl));
   const candidates = [
-    (0, import_node_path172.join)(baseDir, JAR_REL_PATH),
-    (0, import_node_path172.join)(baseDir, "..", "..", JAR_REL_PATH),
-    (0, import_node_path172.join)(baseDir, "..", JAR_REL_PATH)
+    (0, import_node_path171.join)(baseDir, JAR_REL_PATH),
+    (0, import_node_path171.join)(baseDir, "..", "..", JAR_REL_PATH),
+    (0, import_node_path171.join)(baseDir, "..", JAR_REL_PATH)
   ];
-  return candidates.find((p) => (0, import_node_fs159.existsSync)(p));
+  return candidates.find((p) => (0, import_node_fs158.existsSync)(p));
 }
 function findGlobalJar(globalBases) {
   for (const base2 of globalBases) {
-    const p = (0, import_node_path172.join)(base2, JAR_REL_PATH);
-    if ((0, import_node_fs159.existsSync)(p))
+    const p = (0, import_node_path171.join)(base2, JAR_REL_PATH);
+    if ((0, import_node_fs158.existsSync)(p))
       return p;
   }
   logForDebugging(`[java-proxy-agent] ${JAVA_PROXY_AGENT_JAR_NAME} not found; JVMs in the sandbox will not be pointed at the proxy (run \`npm run build:java-agent\`)`, { level: "warn" });
@@ -654522,28 +654595,28 @@ function javaAgentFlag(jarPath) {
   const flag = `-javaagent:${jarPath}`;
   return /\s/.test(jarPath) ? `"${flag}"` : flag;
 }
-var import_node_fs159, import_node_path172, import_node_url10, JAVA_PROXY_AGENT_JAR_NAME, jarPathCache, JAR_REL_PATH;
+var import_node_fs158, import_node_path171, import_node_url10, JAVA_PROXY_AGENT_JAR_NAME, jarPathCache, JAR_REL_PATH;
 var init_java_proxy_agent = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/java-proxy-agent.js"() {
-    import_node_fs159 = require("node:fs");
-    import_node_path172 = require("node:path");
+    import_node_fs158 = require("node:fs");
+    import_node_path171 = require("node:path");
     import_node_url10 = require("node:url");
     init_debug();
     init_generate_seccomp_filter();
     JAVA_PROXY_AGENT_JAR_NAME = "srt-proxy-agent.jar";
     jarPathCache = /* @__PURE__ */ new Map();
-    JAR_REL_PATH = (0, import_node_path172.join)("vendor", "java-proxy-agent", JAVA_PROXY_AGENT_JAR_NAME);
+    JAR_REL_PATH = (0, import_node_path171.join)("vendor", "java-proxy-agent", JAVA_PROXY_AGENT_JAR_NAME);
   }
 });
 
 // ../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/linux-sandbox-utils.js
 function findSymlinkInPath(targetPath, allowedWritePaths) {
-  const parts = targetPath.split(import_node_path173.default.sep);
+  const parts = targetPath.split(import_node_path172.default.sep);
   let currentPath = "";
   for (const part of parts) {
     if (!part)
       continue;
-    const nextPath = currentPath + import_node_path173.default.sep + part;
+    const nextPath = currentPath + import_node_path172.default.sep + part;
     try {
       const stats = fs7.lstatSync(nextPath);
       if (stats.isSymbolicLink()) {
@@ -654568,20 +654641,20 @@ function resolveSymlinkedDenyPath(targetPath, alsoDenied) {
   const remainder = [];
   let resolvedAncestor = null;
   while (resolvedAncestor === null) {
-    const parent = import_node_path173.default.dirname(ancestor);
+    const parent = import_node_path172.default.dirname(ancestor);
     if (parent === ancestor) {
       return null;
     }
-    remainder.unshift(import_node_path173.default.basename(ancestor));
+    remainder.unshift(import_node_path172.default.basename(ancestor));
     ancestor = parent;
     try {
       resolvedAncestor = realPathOf(ancestor);
     } catch {
     }
   }
-  const rejoined = import_node_path173.default.join(resolvedAncestor, ...remainder);
+  const rejoined = import_node_path172.default.join(resolvedAncestor, ...remainder);
   try {
-    fs7.readlinkSync(import_node_path173.default.join(resolvedAncestor, remainder[0]));
+    fs7.readlinkSync(import_node_path172.default.join(resolvedAncestor, remainder[0]));
   } catch {
     return rejoined;
   }
@@ -654609,12 +654682,12 @@ function resolveSymlinkedDenyPath(targetPath, alsoDenied) {
   return null;
 }
 function fileOnTheWay(targetPath) {
-  const parts = targetPath.split(import_node_path173.default.sep);
+  const parts = targetPath.split(import_node_path172.default.sep);
   let currentPath = "";
   for (const part of parts) {
     if (!part)
       continue;
-    const nextPath = currentPath + import_node_path173.default.sep + part;
+    const nextPath = currentPath + import_node_path172.default.sep + part;
     try {
       if (!fs7.statSync(nextPath).isDirectory())
         return nextPath;
@@ -654626,12 +654699,12 @@ function fileOnTheWay(targetPath) {
   return void 0;
 }
 function findFirstNonExistentComponent(targetPath) {
-  const parts = targetPath.split(import_node_path173.default.sep);
+  const parts = targetPath.split(import_node_path172.default.sep);
   let currentPath = "";
   for (const part of parts) {
     if (!part)
       continue;
-    const nextPath = currentPath + import_node_path173.default.sep + part;
+    const nextPath = currentPath + import_node_path172.default.sep + part;
     if (!fs7.existsSync(nextPath)) {
       return nextPath;
     }
@@ -654653,9 +654726,9 @@ function makeableMountPoint(dest, wanted2) {
   };
   let fd2;
   try {
-    fd2 = fs7.openSync(import_node_path173.default.dirname(dest), O_PATH | fs7.constants.O_NOFOLLOW | fs7.constants.O_DIRECTORY);
+    fd2 = fs7.openSync(import_node_path172.default.dirname(dest), O_PATH | fs7.constants.O_NOFOLLOW | fs7.constants.O_DIRECTORY);
     const parent = `/proc/self/fd/${fd2}`;
-    if (fs7.readlinkSync(parent) !== import_node_path173.default.dirname(dest))
+    if (fs7.readlinkSync(parent) !== import_node_path172.default.dirname(dest))
       return wanted2;
     const { uid: uid2, mode } = fs7.fstatSync(fd2);
     const refusal = refusalOf(() => fs7.accessSync(parent, fs7.constants.W_OK | fs7.constants.X_OK));
@@ -654663,7 +654736,7 @@ function makeableMountPoint(dest, wanted2) {
       return refusal === void 0 || refusal === "EACCES" && uid2 === process.geteuid?.() ? wanted2 : MountPointKind.Unmakeable;
     }
     if (refusal === void 0) {
-      const entry = `${parent}/${import_node_path173.default.basename(dest)}`;
+      const entry = `${parent}/${import_node_path172.default.basename(dest)}`;
       if (wanted2 === MountPointKind.File && refusalOf(() => fs7.closeSync(fs7.openSync(entry, "wx", 292))) === void 0) {
         return MountPointKind.File;
       }
@@ -654690,19 +654763,19 @@ function linuxGetCwdMandatoryDenyPaths(allowGitConfig = false) {
   const cwd = process.cwd();
   const denyPaths = [
     // Dangerous files in CWD
-    ...DANGEROUS_FILES.map((f) => import_node_path173.default.resolve(cwd, f)),
+    ...DANGEROUS_FILES.map((f) => import_node_path172.default.resolve(cwd, f)),
     // Dangerous directories in CWD
-    ...getDangerousDirectories().map((d) => import_node_path173.default.resolve(cwd, d))
+    ...getDangerousDirectories().map((d) => import_node_path172.default.resolve(cwd, d))
   ];
-  const dotGitPath = import_node_path173.default.resolve(cwd, ".git");
+  const dotGitPath = import_node_path172.default.resolve(cwd, ".git");
   const dotGit = dotGitKindAt(dotGitPath);
   if (dotGit === DotGitKind.File) {
     denyPaths.push(dotGitPath);
   }
   if (dotGit === DotGitKind.Directory) {
-    denyPaths.push(import_node_path173.default.resolve(cwd, ".git/hooks"));
+    denyPaths.push(import_node_path172.default.resolve(cwd, ".git/hooks"));
     if (!allowGitConfig) {
-      denyPaths.push(import_node_path173.default.resolve(cwd, ".git/config"));
+      denyPaths.push(import_node_path172.default.resolve(cwd, ".git/config"));
     }
   }
   return denyPaths;
@@ -654713,7 +654786,7 @@ function unreadableDirectories(stderr, cwd, maxDepth) {
   for (const line of stderr.split("\n")) {
     const said = line.startsWith("rg: ") ? line.slice(4) : line;
     for (let cut3 = said.indexOf(": "); cut3 !== -1; cut3 = said.indexOf(": ", cut3 + 1)) {
-      for (let dir = import_node_path173.default.resolve(cwd, said.slice(0, cut3)); dir.startsWith(cwd + import_node_path173.default.sep) && !tried.has(dir); dir = import_node_path173.default.dirname(dir)) {
+      for (let dir = import_node_path172.default.resolve(cwd, said.slice(0, cut3)); dir.startsWith(cwd + import_node_path172.default.sep) && !tried.has(dir); dir = import_node_path172.default.dirname(dir)) {
         tried.add(dir);
         try {
           const stat17 = fs7.lstatSync(dir);
@@ -654728,7 +654801,7 @@ function unreadableDirectories(stderr, cwd, maxDepth) {
         try {
           fs7.accessSync(dir, fs7.constants.R_OK | fs7.constants.X_OK);
         } catch {
-          if (import_node_path173.default.relative(cwd, dir).split(import_node_path173.default.sep).length <= maxDepth) {
+          if (import_node_path172.default.relative(cwd, dir).split(import_node_path172.default.sep).length <= maxDepth) {
             found2.push(dir);
           }
         }
@@ -654791,7 +654864,7 @@ async function linuxGetMandatoryDenyPaths(ripgrepConfig = { command: "rg" }, max
     ".git/HEAD"
   ].map((name2) => normalizeCaseForComparison(name2).split("/"));
   for (const match of matches3) {
-    const segments = import_node_path173.default.relative(cwd, import_node_path173.default.resolve(cwd, match)).split(import_node_path173.default.sep);
+    const segments = import_node_path172.default.relative(cwd, import_node_path172.default.resolve(cwd, match)).split(import_node_path172.default.sep);
     const lower = segments.map(normalizeCaseForComparison);
     let at2 = segments.length - 1;
     let length = 1;
@@ -654811,7 +654884,7 @@ async function linuxGetMandatoryDenyPaths(ripgrepConfig = { command: "rg" }, max
     const found2 = segments.slice(0, at2 + length);
     if (lower[at2] === ".git" && lower[at2 + 1] === "head")
       found2[at2 + 1] = "hooks";
-    denyPaths.push(import_node_path173.default.join(cwd, ...found2));
+    denyPaths.push(import_node_path172.default.join(cwd, ...found2));
   }
   return [...new Set(denyPaths)];
 }
@@ -654826,7 +654899,7 @@ function ensureEmptyMountSourceDir() {
     }
     logForDebugging(`[Sandbox Linux] Not reusing the empty-directory mount source, it is gone or no longer our own empty directory: ${emptyMountSourceDir}`);
   }
-  emptyMountSourceDir = fs7.mkdtempSync(import_node_path173.default.join((0, import_node_os23.tmpdir)(), "claude-empty-"));
+  emptyMountSourceDir = fs7.mkdtempSync(import_node_path172.default.join((0, import_node_os23.tmpdir)(), "claude-empty-"));
   fs7.chmodSync(emptyMountSourceDir, 448);
   return emptyMountSourceDir;
 }
@@ -655132,8 +655205,8 @@ function probeUid0UserNamespace(bwrap) {
 async function initializeLinuxNetworkBridge(httpProxyPort, socksProxyPort, socatPath) {
   const socat = socatPath ?? "socat";
   const socketId = (0, import_node_crypto171.randomBytes)(8).toString("hex");
-  const httpSocketPath = (0, import_node_path173.join)((0, import_node_os23.tmpdir)(), `claude-http-${socketId}.sock`);
-  const socksSocketPath = (0, import_node_path173.join)((0, import_node_os23.tmpdir)(), `claude-socks-${socketId}.sock`);
+  const httpSocketPath = (0, import_node_path172.join)((0, import_node_os23.tmpdir)(), `claude-http-${socketId}.sock`);
+  const socksSocketPath = (0, import_node_path172.join)((0, import_node_os23.tmpdir)(), `claude-socks-${socketId}.sock`);
   const httpSocatArgs = [
     `UNIX-LISTEN:${httpSocketPath},fork,reuseaddr`,
     `TCP:localhost:${httpProxyPort},keepalive,keepidle=10,keepintvl=5,keepcnt=3`
@@ -655308,10 +655381,10 @@ function ancestorPinArgs(seeds, writeRoots) {
     if (rootIsWriteRoot && KERNEL_TOP_LEVEL_DIRS.some((dir) => isAtOrUnder(seed, dir))) {
       continue;
     }
-    for (let dir = import_node_path173.default.dirname(seed); dir !== "/" && !visited2.has(dir) && writeRoots.isWithinAllowedWrite(dir); dir = import_node_path173.default.dirname(dir)) {
+    for (let dir = import_node_path172.default.dirname(seed); dir !== "/" && !visited2.has(dir) && writeRoots.isWithinAllowedWrite(dir); dir = import_node_path172.default.dirname(dir)) {
       visited2.add(dir);
       if (rootIsWriteRoot) {
-        if (import_node_path173.default.dirname(dir) === "/") {
+        if (import_node_path172.default.dirname(dir) === "/") {
           coverDirs.add(dir);
           continue;
         }
@@ -655433,7 +655506,7 @@ async function generateFilesystemArgs(readConfig3, writeConfig3, maskedFileBinds
   const credentialDenies = new Set(readConfig3?.credentialDenyOnly);
   const readExceptionsTo = (isCredential) => isCredential ? ownReadAllowPaths() : readAllowPaths();
   const readDenyTargetOf = (entry) => {
-    for (let candidate = entry; ; candidate = import_node_path173.default.dirname(candidate)) {
+    for (let candidate = entry; ; candidate = import_node_path172.default.dirname(candidate)) {
       if (candidate === "/" && candidate !== entry)
         return void 0;
       try {
@@ -655462,7 +655535,7 @@ async function generateFilesystemArgs(readConfig3, writeConfig3, maskedFileBinds
         isStandIn: target.isStandIn
       };
     }
-    const holder = canonicalForm(import_node_path173.default.dirname(target.path));
+    const holder = canonicalForm(import_node_path172.default.dirname(target.path));
     if (holder === "/")
       return void 0;
     return {
@@ -655690,11 +655763,11 @@ async function generateFilesystemArgs(readConfig3, writeConfig3, maskedFileBinds
       if (!uncoveredWritePaths.some((allowedPath) => isAtOrUnder(absentPath, allowedPath)) || coveredBySafeReadOnlyDenyDir(absentPath)) {
         return none2("it is read-only there");
       }
-      const file3 = fileOnTheWay(import_node_path173.default.dirname(absentPath));
+      const file3 = fileOnTheWay(import_node_path172.default.dirname(absentPath));
       if (file3 !== void 0) {
         if (seenDenyWrite.has(file3))
           return none2(`${file3} is denied itself`);
-        if (!uncoveredWritePaths.some((allowedPath) => isAtOrUnder(import_node_path173.default.dirname(file3), allowedPath))) {
+        if (!uncoveredWritePaths.some((allowedPath) => isAtOrUnder(import_node_path172.default.dirname(file3), allowedPath))) {
           return none2(`${file3} is a file, in a directory that is read-only`);
         }
         seenDenyWrite.add(file3);
@@ -655891,7 +655964,7 @@ async function generateFilesystemArgs(readConfig3, writeConfig3, maskedFileBinds
   const pinned2 = new Set(pinArgs);
   const mandatoryDenyPins = /* @__PURE__ */ new Set();
   for (let i = mandatoryDenyArgsStart; i < denyWriteArgs.length; i += 3) {
-    for (let dir = import_node_path173.default.dirname(denyWriteArgs[i + 2]); dir !== "/" && !mandatoryDenyPins.has(dir); dir = import_node_path173.default.dirname(dir)) {
+    for (let dir = import_node_path172.default.dirname(denyWriteArgs[i + 2]); dir !== "/" && !mandatoryDenyPins.has(dir); dir = import_node_path172.default.dirname(dir)) {
       if (pinned2.has(dir))
         mandatoryDenyPins.add(dir);
     }
@@ -656135,7 +656208,7 @@ async function wrapCommandWithSandboxLinux(params) {
     throw error50;
   }
 }
-var import_node_crypto171, fs7, import_node_child_process24, import_node_os23, import_node_path173, DEFAULT_MANDATORY_DENY_SEARCH_DEPTH, MAX_MISSING_NAMES_PASSED, MountPointKind, O_PATH, V9FS_MAGIC, DotGitKind, bwrapMountPoints, emptyMountSourceDir, CAP_SETFCAP, boundingCapabilities, capabilityReadFailureLogged, setfcapMissingLogged, CAP_SETFCAP_MISSING_MESSAGE, linuxMaxArgStrlen, ARG_HEADROOM_BYTES, BWRAP_MAX_ARGS, BWRAP_ARGS_FD, O_TMPFILE, bwrapArgsFds, LinuxSandboxProfileError, WorkingDirectoryChanged, activeSandboxCount, forcedCleanups, exitHandlerRegistered, OLDEST_FULLY_SUPPORTED_BWRAP_VERSION, bwrapVersions, uid0UserNamespaceProbes, NESTED_USERNS_ENV, disableUsernsProbes, noUsernsLimitLogged, RELAYS_LISTEN, KERNEL_TOP_LEVEL_DIRS;
+var import_node_crypto171, fs7, import_node_child_process24, import_node_os23, import_node_path172, DEFAULT_MANDATORY_DENY_SEARCH_DEPTH, MAX_MISSING_NAMES_PASSED, MountPointKind, O_PATH, V9FS_MAGIC, DotGitKind, bwrapMountPoints, emptyMountSourceDir, CAP_SETFCAP, boundingCapabilities, capabilityReadFailureLogged, setfcapMissingLogged, CAP_SETFCAP_MISSING_MESSAGE, linuxMaxArgStrlen, ARG_HEADROOM_BYTES, BWRAP_MAX_ARGS, BWRAP_ARGS_FD, O_TMPFILE, bwrapArgsFds, LinuxSandboxProfileError, WorkingDirectoryChanged, activeSandboxCount, forcedCleanups, exitHandlerRegistered, OLDEST_FULLY_SUPPORTED_BWRAP_VERSION, bwrapVersions, uid0UserNamespaceProbes, NESTED_USERNS_ENV, disableUsernsProbes, noUsernsLimitLogged, RELAYS_LISTEN, KERNEL_TOP_LEVEL_DIRS;
 var init_linux_sandbox_utils = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/linux-sandbox-utils.js"() {
     init_shell_quote();
@@ -656146,7 +656219,7 @@ var init_linux_sandbox_utils = __esm({
     fs7 = __toESM(require("fs"), 1);
     import_node_child_process24 = require("node:child_process");
     import_node_os23 = require("node:os");
-    import_node_path173 = __toESM(require("node:path"), 1);
+    import_node_path172 = __toESM(require("node:path"), 1);
     init_ripgrep();
     init_java_proxy_agent();
     init_path_entries();
@@ -657120,8 +657193,8 @@ var init_macos_sandbox_utils = __esm({
 // ../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/linux-violation-monitor.js
 function startLinuxSandboxViolationMonitor(callback, opts) {
   const { allowWritePaths, denyWritePaths, ignoreViolations, resolveCommandText: resolveCommandText2 } = opts;
-  const sockDir = (0, import_node_fs160.mkdtempSync)((0, import_node_path174.join)((0, import_node_os24.tmpdir)(), "srt-obs-"));
-  const sockPath = (0, import_node_path174.join)(sockDir, `s${(0, import_node_crypto172.randomBytes)(4).toString("hex")}.sock`);
+  const sockDir = (0, import_node_fs159.mkdtempSync)((0, import_node_path173.join)((0, import_node_os24.tmpdir)(), "srt-obs-"));
+  const sockPath = (0, import_node_path173.join)(sockDir, `s${(0, import_node_crypto172.randomBytes)(4).toString("hex")}.sock`);
   const underPrefix = (p, prefix) => p === prefix || p.startsWith(prefix.endsWith("/") ? prefix : prefix + "/");
   const isDenied = (p) => {
     if (denyWritePaths.some((d) => underPrefix(p, d)))
@@ -657137,7 +657210,7 @@ function startLinuxSandboxViolationMonitor(callback, opts) {
       return;
     if (!ev.path.startsWith("/"))
       return;
-    const observedPath = import_node_path174.posix.normalize(ev.path);
+    const observedPath = import_node_path173.posix.normalize(ev.path);
     if (!isDenied(observedPath))
       return;
     let command2;
@@ -657200,7 +657273,7 @@ function startLinuxSandboxViolationMonitor(callback, opts) {
       s.destroy();
     server.close();
     try {
-      (0, import_node_fs160.rmSync)(sockDir, { recursive: true, force: true });
+      (0, import_node_fs159.rmSync)(sockDir, { recursive: true, force: true });
     } catch {
     }
   };
@@ -657212,14 +657285,14 @@ function startLinuxSandboxViolationMonitor(callback, opts) {
     stop
   };
 }
-var import_node_crypto172, import_node_fs160, import_node_net15, import_node_os24, import_node_path174, import_node_readline;
+var import_node_crypto172, import_node_fs159, import_node_net15, import_node_os24, import_node_path173, import_node_readline;
 var init_linux_violation_monitor = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/linux-violation-monitor.js"() {
     import_node_crypto172 = require("node:crypto");
-    import_node_fs160 = require("node:fs");
+    import_node_fs159 = require("node:fs");
     import_node_net15 = require("node:net");
     import_node_os24 = require("node:os");
-    import_node_path174 = require("node:path");
+    import_node_path173 = require("node:path");
     import_node_readline = require("node:readline");
     init_debug();
     init_sandbox_utils();
@@ -659528,7 +659601,7 @@ async function initializeSteps(runtimeConfig2, sandboxAskCallback, enableLogMoni
       } catch {
       }
       const acc = computeWindowsFsAccessSet(runtimeConfig2, maskedFiles);
-      const ownRead = mitmCA ? [(0, import_node_path175.dirname)(mitmCA.trustBundlePath)] : [];
+      const ownRead = mitmCA ? [(0, import_node_path174.dirname)(mitmCA.trustBundlePath)] : [];
       const override = options2?.dangerouslyAllowReadOfProfileExclusions ?? [];
       const refused = [
         ...windowsProfileExclusionConflicts(acc.grantRead, profileExclusions, {
@@ -659547,7 +659620,7 @@ async function initializeSteps(runtimeConfig2, sandboxAskCallback, enableLogMoni
         };
         throw new WindowsSandboxError("profile_exclusion_read_grant", `The session would grant a path that reaches one excluded from reads of your user profile: ` + refused.map(describe6).join("; ") + `. Nothing was granted. Remove the entry, or name a path that neither is nor contains an excluded one.`);
       }
-      const grantRead = mitmCA ? [...acc.grantRead, (0, import_node_path175.dirname)(mitmCA.trustBundlePath)] : acc.grantRead;
+      const grantRead = mitmCA ? [...acc.grantRead, (0, import_node_path174.dirname)(mitmCA.trustBundlePath)] : acc.grantRead;
       if (!u3.sid) {
         throw new Error("sandbox user SID missing from `srt-win user status` (provisioned but in an inconsistent state)");
       }
@@ -660482,7 +660555,7 @@ function getLinuxGlobPatternWarnings() {
   }
   return globPatterns;
 }
-var fs10, import_node_crypto173, import_node_os25, import_node_path175, config4, configInstalls, httpProxyServer, socksProxyServer, muxProxyServer, managerContext, initializationPromise, cleanupRegistered, ownInstallLogged, logMonitorShutdown, linuxMonitor, parentProxy, resolvedAddressGuard, mitmCA, javaAgentJarPath, proxyAuthToken, windowsFsStampedSet, windowsFsSbUserSid, windowsFsRawInputs, windowsWfpVerifiedFor, windowsWfpVerifiedLoopback, windowsCapableSrtWin, WINDOWS_CAPABILITIES_WHY, windowsProfileRead, windowsProfileReadWarnings, srtWinSpawn, sandboxViolationStore, sentinelRegistry, awsPairRegistry, maskedFileStore, WINDOWS_ACL_RELEASE_OK, MAX_COMMAND_TEXTS, commandTextsByKey, MIN_NETWORK_LISTS_COMMAND_ID_LENGTH, commandNetworkListsByKey, directLookup, RESTARTS_IN_TURNS, REPLACED, walking, waitingToWalk, BRIDGE_EXIT_TIMEOUT_MS, SandboxManager;
+var fs10, import_node_crypto173, import_node_os25, import_node_path174, config4, configInstalls, httpProxyServer, socksProxyServer, muxProxyServer, managerContext, initializationPromise, cleanupRegistered, ownInstallLogged, logMonitorShutdown, linuxMonitor, parentProxy, resolvedAddressGuard, mitmCA, javaAgentJarPath, proxyAuthToken, windowsFsStampedSet, windowsFsSbUserSid, windowsFsRawInputs, windowsWfpVerifiedFor, windowsWfpVerifiedLoopback, windowsCapableSrtWin, WINDOWS_CAPABILITIES_WHY, windowsProfileRead, windowsProfileReadWarnings, srtWinSpawn, sandboxViolationStore, sentinelRegistry, awsPairRegistry, maskedFileStore, WINDOWS_ACL_RELEASE_OK, MAX_COMMAND_TEXTS, commandTextsByKey, MIN_NETWORK_LISTS_COMMAND_ID_LENGTH, commandNetworkListsByKey, directLookup, RESTARTS_IN_TURNS, REPLACED, walking, waitingToWalk, BRIDGE_EXIT_TIMEOUT_MS, SandboxManager;
 var init_sandbox_manager = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/sandbox-manager.js"() {
     init_path_entries();
@@ -660513,7 +660586,7 @@ var init_sandbox_manager = __esm({
     init_domain_pattern();
     init_resolved_address_guard();
     import_node_os25 = require("node:os");
-    import_node_path175 = require("node:path");
+    import_node_path174 = require("node:path");
     init_java_proxy_agent();
     init_generate_seccomp_filter();
     configInstalls = 0;
@@ -664704,7 +664777,7 @@ function addInertSlashedDenyGlobIssue(value2, path13, ctx) {
     return;
   if (!containsGlobCharsForPlatform(value2))
     return;
-  const rooted = onWindows ? import_node_path176.win32.isAbsolute(value2) : import_node_path176.posix.isAbsolute(value2);
+  const rooted = onWindows ? import_node_path175.win32.isAbsolute(value2) : import_node_path175.posix.isAbsolute(value2);
   if (!rooted && !value2.startsWith("~"))
     return;
   ctx.addIssue({
@@ -664713,10 +664786,10 @@ function addInertSlashedDenyGlobIssue(value2, path13, ctx) {
     message: `Deny glob "${value2}" ends in a separator, so as a pattern it can match no path. Write "${value2.replace(trailingSeparator, "")}", which is also read as the path of that name where it exists, or add a "**" segment to match at any depth.`
   });
 }
-var import_node_path176, domainPatternSchema, domainPortPatternSchema, deniedDomainPatternSchema, addressRangeSchema, filesystemPathSchema, filesystemPathEntrySchema, binaryPathSchema, MitmProxyConfigSchema, ParentProxyConfigSchema, credentialModeSchema, envVarNameSchema, extractPatternSchema, CredentialFileConfigSchema, CredentialEnvVarConfigSchema, AwsPairConfigSchema, sigv4PolicySchema, Sigv4ConfigSchema, CredentialsConfigSchema, NetworkConfigSchema, FilesystemConfigSchema, IgnoreViolationsConfigSchema, RipgrepConfigSchema, GitConfigSchema, SrtWinConfigSchema, WindowsConfigSchema, SeccompConfigSchema, SandboxRuntimeConfigSchema;
+var import_node_path175, domainPatternSchema, domainPortPatternSchema, deniedDomainPatternSchema, addressRangeSchema, filesystemPathSchema, filesystemPathEntrySchema, binaryPathSchema, MitmProxyConfigSchema, ParentProxyConfigSchema, credentialModeSchema, envVarNameSchema, extractPatternSchema, CredentialFileConfigSchema, CredentialEnvVarConfigSchema, AwsPairConfigSchema, sigv4PolicySchema, Sigv4ConfigSchema, CredentialsConfigSchema, NetworkConfigSchema, FilesystemConfigSchema, IgnoreViolationsConfigSchema, RipgrepConfigSchema, GitConfigSchema, SrtWinConfigSchema, WindowsConfigSchema, SeccompConfigSchema, SandboxRuntimeConfigSchema;
 var init_sandbox_config = __esm({
   "../../../../../apps/electron/node_modules/@anthropic-ai/sandbox-runtime/dist/sandbox/sandbox-config.js"() {
-    import_node_path176 = require("node:path");
+    import_node_path175 = require("node:path");
     init_v32();
     init_domain_pattern();
     init_address();
@@ -664744,7 +664817,7 @@ var init_sandbox_config = __esm({
         message: 'Expected a path, or { "path": "<path>", "literal": true }'
       } : { message: ctx.defaultError }
     });
-    binaryPathSchema = external_exports5.string().min(1, "Path cannot be empty").refine((val) => (0, import_node_path176.isAbsolute)(val), {
+    binaryPathSchema = external_exports5.string().min(1, "Path cannot be empty").refine((val) => (0, import_node_path175.isAbsolute)(val), {
       message: "Binary path must be absolute"
     });
     MitmProxyConfigSchema = external_exports5.object({
@@ -666257,7 +666330,7 @@ async function assertTrustedKnowledgeRequest(event2) {
   const { getMainWindow: getMainWindow3 } = await Promise.resolve().then(() => (init_index(), index_exports));
   const window2 = getMainWindow3();
   if (!window2 || window2.isDestroyed() || window2.webContents.isDestroyed()) throw new Error(tr("\u7A97\u53E3\u4E0D\u53EF\u7528", "The app window isn\u2019t available"));
-  const expectedUrl = import_electron55.app.isPackaged ? (0, import_node_url13.pathToFileURL)((0, import_node_path177.join)(__dirname, "renderer", "index.html")).href : buildRendererDevServerUrl();
+  const expectedUrl = import_electron55.app.isPackaged ? (0, import_node_url13.pathToFileURL)((0, import_node_path176.join)(__dirname, "renderer", "index.html")).href : buildRendererDevServerUrl();
   const frame = event2.senderFrame;
   assertTrustedKnowledgeFrame(
     event2,
@@ -666401,12 +666474,12 @@ function registerKnowledgeIpcHandlers() {
   register(KNOWLEDGE_IPC_CHANNELS.SET_WORKSPACE_BINDING, knowledgeService.setWorkspaceBinding);
   recoverInterruptedKnowledgeWork();
 }
-var import_electron55, import_node_path177, import_node_url13;
+var import_electron55, import_node_path176, import_node_url13;
 var init_knowledge_ipc = __esm({
   "../electron/src/main/knowledge-ipc.ts"() {
     "use strict";
     import_electron55 = __toESM(require_electron(), 1);
-    import_node_path177 = require("node:path");
+    import_node_path176 = require("node:path");
     import_node_url13 = require("node:url");
     init_src();
     init_app_ports();
@@ -666431,7 +666504,7 @@ async function resolveAppPath(app24, { exists, mdfind: mdfind2, home, running: r
     const hit = firstApp(lines) ?? lines[0];
     if (hit) return hit;
   }
-  const candidates = ["/Applications", "/System/Applications", "/System/Applications/Utilities", (0, import_node_path178.join)(home, "Applications")].map((dir) => (0, import_node_path178.join)(dir, `${app24}.app`));
+  const candidates = ["/Applications", "/System/Applications", "/System/Applications/Utilities", (0, import_node_path177.join)(home, "Applications")].map((dir) => (0, import_node_path177.join)(dir, `${app24}.app`));
   const found2 = candidates.find(exists);
   if (found2) return found2;
   return firstApp(await mdfind2(`(kMDItemDisplayName == '${app24}' || kMDItemDisplayName == '${app24}.app') && kMDItemContentType == 'com.apple.application-bundle'`));
@@ -666454,11 +666527,11 @@ function createAppIconCache(load2, max3 = 256) {
   };
 }
 async function bundleIconDataUrl(appPath) {
-  const declared = await execFileAsync11("plutil", ["-extract", "CFBundleIconFile", "raw", "-o", "-", (0, import_node_path178.join)(appPath, "Contents", "Info.plist")], { timeout: 3e3 }).then((result8) => result8.stdout.trim()).catch(() => "");
+  const declared = await execFileAsync11("plutil", ["-extract", "CFBundleIconFile", "raw", "-o", "-", (0, import_node_path177.join)(appPath, "Contents", "Info.plist")], { timeout: 3e3 }).then((result8) => result8.stdout.trim()).catch(() => "");
   const name2 = declared || "AppIcon";
-  const icns = (0, import_node_path178.join)(appPath, "Contents", "Resources", name2.endsWith(".icns") ? name2 : `${name2}.icns`);
-  if (!(0, import_node_fs161.existsSync)(icns)) return null;
-  const output = (0, import_node_path178.join)((0, import_node_os26.tmpdir)(), `cortex-app-icon-${(0, import_node_crypto175.randomUUID)()}.png`);
+  const icns = (0, import_node_path177.join)(appPath, "Contents", "Resources", name2.endsWith(".icns") ? name2 : `${name2}.icns`);
+  if (!(0, import_node_fs160.existsSync)(icns)) return null;
+  const output = (0, import_node_path177.join)((0, import_node_os26.tmpdir)(), `cortex-app-icon-${(0, import_node_crypto175.randomUUID)()}.png`);
   try {
     await execFileAsync11("sips", ["-s", "format", "png", "-Z", "64", icns, "--out", output], { timeout: 5e3 });
     return `data:image/png;base64,${(await (0, import_promises81.readFile)(output)).toString("base64")}`;
@@ -666466,16 +666539,16 @@ async function bundleIconDataUrl(appPath) {
     await (0, import_promises81.rm)(output, { force: true });
   }
 }
-var import_node_child_process26, import_node_crypto175, import_node_fs161, import_promises81, import_node_os26, import_node_path178, import_node_util22, execFileAsync11, looksLikeBundleId, firstApp;
+var import_node_child_process26, import_node_crypto175, import_node_fs160, import_promises81, import_node_os26, import_node_path177, import_node_util22, execFileAsync11, looksLikeBundleId, firstApp;
 var init_app_icon = __esm({
   "../electron/src/main/lib/computer-use/app-icon.ts"() {
     "use strict";
     import_node_child_process26 = require("node:child_process");
     import_node_crypto175 = require("node:crypto");
-    import_node_fs161 = require("node:fs");
+    import_node_fs160 = require("node:fs");
     import_promises81 = require("node:fs/promises");
     import_node_os26 = require("node:os");
-    import_node_path178 = require("node:path");
+    import_node_path177 = require("node:path");
     import_node_util22 = require("node:util");
     execFileAsync11 = (0, import_node_util22.promisify)(import_node_child_process26.execFile);
     looksLikeBundleId = (app24) => app24.includes(".") && !/\s/.test(app24);
@@ -666622,7 +666695,7 @@ function createPreviewWindow2(events) {
     acceptFirstMouse: true,
     show: false,
     hasShadow: true,
-    webPreferences: { preload: (0, import_node_path179.join)(__dirname, "computer-use-preview-preload.cjs"), contextIsolation: true, nodeIntegration: false }
+    webPreferences: { preload: (0, import_node_path178.join)(__dirname, "computer-use-preview-preload.cjs"), contextIsolation: true, nodeIntegration: false }
   });
   previewWindow = window2;
   previewEvents = events;
@@ -666639,7 +666712,7 @@ function createPreviewWindow2(events) {
     }
     events.onClosed();
   });
-  if (import_electron56.app.isPackaged) void window2.loadFile((0, import_node_path179.join)(__dirname, "renderer", "computer-use-preview.html"));
+  if (import_electron56.app.isPackaged) void window2.loadFile((0, import_node_path178.join)(__dirname, "renderer", "computer-use-preview.html"));
   else void window2.loadURL(buildRendererDevServerPageUrl("computer-use-preview.html"));
   window2.webContents.on("did-finish-load", events.onReady);
   const place = () => {
@@ -666811,15 +666884,15 @@ function registerComputerUseIpcHandlers() {
     installAbort?.abort();
   });
 }
-var import_electron56, import_node_child_process27, import_node_fs162, import_node_os27, import_node_path179, import_node_util23, execFileAsync12, mdfind, runningAppPath, appIcons2, PREVIEW_SIZE, PREVIEW_MARGIN, previewAnchor, previewWindow, previewEvents, fromPreview, computerUsePreview, installState, installAbort, staleRemoved;
+var import_electron56, import_node_child_process27, import_node_fs161, import_node_os27, import_node_path178, import_node_util23, execFileAsync12, mdfind, runningAppPath, appIcons2, PREVIEW_SIZE, PREVIEW_MARGIN, previewAnchor, previewWindow, previewEvents, fromPreview, computerUsePreview, installState, installAbort, staleRemoved;
 var init_computer_use_ipc = __esm({
   "../electron/src/main/computer-use-ipc.ts"() {
     "use strict";
     import_electron56 = __toESM(require_electron(), 1);
     import_node_child_process27 = require("node:child_process");
-    import_node_fs162 = require("node:fs");
+    import_node_fs161 = require("node:fs");
     import_node_os27 = require("node:os");
-    import_node_path179 = require("node:path");
+    import_node_path178 = require("node:path");
     import_node_util23 = require("node:util");
     init_src();
     init_knowledge_ipc();
@@ -666836,7 +666909,7 @@ var init_computer_use_ipc = __esm({
     mdfind = async (query) => (await execFileAsync12("mdfind", [query], { timeout: 3e3 })).stdout.split("\n");
     runningAppPath = async (bundleId) => (await execFileAsync12("lsappinfo", ["info", "-only", "bundlepath", bundleId], { timeout: 3e3 }).catch(() => ({ stdout: "" }))).stdout.match(/bundle ?path"?\s*=\s*"([^"]+)"/i)?.[1];
     appIcons2 = createAppIconCache(async (app24) => {
-      const path13 = await resolveAppPath(app24, { exists: import_node_fs162.existsSync, mdfind, home: (0, import_node_os27.homedir)(), running: runningAppPath }) ?? (await listInstalledApps()).find((item) => item.bundleId === app24)?.path;
+      const path13 = await resolveAppPath(app24, { exists: import_node_fs161.existsSync, mdfind, home: (0, import_node_os27.homedir)(), running: runningAppPath }) ?? (await listInstalledApps()).find((item) => item.bundleId === app24)?.path;
       return path13 ? bundleIconDataUrl(path13) : null;
     });
     PREVIEW_SIZE = { width: 340, height: 240 };
@@ -667493,18 +667566,18 @@ function redactValue(value2, key3 = "") {
   return value2;
 }
 function rotateLedgerIfNeeded(filePath) {
-  if (!(0, import_node_fs163.existsSync)(filePath) || (0, import_node_fs163.statSync)(filePath).size < MAX_LEDGER_BYTES) return;
-  const archivePath = (0, import_node_path180.join)((0, import_node_path180.dirname)(filePath), `runs-${Date.now()}.jsonl`);
-  (0, import_node_fs163.renameSync)(filePath, archivePath);
-  const archives = (0, import_node_fs163.readdirSync)((0, import_node_path180.dirname)(filePath)).filter((name2) => /^runs-\d+\.jsonl$/.test(name2)).sort();
-  for (const name2 of archives.slice(0, -MAX_LEDGER_ARCHIVES)) (0, import_node_fs163.rmSync)((0, import_node_path180.join)((0, import_node_path180.dirname)(filePath), name2), { force: true });
+  if (!(0, import_node_fs162.existsSync)(filePath) || (0, import_node_fs162.statSync)(filePath).size < MAX_LEDGER_BYTES) return;
+  const archivePath = (0, import_node_path179.join)((0, import_node_path179.dirname)(filePath), `runs-${Date.now()}.jsonl`);
+  (0, import_node_fs162.renameSync)(filePath, archivePath);
+  const archives = (0, import_node_fs162.readdirSync)((0, import_node_path179.dirname)(filePath)).filter((name2) => /^runs-\d+\.jsonl$/.test(name2)).sort();
+  for (const name2 of archives.slice(0, -MAX_LEDGER_ARCHIVES)) (0, import_node_fs162.rmSync)((0, import_node_path179.join)((0, import_node_path179.dirname)(filePath), name2), { force: true });
 }
-var import_node_fs163, import_node_path180, SENSITIVE_KEY_PATTERN, MAX_LEDGER_STRING_LENGTH, MAX_LEDGER_BYTES, MAX_LEDGER_ARCHIVES, PROCESS_STARTED_AT, AgentRunLedger;
+var import_node_fs162, import_node_path179, SENSITIVE_KEY_PATTERN, MAX_LEDGER_STRING_LENGTH, MAX_LEDGER_BYTES, MAX_LEDGER_ARCHIVES, PROCESS_STARTED_AT, AgentRunLedger;
 var init_agent_run_ledger = __esm({
   "../electron/src/main/lib/agent-run-ledger.ts"() {
     "use strict";
-    import_node_fs163 = require("node:fs");
-    import_node_path180 = require("node:path");
+    import_node_fs162 = require("node:fs");
+    import_node_path179 = require("node:path");
     init_src();
     init_jsonl();
     init_file_lock();
@@ -667567,8 +667640,8 @@ var init_agent_run_ledger = __esm({
       recoverInterruptedRuns(sessionId2, timestamp2 = Date.now(), onInterrupted) {
         return this.enqueue(sessionId2, (filePath) => {
           this.flushUnlocked(sessionId2, filePath);
-          if (!(0, import_node_fs163.existsSync)(filePath)) return 0;
-          const entries = parseJsonLines((0, import_node_fs163.readFileSync)(filePath, "utf8"), (warning) => {
+          if (!(0, import_node_fs162.existsSync)(filePath)) return 0;
+          const entries = parseJsonLines((0, import_node_fs162.readFileSync)(filePath, "utf8"), (warning) => {
             console.warn(`[Agent \u5BA1\u8BA1] \u8DF3\u8FC7\u635F\u574F\u7684 JSONL \u884C: ${filePath}:${warning.line} ${warning.message}`);
           });
           const started3 = /* @__PURE__ */ new Map();
@@ -667603,12 +667676,12 @@ var init_agent_run_ledger = __esm({
       }
       getFilePath(sessionId2) {
         const safeSessionId = sessionId2.replace(/[^a-zA-Z0-9_-]/g, "_");
-        return (0, import_node_path180.join)(this.rootDirectory, safeSessionId, "runs.jsonl");
+        return (0, import_node_path179.join)(this.rootDirectory, safeSessionId, "runs.jsonl");
       }
       appendUnlocked(filePath, entry) {
-        (0, import_node_fs163.mkdirSync)((0, import_node_path180.dirname)(filePath), { recursive: true });
+        (0, import_node_fs162.mkdirSync)((0, import_node_path179.dirname)(filePath), { recursive: true });
         if (entry.type === "run_started") rotateLedgerIfNeeded(filePath);
-        (0, import_node_fs163.appendFileSync)(filePath, `${JSON.stringify(redactSensitive(entry))}
+        (0, import_node_fs162.appendFileSync)(filePath, `${JSON.stringify(redactSensitive(entry))}
 `, "utf8");
       }
     };
@@ -667853,7 +667926,7 @@ ${instruction.content}`);
 async function resolveExistingRoot(rawRoot) {
   if (!rawRoot.trim() || rawRoot.includes("\0")) return null;
   try {
-    const root3 = await (0, import_promises82.realpath)((0, import_node_path181.resolve)(rawRoot));
+    const root3 = await (0, import_promises82.realpath)((0, import_node_path180.resolve)(rawRoot));
     return (await (0, import_promises82.stat)(root3)).isDirectory() ? root3 : null;
   } catch {
     return null;
@@ -667862,7 +667935,7 @@ async function resolveExistingRoot(rawRoot) {
 async function readProjectInstruction(root3) {
   const seenCandidates = /* @__PURE__ */ new Set();
   for (const fileName of INSTRUCTION_FILE_NAMES) {
-    const candidate = (0, import_node_path181.join)(root3, fileName);
+    const candidate = (0, import_node_path180.join)(root3, fileName);
     const identity4 = process.platform === "win32" ? candidate.toLowerCase() : candidate;
     if (seenCandidates.has(identity4)) continue;
     seenCandidates.add(identity4);
@@ -667872,7 +667945,7 @@ async function readProjectInstruction(root3) {
   return null;
 }
 async function readInstructionFile(root3, fileName) {
-  const filePath = (0, import_node_path181.join)(root3, fileName);
+  const filePath = (0, import_node_path180.join)(root3, fileName);
   try {
     const fileLstat = await (0, import_promises82.lstat)(filePath);
     if (fileLstat.isSymbolicLink() || !fileLstat.isFile()) return null;
@@ -667891,12 +667964,12 @@ async function readInstructionFile(root3, fileName) {
     return null;
   }
 }
-var import_promises82, import_node_path181, MAX_INSTRUCTION_BYTES, MAX_TOTAL_INSTRUCTION_BYTES, MAX_INSTRUCTION_ROOTS, INSTRUCTION_FILE_NAMES;
+var import_promises82, import_node_path180, MAX_INSTRUCTION_BYTES, MAX_TOTAL_INSTRUCTION_BYTES, MAX_INSTRUCTION_ROOTS, INSTRUCTION_FILE_NAMES;
 var init_project_instructions = __esm({
   "../electron/src/main/lib/project-instructions.ts"() {
     "use strict";
     import_promises82 = require("node:fs/promises");
-    import_node_path181 = require("node:path");
+    import_node_path180 = require("node:path");
     init_agent_path_policy();
     MAX_INSTRUCTION_BYTES = 128 * 1024;
     MAX_TOTAL_INSTRUCTION_BYTES = 512 * 1024;
@@ -668498,7 +668571,7 @@ function sessionWritableRoots(sessionId2, sessionMeta) {
   const workspace = sessionMeta.workspaceId ? getAgentWorkspace(sessionMeta.workspaceId) : void 0;
   if (workspace) roots.push(getAgentSessionWorkspacePath(workspace.slug, sessionId2), getWorkspaceFilesDir(workspace.slug), ...getWorkspaceAttachedDirectories(workspace.slug));
   else if (!sessionMeta.workspaceId) roots.push(getStandaloneAgentSessionWorkspacePath(sessionId2));
-  if (typeof sessionMeta.cliCwd === "string" && (0, import_node_path182.isAbsolute)(sessionMeta.cliCwd)) roots.push(sessionMeta.cliCwd);
+  if (typeof sessionMeta.cliCwd === "string" && (0, import_node_path181.isAbsolute)(sessionMeta.cliCwd)) roots.push(sessionMeta.cliCwd);
   roots.push(...sessionMeta.attachedDirectories ?? []);
   return applyWorktree(roots, sessionMeta.worktree);
 }
@@ -668546,7 +668619,7 @@ function browserCompletionCheck(task, proxyUrl) {
     return unmet.map((check4) => check4.requirement);
   };
 }
-var import_promises83, import_node_crypto177, import_node_path182, OWNER_ONLY_TOOLS, AUTO_RETRYABLE_ERROR_CODES, memoryVersion, memoryWatched, MAX_AUTO_RETRIES, CHANNEL_DOWN_CODES, RETRY_MAX_DELAY_MS, RATE_LIMIT_BASE_DELAY_MS, RATE_LIMIT_MAX_DELAY_MS, MAX_TOOL_CALLS_PER_RUN, MAX_RUN_DURATION_MS, NO_PROGRESS_WARNING_THRESHOLD, NO_PROGRESS_TERMINATION_THRESHOLD, MAX_CONTEXT_INPUT_TOKENS, SUBAGENT_ORIGIN_CONTEXT_CHARS, MAX_TOOL_SUMMARY_LENGTH, titlePrompt, MIN_TITLE_SOURCE_LENGTH, MAX_TITLE_ROUNDS, COMPLETION_CHECK_TIMEOUT_MS, IRREVERSIBLE_CLICK_SCOPE, AgentOrchestrator;
+var import_promises83, import_node_crypto177, import_node_path181, OWNER_ONLY_TOOLS, AUTO_RETRYABLE_ERROR_CODES, memoryVersion, memoryWatched, MAX_AUTO_RETRIES, CHANNEL_DOWN_CODES, RETRY_MAX_DELAY_MS, RATE_LIMIT_BASE_DELAY_MS, RATE_LIMIT_MAX_DELAY_MS, MAX_TOOL_CALLS_PER_RUN, MAX_RUN_DURATION_MS, NO_PROGRESS_WARNING_THRESHOLD, NO_PROGRESS_TERMINATION_THRESHOLD, MAX_CONTEXT_INPUT_TOKENS, SUBAGENT_ORIGIN_CONTEXT_CHARS, MAX_TOOL_SUMMARY_LENGTH, titlePrompt, MIN_TITLE_SOURCE_LENGTH, MAX_TITLE_ROUNDS, COMPLETION_CHECK_TIMEOUT_MS, IRREVERSIBLE_CLICK_SCOPE, AgentOrchestrator;
 var init_agent_orchestrator = __esm({
   "../electron/src/main/lib/agent-orchestrator.ts"() {
     "use strict";
@@ -668564,7 +668637,7 @@ var init_agent_orchestrator = __esm({
     import_promises83 = require("node:fs/promises");
     init_model_thinking_service();
     import_node_crypto177 = require("node:crypto");
-    import_node_path182 = require("node:path");
+    import_node_path181 = require("node:path");
     init_src2();
     init_pi_agent_adapter();
     init_agent_error_utils();
@@ -669715,7 +669788,7 @@ ${sessionTitleCharacters(message8).slice(0, 1e3).join("")}
           prepLap("\u5386\u53F2\u3001\u7528\u6237\u6D88\u606F\u4E0E\u5DE5\u4F5C\u76EE\u5F55");
           const resultRoot = await awaitRun((0, import_promises83.realpath)(agentCwd));
           ensureActive();
-          const resultDirectory = (0, import_node_path182.join)(resultRoot, ".tool-results", runId);
+          const resultDirectory = (0, import_node_path181.join)(resultRoot, ".tool-results", runId);
           const { tools: piMcpTools, failures: connectFailures } = sealed || !mcpAllowed ? { tools: [], failures: [] } : await awaitRun(buildPiMcpTools(mcpServers, resultDirectory, resolveMcpConfig));
           const mcpFailures = sealed || !mcpAllowed ? connectFailures : [...unresolvedMcp, ...connectFailures];
           const mcpFailureContext = mcpFailures.length ? "\n\n## \u672C\u8F6E\u672A\u8FDE\u63A5\u7684 MCP\n" + mcpFailures.map((failure8) => `- MCP ${failure8.name} \u672A\u8FDE\u63A5\uFF1A${describeMcpFailure(failure8, "zh-CN")}${failure8.logPath ? `\uFF08\u670D\u52A1\u5668\u65E5\u5FD7\uFF1A${failure8.logPath}\uFF09` : ""}`).join("\n") + "\n\u8FD9\u4E9B\u670D\u52A1\u5668\u7684\u5DE5\u5177\u672C\u8F6E\u4E0D\u53EF\u7528\uFF1B\u9700\u8981\u65F6\u544A\u8BC9\u7528\u6237\u5728\u8BBE\u7F6E\u91CC\u6D4B\u8BD5\u8FDE\u63A5\u6216\u67E5\u770B\u65E5\u5FD7\uFF0C\u4E0D\u8981\u7528\u811A\u672C\u4EE3\u66FF\u3002" + (mcpFailures.some((failure8) => failure8.kind === "needs_login") ? callbacks.headless ? "\n\u9700\u8981\u767B\u5F55\u7684\u8FDE\u63A5\u5668\u53EA\u80FD\u7531\u7528\u6237\u5728\u684C\u9762\u7AEF\u767B\u5F55\uFF0C\u672C\u8F6E\u4E0D\u8981\u5C1D\u8BD5\u3002" : "\n\u9700\u8981\u767B\u5F55\u7684\u8FDE\u63A5\u5668\uFF1A\u7528\u6237\u8981\u7528\u65F6\u8C03\u7528 Connectors\uFF08action=install\uFF0CcatalogId \u586B\u8FDE\u63A5\u5668\u540D\uFF09\uFF0C\u5BBF\u4E3B\u4F1A\u5F39\u767B\u5F55\u5361\u7247\u8BF7\u7528\u6237\u5728\u6D4F\u89C8\u5668\u91CC\u767B\u5F55\u3002" : "") : "";
@@ -670692,7 +670765,7 @@ ${meetingLine}` : "") + (officeRun ? `
             systemPrompt: buildSystemPrompt(promptContext) + sharedEnvironmentPrompt + "\n\n" + getImageGenerationPrompt(runChannelId) + (callbacks.scheduledTask ? "\n\n## \u5F53\u524D\u5B9A\u65F6\u8FD0\u884C\n\u4E0D\u80FD\u521B\u5EFA\u6216\u7BA1\u7406\u5176\u4ED6\u5B9A\u65F6\u4EFB\u52A1\u3002\u7ED3\u675F\u524D\u8C03\u7528\u4E00\u6B21 ReportScheduledResult\uFF08\u5DF2\u5728\u5DE5\u5177\u5217\u8868\u91CC\uFF0C\u76F4\u63A5\u8C03\u7528\uFF0C\u4E0D\u7528\u67E5\u627E\u6216\u542F\u7528\uFF09\uFF0C\u62A5\u544A\u6709\u7ED3\u679C\u3001\u65E0\u53D8\u5316\u6216\u7528\u6237\u660E\u786E\u8BBE\u7F6E\u7684\u7ED3\u675F\u6761\u4EF6\u5DF2\u6EE1\u8DB3\u3002\u5B50\u4EE3\u7406\u4E0D\u80FD\u4EE3\u4E3A\u62A5\u544A\u3002" : "") + "\n\n" + PEER_MESSAGE_PROMPT,
             resumeSessionId: existingSdkSessionId,
             piAgentDir: getSdkConfigDir(),
-            piSessionDir: (0, import_node_path182.join)(getSdkConfigDir(), "pi-sessions"),
+            piSessionDir: (0, import_node_path181.join)(getSdkConfigDir(), "pi-sessions"),
             customTools: [...piMcpTools, ...cortexTools],
             pageTools: !sealed && mcpAllowed && !callbacks.headless && !callbacks.scheduledTask ? () => snapshotMcpAppTools(sessionId2) : void 0,
             ...(computerUseUnavailable || mcpFailures.length) && { unavailableTools: [...computerUseUnavailable ? [unavailableComputerUse(computerUseBlocked)] : [], ...mcpFailures.map(unavailableMcpServer)] },
@@ -672295,36 +672368,36 @@ function saveFilesToWorkspaceFiles(input) {
   const results = [];
   const usedPaths = /* @__PURE__ */ new Set();
   for (const file3 of input.files) {
-    let targetPath = (0, import_node_path183.join)(wsFilesDir, file3.filename);
-    if (usedPaths.has(targetPath) || (0, import_node_fs164.existsSync)(targetPath)) {
+    let targetPath = (0, import_node_path182.join)(wsFilesDir, file3.filename);
+    if (usedPaths.has(targetPath) || (0, import_node_fs163.existsSync)(targetPath)) {
       const dotIdx = file3.filename.lastIndexOf(".");
       const baseName = dotIdx > 0 ? file3.filename.slice(0, dotIdx) : file3.filename;
       const ext = dotIdx > 0 ? file3.filename.slice(dotIdx) : "";
       let counter = 1;
-      let candidate = (0, import_node_path183.join)(wsFilesDir, `${baseName}-${counter}${ext}`);
-      while (usedPaths.has(candidate) || (0, import_node_fs164.existsSync)(candidate)) {
+      let candidate = (0, import_node_path182.join)(wsFilesDir, `${baseName}-${counter}${ext}`);
+      while (usedPaths.has(candidate) || (0, import_node_fs163.existsSync)(candidate)) {
         counter++;
-        candidate = (0, import_node_path183.join)(wsFilesDir, `${baseName}-${counter}${ext}`);
+        candidate = (0, import_node_path182.join)(wsFilesDir, `${baseName}-${counter}${ext}`);
       }
       targetPath = candidate;
     }
     usedPaths.add(targetPath);
-    (0, import_node_fs164.mkdirSync)((0, import_node_path183.dirname)(targetPath), { recursive: true });
+    (0, import_node_fs163.mkdirSync)((0, import_node_path182.dirname)(targetPath), { recursive: true });
     const buffer = Buffer.from(file3.data, "base64");
-    (0, import_node_fs164.writeFileSync)(targetPath, buffer);
+    (0, import_node_fs163.writeFileSync)(targetPath, buffer);
     const actualFilename = targetPath.slice(wsFilesDir.length + 1);
     results.push({ filename: actualFilename, targetPath });
     console.log(`[Agent \u670D\u52A1] \u5DE5\u4F5C\u533A\u6587\u4EF6\u5DF2\u4FDD\u5B58: ${targetPath} (${buffer.length} bytes)`);
   }
   return results;
 }
-var import_node_path183, import_node_crypto178, import_node_fs164, eventBus, adapter2, orchestrator, headlessRuns, sessionWebContents, scheduledRunSources, peerRunSources, bridgeRunSources, runSettledListeners, notifyRunSettled, streamPartials;
+var import_node_path182, import_node_crypto178, import_node_fs163, eventBus, adapter2, orchestrator, headlessRuns, sessionWebContents, scheduledRunSources, peerRunSources, bridgeRunSources, runSettledListeners, notifyRunSettled, streamPartials;
 var init_agent_service = __esm({
   "../electron/src/main/lib/agent-service.ts"() {
     "use strict";
-    import_node_path183 = require("node:path");
+    import_node_path182 = require("node:path");
     import_node_crypto178 = require("node:crypto");
-    import_node_fs164 = require("node:fs");
+    import_node_fs163 = require("node:fs");
     init_agent_session_manager();
     init_artifact_comments();
     init_artifact_service();
@@ -672395,16 +672468,16 @@ __export(knowledge_reranker_exports, {
 });
 async function verifyKnowledgeReranker(directory) {
   for (const asset of KNOWLEDGE_RERANK_FILES) {
-    const path13 = (0, import_node_path184.join)(directory, asset.name);
+    const path13 = (0, import_node_path183.join)(directory, asset.name);
     let stat17;
     try {
-      stat17 = (0, import_node_fs165.lstatSync)(path13);
+      stat17 = (0, import_node_fs164.lstatSync)(path13);
     } catch {
       throw new KnowledgeStoreError("index_not_ready", tr(`\u7F3A\u5C11 ${asset.name}\uFF0C\u8BF7\u9009\u62E9\u5B8C\u6574\u7684\u6392\u5E8F\u6A21\u578B\u6587\u4EF6\u5939`, `Missing ${asset.name}. Choose a complete ranking model folder.`));
     }
     if (!stat17.isFile() || stat17.isSymbolicLink() || stat17.size !== asset.size) throw new KnowledgeStoreError("integrity_failed", tr(`${asset.name} \u7C7B\u578B\u6216\u5927\u5C0F\u4E0D\u6B63\u786E\uFF0C\u8BF7\u4F7F\u7528 ${KNOWLEDGE_RERANK_MODEL_ID} \u7684\u6A21\u578B\u6587\u4EF6`, `${asset.name} has the wrong type or size. Use the ${KNOWLEDGE_RERANK_MODEL_ID} files.`));
     const hash16 = (0, import_node_crypto179.createHash)("sha256");
-    for await (const bytes of (0, import_node_fs165.createReadStream)(path13)) {
+    for await (const bytes of (0, import_node_fs164.createReadStream)(path13)) {
       throwIfKnowledgeCancelled();
       hash16.update(bytes);
     }
@@ -672430,14 +672503,14 @@ function knowledgeRerankWindows(tokenizer2, query, passage) {
   if (count4 > 8) throw new KnowledgeStoreError("resource_limit", tr("\u8D44\u6599\u8D85\u8FC7\u7ED3\u679C\u6392\u5E8F\u7684\u957F\u5EA6\u4E0A\u9650\uFF0C\u8BF7\u7F29\u5C0F\u77E5\u8BC6\u8303\u56F4", "The documents exceed the ranking length limit. Narrow the knowledge scope."));
   return Array.from({ length: count4 }, (_4, index5) => [...prefix, ...tokens.slice(index5 * stride, index5 * stride + capacity), 2]);
 }
-var import_node_crypto179, import_node_fs165, import_node_path184, import_tokenizers, KNOWLEDGE_RERANK_MODEL_ID, KNOWLEDGE_RERANK_THRESHOLD, KNOWLEDGE_RERANK_FILES, LEGACY_RERANK_MODEL_IDS, KnowledgeReranker;
+var import_node_crypto179, import_node_fs164, import_node_path183, import_tokenizers, KNOWLEDGE_RERANK_MODEL_ID, KNOWLEDGE_RERANK_THRESHOLD, KNOWLEDGE_RERANK_FILES, LEGACY_RERANK_MODEL_IDS, KnowledgeReranker;
 var init_knowledge_reranker = __esm({
   "../electron/src/main/lib/knowledge-reranker.ts"() {
     "use strict";
     init_src();
     import_node_crypto179 = require("node:crypto");
-    import_node_fs165 = require("node:fs");
-    import_node_path184 = require("node:path");
+    import_node_fs164 = require("node:fs");
+    import_node_path183 = require("node:path");
     import_tokenizers = require("@huggingface/tokenizers");
     init_knowledge_store();
     init_knowledge_worker_cancellation();
@@ -672460,10 +672533,10 @@ var init_knowledge_reranker = __esm({
         throwIfKnowledgeCancelled();
         const { InferenceSession: InferenceSession2, Tensor: Tensor2 } = await import("onnxruntime-node");
         const tokenizer2 = new import_tokenizers.Tokenizer(
-          JSON.parse((0, import_node_fs165.readFileSync)((0, import_node_path184.join)(directory, "tokenizer.json"), "utf8")),
-          JSON.parse((0, import_node_fs165.readFileSync)((0, import_node_path184.join)(directory, "tokenizer_config.json"), "utf8"))
+          JSON.parse((0, import_node_fs164.readFileSync)((0, import_node_path183.join)(directory, "tokenizer.json"), "utf8")),
+          JSON.parse((0, import_node_fs164.readFileSync)((0, import_node_path183.join)(directory, "tokenizer_config.json"), "utf8"))
         );
-        const session3 = await InferenceSession2.create((0, import_node_path184.join)(directory, "model_int8.onnx"), { executionProviders: ["cpu"], intraOpNumThreads: 2, interOpNumThreads: 1 });
+        const session3 = await InferenceSession2.create((0, import_node_path183.join)(directory, "model_int8.onnx"), { executionProviders: ["cpu"], intraOpNumThreads: 2, interOpNumThreads: 1 });
         if (!["input_ids", "attention_mask"].every((name2) => session3.inputNames.includes(name2)) || session3.inputNames.some((name2) => !["input_ids", "attention_mask", "token_type_ids"].includes(name2)) || !session3.outputNames.includes("logits")) {
           await session3.release();
           throw new KnowledgeStoreError("integrity_failed", tr("\u8FD9\u4E0D\u662F\u6240\u9700\u7684\u6392\u5E8F\u6A21\u578B\uFF0C\u8BF7\u91CD\u65B0\u5B89\u88C5", "This isn\u2019t the expected ranking model. Install it again."));
@@ -672519,10 +672592,10 @@ __export(knowledge_embedding_exports, {
 async function verifyKnowledgeModel(directory) {
   const files = [];
   for (const asset of KNOWLEDGE_MODEL_FILES) {
-    const path13 = (0, import_node_path185.join)(directory, asset.name);
+    const path13 = (0, import_node_path184.join)(directory, asset.name);
     let stat17;
     try {
-      stat17 = (0, import_node_fs166.lstatSync)(path13);
+      stat17 = (0, import_node_fs165.lstatSync)(path13);
     } catch {
       throw new Error(tr(`\u7F3A\u5C11 ${asset.name}\uFF0C\u8BF7\u9009\u62E9\u5B8C\u6574\u7684\u68C0\u7D22\u6A21\u578B\u6587\u4EF6\u5939`, `Missing ${asset.name}. Choose a complete retrieval model folder.`));
     }
@@ -672530,7 +672603,7 @@ async function verifyKnowledgeModel(directory) {
     const size2 = stat17.size;
     if (size2 > 256 * 1024 * 1024 || "size" in asset && size2 !== asset.size) throw new Error(tr(`${asset.name} \u5927\u5C0F\u4E0D\u6B63\u786E\uFF0C\u8BF7\u4F7F\u7528 ${KNOWLEDGE_MODEL_ID} \u7684\u6A21\u578B\u6587\u4EF6`, `${asset.name} has the wrong size. Use the ${KNOWLEDGE_MODEL_ID} files.`));
     const hash16 = (0, import_node_crypto180.createHash)("sha256");
-    for await (const bytes of (0, import_node_fs166.createReadStream)(path13)) hash16.update(bytes);
+    for await (const bytes of (0, import_node_fs165.createReadStream)(path13)) hash16.update(bytes);
     if (hash16.digest("hex") !== asset.sha256) throw new Error(tr(`${asset.name} \u5DF2\u635F\u574F\u6216\u7248\u672C\u4E0D\u7B26\uFF0C\u8BF7\u4F7F\u7528 ${KNOWLEDGE_MODEL_ID} \u7684\u6A21\u578B\u6587\u4EF6`, `${asset.name} is damaged or the wrong version. Use the ${KNOWLEDGE_MODEL_ID} files.`));
     files.push({ artifactId: asset.sha256, sha256: asset.sha256, size: size2 });
   }
@@ -672558,15 +672631,15 @@ async function verifyKnowledgeModel(directory) {
 function digest11(text17) {
   return (0, import_node_crypto180.createHash)("sha256").update(text17).digest("hex");
 }
-var import_node_crypto180, import_node_fs166, import_node_path185, import_tokenizers2, import_onnxruntime_node, KNOWLEDGE_MODEL_ID, KNOWLEDGE_MODEL_FILES, KnowledgeEmbedding;
+var import_node_crypto180, import_node_fs165, import_node_path184, import_tokenizers2, import_onnxruntime_node, KNOWLEDGE_MODEL_ID, KNOWLEDGE_MODEL_FILES, KnowledgeEmbedding;
 var init_knowledge_embedding = __esm({
   "../electron/src/main/lib/knowledge-embedding.ts"() {
     "use strict";
     init_src();
     init_knowledge_worker_cancellation();
     import_node_crypto180 = require("node:crypto");
-    import_node_fs166 = require("node:fs");
-    import_node_path185 = require("node:path");
+    import_node_fs165 = require("node:fs");
+    import_node_path184 = require("node:path");
     import_tokenizers2 = require("@huggingface/tokenizers");
     import_onnxruntime_node = require("onnxruntime-node");
     init_knowledge_parser();
@@ -672586,10 +672659,10 @@ var init_knowledge_embedding = __esm({
       static async open(directory) {
         const profile = await verifyKnowledgeModel(directory);
         const tokenizer2 = new import_tokenizers2.Tokenizer(
-          JSON.parse((0, import_node_fs166.readFileSync)((0, import_node_path185.join)(directory, "tokenizer.json"), "utf8")),
-          JSON.parse((0, import_node_fs166.readFileSync)((0, import_node_path185.join)(directory, "tokenizer_config.json"), "utf8"))
+          JSON.parse((0, import_node_fs165.readFileSync)((0, import_node_path184.join)(directory, "tokenizer.json"), "utf8")),
+          JSON.parse((0, import_node_fs165.readFileSync)((0, import_node_path184.join)(directory, "tokenizer_config.json"), "utf8"))
         );
-        const session3 = await import_onnxruntime_node.InferenceSession.create((0, import_node_path185.join)(directory, "model.onnx"), { executionProviders: ["cpu"], intraOpNumThreads: 2, interOpNumThreads: 1 });
+        const session3 = await import_onnxruntime_node.InferenceSession.create((0, import_node_path184.join)(directory, "model.onnx"), { executionProviders: ["cpu"], intraOpNumThreads: 2, interOpNumThreads: 1 });
         if (!["input_ids", "attention_mask", "token_type_ids"].every((name2) => session3.inputNames.includes(name2)) || !session3.outputNames.includes("last_hidden_state")) {
           await session3.release();
           throw new Error(tr("\u8FD9\u4E0D\u662F\u6240\u9700\u7684\u672C\u5730\u68C0\u7D22\u6A21\u578B\uFF0C\u8BF7\u91CD\u65B0\u5B89\u88C5", "This isn\u2019t the expected local retrieval model. Install it again."));
@@ -672703,7 +672776,7 @@ async function cleanupIdleGuard(ownRequests = 0) {
   };
 }
 function modelDirectory() {
-  return (0, import_node_path186.join)(getKnowledgeDir(), "models", localModelId);
+  return (0, import_node_path185.join)(getKnowledgeDir(), "models", localModelId);
 }
 async function knowledgeOcrModelDir(needed) {
   if (needed) return await ensureOcrModelDir();
@@ -672722,7 +672795,7 @@ async function knowledgeLayoutModelDir(mimeType) {
 function getKnowledgeQueue() {
   if (!queue3) {
     queue3 = new KnowledgeJobQueue(getKnowledgeStore(), getKnowledgeCatalogStore(), {
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-worker.cjs"),
       modelDir: modelDirectory(),
       ocrModelDir: knowledgeOcrModelDir,
       layoutModelDir: knowledgeLayoutModelDir,
@@ -672744,14 +672817,14 @@ function getKnowledgeQueue() {
 function getImportPreparation() {
   if (!importPreparation) {
     importPreparation = new KnowledgeImportService(getKnowledgeStore(), {
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-import-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-import-worker.cjs"),
       ocrModelDir: knowledgeOcrModelDir,
       layoutModelDir: knowledgeLayoutModelDir,
       context: (kbId) => {
         requireBase(kbId);
         const signature5 = (path13) => {
           try {
-            const s = (0, import_node_fs167.statSync)(path13);
+            const s = (0, import_node_fs166.statSync)(path13);
             return [s.ino, s.size, s.mtimeMs, s.ctimeMs];
           } catch {
             return null;
@@ -672760,7 +672833,7 @@ function getImportPreparation() {
         return {
           scopeRevision: getKnowledgeCatalogStore().read().scopeRevision,
           windowId: preparationWindowId,
-          configuration: JSON.stringify([KNOWLEDGE_PARSER_VERSION, "canonical-utf8-464", modelDirectory(), ...["", "model.onnx", "tokenizer.json", "tokenizer_config.json"].map((name2) => signature5((0, import_node_path186.join)(modelDirectory(), name2))), ...RAPID_OCR_FILES.map((file3) => file3.sha256), ...DOC_LAYOUT_FILES.map((file3) => file3.sha256)])
+          configuration: JSON.stringify([KNOWLEDGE_PARSER_VERSION, "canonical-utf8-464", modelDirectory(), ...["", "model.onnx", "tokenizer.json", "tokenizer_config.json"].map((name2) => signature5((0, import_node_path185.join)(modelDirectory(), name2))), ...RAPID_OCR_FILES.map((file3) => file3.sha256), ...DOC_LAYOUT_FILES.map((file3) => file3.sha256)])
         };
       },
       wake: () => {
@@ -672788,7 +672861,7 @@ function managementVersionAccess(kbId, documentId) {
   return {
     worker: {
       root: getKnowledgeDir(),
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
       signal: new AbortController().signal,
       scope: { owner: { mode: "chat", conversationId: "knowledge-management" }, runId: "revision-management", scopeRevision: revision3, kbIds: [kbId], documents: [], generations: [] }
     },
@@ -672878,7 +672951,7 @@ function getDirectorySync() {
     directorySync = new KnowledgeDirectorySync(
       getKnowledgeStore(),
       getKnowledgeCatalogStore(),
-      (path13) => getMimeType((0, import_node_path186.extname)(path13)),
+      (path13) => getMimeType((0, import_node_path185.extname)(path13)),
       () => getKnowledgeQueue().wake(),
       () => knowledgeScopeEvents.emit("changed"),
       () => queue3?.invalidate()
@@ -672893,7 +672966,7 @@ function getDirectorySync() {
 }
 function getPackageImporter() {
   if (!packageImporter) {
-    packageImporter = new KnowledgePackageImportService(getKnowledgeStore(), getKnowledgeCatalogStore(), (0, import_node_path186.join)(__dirname, "knowledge-package-worker.cjs"), () => getKnowledgeQueue().wake(), changed2);
+    packageImporter = new KnowledgePackageImportService(getKnowledgeStore(), getKnowledgeCatalogStore(), (0, import_node_path185.join)(__dirname, "knowledge-package-worker.cjs"), () => getKnowledgeQueue().wake(), changed2);
     requireDesktop().app.once("will-quit", () => packageImporter?.stop());
   }
   return packageImporter;
@@ -672932,7 +673005,7 @@ function assertNoKnowledgeWorkers() {
 async function knowledgeModel(kind) {
   if (kind === "rerank") {
     const { KNOWLEDGE_RERANK_MODEL_ID: KNOWLEDGE_RERANK_MODEL_ID2, KNOWLEDGE_RERANK_FILES: KNOWLEDGE_RERANK_FILES2, verifyKnowledgeReranker: verifyKnowledgeReranker2 } = await Promise.resolve().then(() => (init_knowledge_reranker(), knowledge_reranker_exports));
-    return { id: KNOWLEDGE_RERANK_MODEL_ID2, pack: KNOWLEDGE_MODEL_PACKS.rerank, files: KNOWLEDGE_RERANK_FILES2, verify: verifyKnowledgeReranker2, target: (0, import_node_path186.join)(getKnowledgeDir(), "models", KNOWLEDGE_RERANK_MODEL_ID2) };
+    return { id: KNOWLEDGE_RERANK_MODEL_ID2, pack: KNOWLEDGE_MODEL_PACKS.rerank, files: KNOWLEDGE_RERANK_FILES2, verify: verifyKnowledgeReranker2, target: (0, import_node_path185.join)(getKnowledgeDir(), "models", KNOWLEDGE_RERANK_MODEL_ID2) };
   }
   const { KNOWLEDGE_MODEL_FILES: KNOWLEDGE_MODEL_FILES2, verifyKnowledgeModel: verifyKnowledgeModel2 } = await Promise.resolve().then(() => (init_knowledge_embedding(), knowledge_embedding_exports));
   return { id: localModelId, pack: KNOWLEDGE_MODEL_PACKS.embedding, files: KNOWLEDGE_MODEL_FILES2, verify: async (dir) => {
@@ -672943,25 +673016,25 @@ async function installModelFrom(kind, source) {
   const { files, verify, target } = await knowledgeModel(kind);
   await verify(source);
   assertNoKnowledgeWorkers();
-  const parent = (0, import_node_path186.join)(getKnowledgeDir(), "models");
+  const parent = (0, import_node_path185.join)(getKnowledgeDir(), "models");
   await (0, import_promises85.mkdir)(parent, { recursive: true });
-  const temporary = await (0, import_promises85.mkdtemp)((0, import_node_path186.join)(parent, ".install-"));
+  const temporary = await (0, import_promises85.mkdtemp)((0, import_node_path185.join)(parent, ".install-"));
   try {
-    for (const file3 of files) await (0, import_promises85.cp)((0, import_node_path186.join)(source, file3.name), (0, import_node_path186.join)(temporary, file3.name), { dereference: false, errorOnExist: true, force: false });
+    for (const file3 of files) await (0, import_promises85.cp)((0, import_node_path185.join)(source, file3.name), (0, import_node_path185.join)(temporary, file3.name), { dereference: false, errorOnExist: true, force: false });
     await verify(temporary);
     for (const name2 of ["LICENSE.txt", "MODEL_CARD.md", "source.json"]) {
-      const from2 = (0, import_node_path186.join)(source, name2);
+      const from2 = (0, import_node_path185.join)(source, name2);
       let stat17;
       try {
-        stat17 = (0, import_node_fs167.lstatSync)(from2);
+        stat17 = (0, import_node_fs166.lstatSync)(from2);
       } catch (error50) {
         if (error50.code === "ENOENT") continue;
         throw error50;
       }
       if (!stat17.isFile() || stat17.isSymbolicLink() || stat17.size > 1024 * 1024) throw new Error(tr(`${name2} \u5FC5\u987B\u662F\u4E0D\u8D85\u8FC7 1 MB \u7684\u666E\u901A\u6587\u4EF6`, `${name2} must be a regular file of 1 MB or less`));
-      const destination = (0, import_node_path186.join)(temporary, name2);
+      const destination = (0, import_node_path185.join)(temporary, name2);
       await (0, import_promises85.cp)(from2, destination, { dereference: false, errorOnExist: true, force: false });
-      const copied = (0, import_node_fs167.lstatSync)(destination);
+      const copied = (0, import_node_fs166.lstatSync)(destination);
       if (!copied.isFile() || copied.isSymbolicLink() || copied.size > 1024 * 1024) throw new Error(tr(`${name2} \u5728\u590D\u5236\u671F\u95F4\u53D1\u751F\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9`, `${name2} changed while copying. Choose it again.`));
     }
     assertNoKnowledgeWorkers();
@@ -672969,7 +673042,7 @@ async function installModelFrom(kind, source) {
     queue3 = void 0;
     let previous4;
     try {
-      previous4 = (0, import_node_fs168.existsSync)(target) ? (0, import_node_path186.join)(parent, `.previous-${Date.now()}`) : void 0;
+      previous4 = (0, import_node_fs167.existsSync)(target) ? (0, import_node_path185.join)(parent, `.previous-${Date.now()}`) : void 0;
       if (previous4) await (0, import_promises85.rename)(target, previous4);
       try {
         await (0, import_promises85.rename)(temporary, target);
@@ -672993,10 +673066,10 @@ function serializeModelSwap(run3) {
 }
 async function removeLegacyKnowledgeModels() {
   const { LEGACY_RERANK_MODEL_IDS: LEGACY_RERANK_MODEL_IDS2 } = await Promise.resolve().then(() => (init_knowledge_reranker(), knowledge_reranker_exports));
-  const models = (0, import_node_path186.join)(getKnowledgeDir(), "models");
+  const models = (0, import_node_path185.join)(getKnowledgeDir(), "models");
   await serializeModelSwap(async () => {
-    const leftovers = (0, import_node_fs168.existsSync)(models) ? (await (0, import_promises85.readdir)(models)).filter((name2) => /^\.(install|previous|removed)-/.test(name2)) : [];
-    await Promise.all([...LEGACY_RERANK_MODEL_IDS2, ...leftovers].map((name2) => (0, import_promises85.rm)((0, import_node_path186.join)(models, name2), { recursive: true, force: true }).catch((error50) => console.warn(`[\u77E5\u8BC6\u5E93] \u6E05\u7406 ${name2} \u5931\u8D25\uFF1A`, error50 instanceof Error ? error50.message : error50))));
+    const leftovers = (0, import_node_fs167.existsSync)(models) ? (await (0, import_promises85.readdir)(models)).filter((name2) => /^\.(install|previous|removed)-/.test(name2)) : [];
+    await Promise.all([...LEGACY_RERANK_MODEL_IDS2, ...leftovers].map((name2) => (0, import_promises85.rm)((0, import_node_path185.join)(models, name2), { recursive: true, force: true }).catch((error50) => console.warn(`[\u77E5\u8BC6\u5E93] \u6E05\u7406 ${name2} \u5931\u8D25\uFF1A`, error50 instanceof Error ? error50.message : error50))));
   });
 }
 function getKnowledgeStore() {
@@ -673009,16 +673082,16 @@ function getKnowledgeStore() {
 function cachedDerivedDocumentList(kbId, revision3) {
   const availableKbIds = getKnowledgeCatalogStore().allowedBaseIds();
   const signature5 = (path13) => {
-    const stat17 = (0, import_node_fs167.statSync)(path13, { bigint: true, throwIfNoEntry: false });
+    const stat17 = (0, import_node_fs166.statSync)(path13, { bigint: true, throwIfNoEntry: false });
     return stat17 ? `${stat17.ino}:${stat17.size}:${stat17.mtimeNs}:${stat17.ctimeNs}` : null;
   };
   const root3 = getKnowledgeDir();
-  const key3 = JSON.stringify([revision3, availableKbIds, signature5((0, import_node_path186.join)(root3, "backup-restore.json")), availableKbIds.map((id19) => signature5((0, import_node_path186.join)(root3, "bases", id19, "state.json")))]);
+  const key3 = JSON.stringify([revision3, availableKbIds, signature5((0, import_node_path185.join)(root3, "backup-restore.json")), availableKbIds.map((id19) => signature5((0, import_node_path185.join)(root3, "bases", id19, "state.json")))]);
   const cached4 = derivedDocumentLists.get(kbId);
   if (cached4?.key === key3) return cached4.documents;
   const documents3 = listKnowledgeDocuments({
     root: root3,
-    workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+    workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
     request: { kbId, availableKbIds },
     signal: new AbortController().signal,
     scope: { owner: { mode: "chat", conversationId: "knowledge-management" }, runId: "document-list", scopeRevision: revision3, kbIds: [kbId], documents: [], generations: [] }
@@ -673170,7 +673243,7 @@ function resolveKnowledgeMentions(owner, mentions3) {
 function requireDroppedFile(path13) {
   let stat17;
   try {
-    stat17 = (0, import_node_fs167.lstatSync)(path13);
+    stat17 = (0, import_node_fs166.lstatSync)(path13);
   } catch {
     throw new Error(tr("\u6587\u4EF6\u4E0D\u5B58\u5728\u6216\u65E0\u6CD5\u8BFB\u53D6", "File not found or can\u2019t be read"));
   }
@@ -673277,7 +673350,7 @@ async function searchKnowledgeRun(runId, owner, query, filter3 = {}) {
     const result8 = await queryKnowledge({
       root: getKnowledgeDir(),
       modelDir: modelDirectory(),
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
       scope: current5.scope,
       query: external_exports.string().trim().min(1).max(8e3).parse(query),
       signal
@@ -673300,7 +673373,7 @@ async function readKnowledgeRun(runId, owner, request2) {
   try {
     const result8 = await readKnowledge({
       root: getKnowledgeDir(),
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
       scope: current5.scope,
       request: input,
       signal
@@ -673314,8 +673387,8 @@ async function readKnowledgeRun(runId, owner, request2) {
 }
 function readAuthoredHistory(owner) {
   const path13 = owner.mode === "chat" ? getConversationMessagesPath(owner.conversationId) : getAgentSessionMessagesPath(owner.conversationId);
-  if (!(0, import_node_fs168.existsSync)(path13)) throw new KnowledgeStoreError("source_unavailable", tr("\u56DE\u7B54\u5C1A\u672A\u4FDD\u5B58\u6216\u5DF2\u79FB\u9664", "The reply hasn\u2019t been saved yet or was removed"));
-  return parseAuthoredHistory(new TextDecoder("utf-8", { fatal: true }).decode((0, import_node_fs168.readFileSync)(path13)));
+  if (!(0, import_node_fs167.existsSync)(path13)) throw new KnowledgeStoreError("source_unavailable", tr("\u56DE\u7B54\u5C1A\u672A\u4FDD\u5B58\u6216\u5DF2\u79FB\u9664", "The reply hasn\u2019t been saved yet or was removed"));
+  return parseAuthoredHistory(new TextDecoder("utf-8", { fatal: true }).decode((0, import_node_fs167.readFileSync)(path13)));
 }
 function readAuthoredMessage(origin2) {
   return authoredMessageDraft(origin2, readAuthoredHistory(origin2.owner));
@@ -673352,7 +673425,7 @@ async function loadAuthoredDraft(input) {
   for (const ref5 of result8.derivedFrom) store.inspectDependencies(ref5, available);
   await validateAuthoredCitations({
     root: getKnowledgeDir(),
-    workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+    workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
     signal: new AbortController().signal,
     scope: { owner: origin2.owner, runId: "authored-validation", scopeRevision: getKnowledgeCatalogStore().read().scopeRevision, kbIds: available, documents: result8.derivedFrom, generations: [] },
     citations: result8.citations,
@@ -673495,7 +673568,7 @@ async function validateKnowledgeRunEvidence(runId, owner, state3, signal, office
   }
   const versions = await validateAuthoredCitations({
     root: getKnowledgeDir(),
-    workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+    workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
     signal,
     scope: { ...scope, documents: provenance2.dependencies.documents },
     citations: provenance2.citations,
@@ -673609,7 +673682,7 @@ function derivedAccess(request2, target, allowRoot = false) {
     available: before2.available,
     worker: {
       root: getKnowledgeDir(),
-      workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+      workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
       signal: new AbortController().signal,
       scope: { owner: request2.owner ?? { mode: "chat", conversationId: "knowledge-management" }, runId: "derived-preview", scopeRevision: revision3, kbIds: before2.available, documents: before2.dependencies, generations: [] }
     },
@@ -673656,7 +673729,7 @@ async function runWikiGeneration(request2, controller3, attemptLimit, rewrite) {
       authorize5();
       const result8 = await queryKnowledge({
         root: getKnowledgeDir(),
-        workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+        workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
         modelDir: modelDirectory(),
         query: request2.title,
         signal: AbortSignal.any([controller3.signal, AbortSignal.timeout(3e4)]),
@@ -673716,7 +673789,7 @@ async function publishWikiDraft(request2, options2 = {}) {
   const draft = getWikiDraft(store, kbId, request2.draftId, catalog2.allowedBaseIds());
   await validateWikiDraftInWorker({
     root: getKnowledgeDir(),
-    workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+    workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
     signal: AbortSignal.timeout(3e4),
     scope: { owner: { mode: "agent", conversationId: "wiki-management" }, runId: draft.id, scopeRevision: revision3, kbIds: catalog2.allowedBaseIds(), documents: draft.sources, generations: [] },
     request: { kbId, draftId: draft.id, expectedEditRevision: request2.expectedEditRevision }
@@ -674103,7 +674176,7 @@ async function planWiki(kbId, plan, signal, progress2) {
     authorize5();
     progress2(tr(`\u6B63\u5728\u8BFB\u53D6\u8D44\u6599\uFF08${Math.min(start + WIKI_DIGEST_BATCH, docs.length)}/${docs.length}\uFF09\u2026`, `Reading documents (${Math.min(start + WIKI_DIGEST_BATCH, docs.length)}/${docs.length})\u2026`));
     const refs = docs.slice(start, start + WIKI_DIGEST_BATCH).map((doc3) => ({ kbId, documentId: doc3.id, versionId: doc3.currentVersionId }));
-    digest12.push(...await digestWikiDocumentsInWorker({ root: getKnowledgeDir(), workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"), signal: AbortSignal.any([signal, AbortSignal.timeout(55e3)]), scope: { kbIds: [kbId], documents: refs, generations: [] } }));
+    digest12.push(...await digestWikiDocumentsInWorker({ root: getKnowledgeDir(), workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"), signal: AbortSignal.any([signal, AbortSignal.timeout(55e3)]), scope: { kbIds: [kbId], documents: refs, generations: [] } }));
   }
   authorize5();
   const model2 = await resolveWikiModel(plan, authorize5);
@@ -674329,7 +674402,7 @@ async function resolveKnowledgeCheckTarget() {
     return void 0;
   }
 }
-var import_node_fs167, import_promises84, import_node_crypto181, import_node_events7, import_promises85, import_node_fs168, import_node_path186, knowledgeScopeEvents, catalog, runtime2, indexSnapshots, documents2, queue3, migration2, feishuSync, externalSync, directorySync, packageExporting, backupRestoring, quitAbortable, packageImporter, wikiRequests, wikiPlanRunner, cleanupPreparing, cleanupPlan, managementRequests, localModelId, importPreparation, preparationWindowId, officeKnowledgeAccess, faqSaveSchema, modelSwap, safeId2, usageTargetSchema, importInput, documentStatusInput, supportedExtensions, derivedDocumentLists, wikiUpdateAttempts, wikiVersionFactsCache, WIKI_REGENERATE_GOAL, wikiCheckFailures, wikiScheduling, wikiNoModelWarned, agentWikiSchema, wikiMarkerIds, derivedCitation, swapSection, wikiNewDraftKey, wikiTemplateSchema, wikiSettingsShape, wikiModelSchema, knowledgeService;
+var import_node_fs166, import_promises84, import_node_crypto181, import_node_events7, import_promises85, import_node_fs167, import_node_path185, knowledgeScopeEvents, catalog, runtime2, indexSnapshots, documents2, queue3, migration2, feishuSync, externalSync, directorySync, packageExporting, backupRestoring, quitAbortable, packageImporter, wikiRequests, wikiPlanRunner, cleanupPreparing, cleanupPlan, managementRequests, localModelId, importPreparation, preparationWindowId, officeKnowledgeAccess, faqSaveSchema, modelSwap, safeId2, usageTargetSchema, importInput, documentStatusInput, supportedExtensions, derivedDocumentLists, wikiUpdateAttempts, wikiVersionFactsCache, WIKI_REGENERATE_GOAL, wikiCheckFailures, wikiScheduling, wikiNoModelWarned, agentWikiSchema, wikiMarkerIds, derivedCitation, swapSection, wikiNewDraftKey, wikiTemplateSchema, wikiSettingsShape, wikiModelSchema, knowledgeService;
 var init_knowledge_service = __esm({
   "../electron/src/main/lib/knowledge-service.ts"() {
     "use strict";
@@ -674362,7 +674435,7 @@ var init_knowledge_service = __esm({
     init_knowledge_index();
     init_knowledge_parser();
     init_knowledge_retrieval();
-    import_node_fs167 = require("node:fs");
+    import_node_fs166 = require("node:fs");
     init_knowledge_basis();
     init_settings_service();
     init_knowledge_job_diagnostics();
@@ -674381,7 +674454,7 @@ var init_knowledge_service = __esm({
     init_knowledge_migration_service();
     init_knowledge_migration();
     import_promises85 = require("node:fs/promises");
-    import_node_fs168 = require("node:fs");
+    import_node_fs167 = require("node:fs");
     init_src();
     init_knowledge_citation();
     init_conversation_manager();
@@ -674391,7 +674464,7 @@ var init_knowledge_service = __esm({
     init_knowledge_original_preview();
     init_knowledge_job_queue();
     init_desktop_host();
-    import_node_path186 = require("node:path");
+    import_node_path185 = require("node:path");
     init_zod();
     init_knowledge_store();
     init_attachment_service();
@@ -674451,7 +674524,7 @@ var init_knowledge_service = __esm({
       source: external_exports.object({ sessionId: safeId2, filePaths: external_exports.array(external_exports.string().min(1).max(4096)).min(1).max(64) }).strict().optional(),
       droppedPaths: external_exports.array(external_exports.string().min(1).max(4096)).min(1).max(64).optional(),
       deidSource: external_exports.object({ docId: safeId2, projectId: safeId2 }).strict().optional()
-    }).strict().refine((input) => !input.droppedPaths || !input.source && !input.documentId && !input.deidSource, { error: () => tr("\u62D6\u5165\u5BFC\u5165\u4E0D\u80FD\u4E0E\u5176\u4ED6\u6765\u6E90\u540C\u65F6\u4F7F\u7528", "Dropped files can\u2019t be combined with other sources") }).refine((input) => !input.deidSource || !input.source && !input.documentId, { error: () => tr("\u8131\u654F\u7248\u5BFC\u5165\u4E0D\u80FD\u4E0E\u5176\u4ED6\u6765\u6E90\u540C\u65F6\u4F7F\u7528", "A redacted copy can\u2019t be combined with other sources") }).refine((input) => !input.droppedPaths?.some((path13) => !(0, import_node_path186.isAbsolute)(path13)), { error: () => tr("\u6587\u4EF6\u8DEF\u5F84\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u62D6\u5165", "Invalid file path. Drop the file again.") });
+    }).strict().refine((input) => !input.droppedPaths || !input.source && !input.documentId && !input.deidSource, { error: () => tr("\u62D6\u5165\u5BFC\u5165\u4E0D\u80FD\u4E0E\u5176\u4ED6\u6765\u6E90\u540C\u65F6\u4F7F\u7528", "Dropped files can\u2019t be combined with other sources") }).refine((input) => !input.deidSource || !input.source && !input.documentId, { error: () => tr("\u8131\u654F\u7248\u5BFC\u5165\u4E0D\u80FD\u4E0E\u5176\u4ED6\u6765\u6E90\u540C\u65F6\u4F7F\u7528", "A redacted copy can\u2019t be combined with other sources") }).refine((input) => !input.droppedPaths?.some((path13) => !(0, import_node_path185.isAbsolute)(path13)), { error: () => tr("\u6587\u4EF6\u8DEF\u5F84\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u62D6\u5165", "Invalid file path. Drop the file again.") });
     documentStatusInput = external_exports.object({ kbId: safeId2, documentId: safeId2, status: external_exports.enum(["active", "disabled", "deleted"]) }).strict();
     supportedExtensions = KNOWLEDGE_DOCUMENT_EXTENSIONS;
     derivedDocumentLists = /* @__PURE__ */ new Map();
@@ -674566,7 +674639,7 @@ var init_knowledge_service = __esm({
         if (draft.editRevision !== request2.expectedEditRevision) throw new KnowledgeStoreError("generation_conflict", tr("\u5185\u5BB9\u5DF2\u4FEE\u6539\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u5F15\u7528", "The content changed. Reopen the citation."));
         const result8 = await previewWikiDraftInWorker({
           root: getKnowledgeDir(),
-          workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+          workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
           signal: AbortSignal.timeout(3e4),
           scope: { owner: { mode: "agent", conversationId: "wiki-management" }, runId: draft.id, scopeRevision: getKnowledgeCatalogStore().read().scopeRevision, kbIds: access4.allowed, documents: draft.sources, generations: [] },
           request: request2
@@ -674949,7 +675022,7 @@ var init_knowledge_service = __esm({
           };
           const selection = await requireDesktop().dialog.showOpenDialog(window2, { title: tr("\u6062\u590D\u77E5\u8BC6\u5E93\u5217\u8868", "Restore knowledge base list"), properties: ["openFile"], filters: [{ name: tr("\u77E5\u8BC6\u5E93\u5217\u8868\u5907\u4EFD", "Knowledge base list backup"), extensions: ["json"] }] });
           if (selection.canceled || !selection.filePaths[0]) return { cancelled: true };
-          const file3 = await (0, import_promises84.open)(selection.filePaths[0], import_node_fs168.constants.O_RDONLY | import_node_fs168.constants.O_NOFOLLOW);
+          const file3 = await (0, import_promises84.open)(selection.filePaths[0], import_node_fs167.constants.O_RDONLY | import_node_fs167.constants.O_NOFOLLOW);
           let bytes;
           try {
             const stat17 = await file3.stat();
@@ -675026,7 +675099,7 @@ var init_knowledge_service = __esm({
           hold();
           staging = store.createPackageStaging(runId);
           const checked2 = await runKnowledgePackageWorker(
-            (0, import_node_path186.join)(__dirname, "knowledge-package-worker.cjs"),
+            (0, import_node_path185.join)(__dirname, "knowledge-package-worker.cjs"),
             { operation: "stage", source: selection.filePaths[0], output: staging },
             external_exports.object({ manifest: knowledgePackageSchema, packageHash: external_exports.string().regex(/^[a-f0-9]{64}$/), manifestHash: external_exports.string().regex(/^[a-f0-9]{64}$/), contentHash: external_exports.string().regex(/^[a-f0-9]{64}$/) }).strict(),
             controller3.signal
@@ -675120,7 +675193,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
           });
           if (selection.canceled || !selection.filePath) return { cancelled: true };
           hold();
-          await saveKnowledgePackage(getKnowledgeStore(), base2, selection.filePath, (0, import_node_path186.join)(__dirname, "knowledge-package-worker.cjs"), () => {
+          await saveKnowledgePackage(getKnowledgeStore(), base2, selection.filePath, (0, import_node_path185.join)(__dirname, "knowledge-package-worker.cjs"), () => {
             requireBase(kbId);
             if (window2.isDestroyed() || revision3 !== getKnowledgeCatalogStore().read().scopeRevision) throw new KnowledgeStoreError("scope_denied", tr("\u77E5\u8BC6\u8303\u56F4\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u5BFC\u51FA", "The knowledge scope changed. Export again."));
           }, controller3.signal);
@@ -675234,7 +675307,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         const citation = find3();
         const result8 = await previewKnowledgeCitation({
           root: getKnowledgeDir(),
-          workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+          workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
           citation,
           includeOriginal: request2.includeOriginal,
           originalRegion: request2.originalRegion,
@@ -675283,7 +675356,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         const documents3 = (manifest?.documentVersions ?? []).filter((ref5) => allowed.has(ref5.documentId)).map((ref5) => ({ kbId: request2.kbId, ...ref5 }));
         const result8 = await searchManagedKnowledge({
           root: getKnowledgeDir(),
-          workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+          workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
           request: request2,
           signal: new AbortController().signal,
           scope: { kbIds: [request2.kbId], documents: documents3, generations: manifest ? [{ kbId: request2.kbId, generationId: manifest.generationId }] : [] }
@@ -675355,10 +675428,10 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         const { getAssetPackManager: getAssetPackManager2 } = await Promise.resolve().then(() => (init_asset_pack_manager(), asset_pack_manager_exports));
         const totalBytes = (await getAssetPackManager2().list()).find((state3) => state3.id === model2.pack)?.totalBytes;
         const download2 = totalBytes ? { downloadBytes: totalBytes } : {};
-        if (!(0, import_node_fs168.existsSync)(model2.target)) return { installed: false, modelId: model2.id, ...download2 };
+        if (!(0, import_node_fs167.existsSync)(model2.target)) return { installed: false, modelId: model2.id, ...download2 };
         try {
           await model2.verify(model2.target);
-          return { installed: true, modelId: model2.id, sizeBytes: model2.files.reduce((sum, file3) => sum + (0, import_node_fs167.statSync)((0, import_node_path186.join)(model2.target, file3.name)).size, 0), ...download2 };
+          return { installed: true, modelId: model2.id, sizeBytes: model2.files.reduce((sum, file3) => sum + (0, import_node_fs166.statSync)((0, import_node_path185.join)(model2.target, file3.name)).size, 0), ...download2 };
         } catch (error50) {
           return { installed: false, modelId: model2.id, ...download2, error: error50 instanceof Error ? error50.message : kind === "rerank" ? tr("\u65E0\u6CD5\u68C0\u67E5\u6392\u5E8F\u6A21\u578B", "Couldn\u2019t verify the ranking model") : tr("\u65E0\u6CD5\u6821\u9A8C\u6A21\u578B", "Couldn\u2019t verify the model") };
         }
@@ -675395,7 +675468,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
             send3(state3);
           });
           await serializeModelSwap(async () => {
-            if (!(0, import_node_fs168.existsSync)(source)) return;
+            if (!(0, import_node_fs167.existsSync)(source)) return;
             await installModelFrom(kind, source);
             await getAssetPackManager2().remove(model2.pack);
           });
@@ -675417,11 +675490,11 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         assertNoKnowledgeWorkers();
         const model2 = await knowledgeModel(kind);
         await serializeModelSwap(async () => {
-          if (!(0, import_node_fs168.existsSync)(model2.target)) return;
+          if (!(0, import_node_fs167.existsSync)(model2.target)) return;
           await queue3?.stop();
           queue3 = void 0;
           try {
-            const removed = (0, import_node_path186.join)(getKnowledgeDir(), "models", `.removed-${Date.now()}`);
+            const removed = (0, import_node_path185.join)(getKnowledgeDir(), "models", `.removed-${Date.now()}`);
             await (0, import_promises85.rename)(model2.target, removed);
             await (0, import_promises85.rm)(removed, { recursive: true, force: true }).catch((error50) => console.warn("[\u77E5\u8BC6\u5E93] \u5220\u9664\u6A21\u578B\u6587\u4EF6\u5931\u8D25\uFF1A", error50 instanceof Error ? error50.message : error50));
           } finally {
@@ -675524,9 +675597,9 @@ Current documents are replaced; the originals are kept as a local recovery copy.
           const revision3 = getKnowledgeCatalogStore().read().scopeRevision;
           const plan = await prepareKnowledgeVersionCleanup({
             root: getKnowledgeDir(),
-            workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+            workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
             request: request2,
-            historyRoots: [getConversationsDir(), getAgentSessionsDir(), (0, import_node_path186.join)(getSdkConfigDir(), "pi-sessions"), (0, import_node_path186.join)(getSdkConfigDir(), "projects")],
+            historyRoots: [getConversationsDir(), getAgentSessionsDir(), (0, import_node_path185.join)(getSdkConfigDir(), "pi-sessions"), (0, import_node_path185.join)(getSdkConfigDir(), "projects")],
             signal: new AbortController().signal,
             scope: {
               owner: { mode: "chat", conversationId: "knowledge-management" },
@@ -675570,7 +675643,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         const revision3 = getKnowledgeCatalogStore().read().scopeRevision;
         const result8 = await listKnowledgeVersions({
           root: getKnowledgeDir(),
-          workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+          workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
           request: { kbId, documentId },
           signal: new AbortController().signal,
           scope: {
@@ -675612,7 +675685,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         if (!document4) throw new KnowledgeStoreError("source_unavailable", tr("\u8D44\u6599\u5DF2\u79FB\u9664", "The document was removed"));
         const result8 = await previewKnowledgeVersion({
           root: getKnowledgeDir(),
-          workerPath: (0, import_node_path186.join)(__dirname, "knowledge-query-worker.cjs"),
+          workerPath: (0, import_node_path185.join)(__dirname, "knowledge-query-worker.cjs"),
           request: request2,
           signal: new AbortController().signal,
           scope: {
@@ -675683,7 +675756,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         const selected = paths ? { canceled: false, filePaths: [...new Set(paths)] } : await requireDesktop().dialog.showOpenDialog(window2, { title: documentId ? tr("\u9009\u62E9\u66FF\u6362\u6587\u4EF6", "Choose replacement file") : tr("\u9009\u62E9\u8D44\u6599", "Choose documents"), properties: documentId ? ["openFile"] : ["openFile", "multiSelections"], filters: [{ name: tr("\u8D44\u6599", "Documents"), extensions: supportedExtensions }] });
         if (selected.canceled) return null;
         return getImportPreparation().prepare(kbId, selected.filePaths.map((path13) => {
-          const extension2 = (0, import_node_path186.extname)(path13).toLowerCase();
+          const extension2 = (0, import_node_path185.extname)(path13).toLowerCase();
           const safePath = source ? resolveImportSource(source.sessionId, path13) : path13;
           return { path: safePath, mimeType: getMimeType(extension2 === ".markdown" ? ".md" : extension2), deidOrigin: deidSource ? { docId: deidSource.docId, projectId: deidSource.projectId } : void 0, check: () => {
             if (droppedPaths) requireDroppedFile(path13);
@@ -675783,7 +675856,7 @@ Current documents are replaced; the originals are kept as a local recovery copy.
         for (const path13 of selection.filePaths) {
           try {
             requireBase(kbId);
-            const extension2 = (0, import_node_path186.extname)(path13).toLowerCase();
+            const extension2 = (0, import_node_path185.extname)(path13).toLowerCase();
             if (!supportedExtensions.includes(extension2.slice(1))) throw new Error(tr("\u4E0D\u652F\u6301\u6B64\u6587\u4EF6\u683C\u5F0F", "This file format isn\u2019t supported"));
             const safePath = source ? resolveImportSource(source.sessionId, path13) : path13;
             const validateSource = source ? () => {
@@ -675795,14 +675868,14 @@ Current documents are replaced; the originals are kept as a local recovery copy.
             const job = await store.enqueue({
               kbId,
               documentId,
-              title: (0, import_node_path186.basename)(path13),
+              title: (0, import_node_path185.basename)(path13),
               original,
               mimeType: getMimeType(extension2 === ".markdown" ? ".md" : extension2),
               scopeRevision: getKnowledgeCatalogStore().read().scopeRevision
             });
             jobs.push(publicJob(job));
           } catch (error50) {
-            failures2.push({ name: (0, import_node_path186.basename)(path13), message: error50 instanceof Error ? error50.message : tr("\u65E0\u6CD5\u6DFB\u52A0\u8D44\u6599", "Couldn\u2019t add the document") });
+            failures2.push({ name: (0, import_node_path185.basename)(path13), message: error50 instanceof Error ? error50.message : tr("\u65E0\u6CD5\u6DFB\u52A0\u8D44\u6599", "Couldn\u2019t add the document") });
           }
         }
         if (jobs.length) getKnowledgeQueue().wake();
@@ -676061,7 +676134,7 @@ function sessionHasMessages(id19) {
   const path13 = getAgentSessionMessagesPath(id19);
   if (getPendingMessages(path13).some(hasSessionContent)) return true;
   try {
-    const stat17 = (0, import_node_fs169.statSync)(path13);
+    const stat17 = (0, import_node_fs168.statSync)(path13);
     const signature5 = `${stat17.ino}:${stat17.size}:${stat17.mtimeMs}:${stat17.ctimeMs}`;
     const cached4 = sessionContentCache.get(path13);
     if (cached4?.signature === signature5) return cached4.hasMessages;
@@ -676073,7 +676146,7 @@ function sessionHasMessages(id19) {
   }
 }
 function messagesFileHasContent(path13) {
-  const fd2 = (0, import_node_fs169.openSync)(path13, "r"), chunk2 = Buffer.allocUnsafe(64 * 1024), decoder = new import_node_string_decoder.StringDecoder("utf8");
+  const fd2 = (0, import_node_fs168.openSync)(path13, "r"), chunk2 = Buffer.allocUnsafe(64 * 1024), decoder = new import_node_string_decoder.StringDecoder("utf8");
   const hasContent = (line) => {
     if (!line.trim()) return false;
     try {
@@ -676084,7 +676157,7 @@ function messagesFileHasContent(path13) {
   };
   try {
     let rest3 = "";
-    for (let read2; (read2 = (0, import_node_fs169.readSync)(fd2, chunk2, 0, chunk2.length, null)) > 0; ) {
+    for (let read2; (read2 = (0, import_node_fs168.readSync)(fd2, chunk2, 0, chunk2.length, null)) > 0; ) {
       const text17 = decoder.write(chunk2.subarray(0, read2)), end = text17.lastIndexOf("\n");
       if (end < 0) {
         rest3 += text17;
@@ -676095,7 +676168,7 @@ function messagesFileHasContent(path13) {
     }
     return hasContent(rest3 + decoder.end());
   } finally {
-    (0, import_node_fs169.closeSync)(fd2);
+    (0, import_node_fs168.closeSync)(fd2);
   }
 }
 function listAgentSessions() {
@@ -676135,8 +676208,8 @@ function createAgentSession(title, channelId, workspaceId, meetingId) {
   });
   getAgentSessionsDir();
   const sessionDir2 = selectedWorkspace ? getAgentSessionWorkspacePath(selectedWorkspace.slug, meta5.id) : getStandaloneAgentSessionWorkspacePath(meta5.id);
-  const contextDir = (0, import_node_path187.join)(sessionDir2, ".context");
-  if (!(0, import_node_fs169.existsSync)(contextDir)) (0, import_node_fs169.mkdirSync)(contextDir, { recursive: true });
+  const contextDir = (0, import_node_path186.join)(sessionDir2, ".context");
+  if (!(0, import_node_fs168.existsSync)(contextDir)) (0, import_node_fs168.mkdirSync)(contextDir, { recursive: true });
   console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u521B\u5EFA\u4F1A\u8BDD: ${meta5.title} (${meta5.id})`);
   return { ...meta5, hasMessages: false };
 }
@@ -676165,11 +676238,11 @@ function getAgentSessionSDKMessages(id19) {
   }
   const pending5 = getPendingMessages(filePath);
   const pendingIds = new Set(pending5.map((message8) => message8.uuid));
-  if (!(0, import_node_fs169.existsSync)(filePath)) {
+  if (!(0, import_node_fs168.existsSync)(filePath)) {
     return applyArtifactValidations(pending5);
   }
   try {
-    const raw = (0, import_node_fs169.readFileSync)(filePath, "utf-8");
+    const raw = (0, import_node_fs168.readFileSync)(filePath, "utf-8");
     return applyArtifactValidations(parseJsonLines(raw, (warning) => {
       console.warn(`[Agent \u4F1A\u8BDD] \u8DF3\u8FC7\u635F\u574F\u8BB0\u5F55 (${id19}:${warning.line}): ${warning.message}`);
     }).flatMap((parsed) => {
@@ -676191,7 +676264,7 @@ function getAgentSessionSDKMessages(id19) {
 }
 function readAgentSessionHistory(id19) {
   const filePath = getAgentSessionMessagesPath(id19);
-  const stat17 = (0, import_node_fs169.statSync)(filePath, { bigint: true, throwIfNoEntry: false });
+  const stat17 = (0, import_node_fs168.statSync)(filePath, { bigint: true, throwIfNoEntry: false });
   const signature5 = stat17 && !getPendingMessages(filePath).length ? `${stat17.ino}:${stat17.size}:${stat17.mtimeNs}:${stat17.ctimeNs}:${stat17.birthtimeNs}` : void 0;
   if (signature5 && historyCache?.id === id19 && historyCache.signature === signature5) return historyCache.messages;
   const messages = getAgentSessionSDKMessages(id19);
@@ -676316,9 +676389,9 @@ function deleteAgentSession(id19) {
     return;
   }
   const filePath = getAgentSessionMessagesPath(id19);
-  if ((0, import_node_fs169.existsSync)(filePath)) {
+  if ((0, import_node_fs168.existsSync)(filePath)) {
     try {
-      (0, import_node_fs169.unlinkSync)(filePath);
+      (0, import_node_fs168.unlinkSync)(filePath);
     } catch (error50) {
       console.warn(`[Agent \u4F1A\u8BDD] \u5220\u9664\u6D88\u606F\u6587\u4EF6\u5931\u8D25 (${id19}):`, error50);
     }
@@ -676338,8 +676411,8 @@ function deleteAgentSession(id19) {
     if (ws) {
       try {
         const sessionDir2 = getAgentSessionWorkspacePath(ws.slug, id19);
-        if ((0, import_node_fs169.existsSync)(sessionDir2)) {
-          (0, import_node_fs169.rmSync)(sessionDir2, { recursive: true, force: true });
+        if ((0, import_node_fs168.existsSync)(sessionDir2)) {
+          (0, import_node_fs168.rmSync)(sessionDir2, { recursive: true, force: true });
           console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u6E05\u7406 session \u5DE5\u4F5C\u76EE\u5F55: ${sessionDir2}`);
         }
       } catch (error50) {
@@ -676349,7 +676422,7 @@ function deleteAgentSession(id19) {
   } else {
     try {
       const sessionDir2 = getStandaloneAgentSessionWorkspacePath(id19);
-      if ((0, import_node_fs169.existsSync)(sessionDir2)) (0, import_node_fs169.rmSync)(sessionDir2, { recursive: true, force: true });
+      if ((0, import_node_fs168.existsSync)(sessionDir2)) (0, import_node_fs168.rmSync)(sessionDir2, { recursive: true, force: true });
     } catch (error50) {
       console.warn(`[Agent \u4F1A\u8BDD] \u6E05\u7406\u72EC\u7ACB session sandbox \u5931\u8D25 (${id19}):`, error50);
     }
@@ -676361,7 +676434,7 @@ function deleteAgentSession(id19) {
   } catch (error50) {
     console.warn(`[Agent \u4F1A\u8BDD] \u5220\u9664\u6539\u52A8\u8BB0\u5F55\u5931\u8D25 (${id19}):`, error50);
   }
-  (0, import_node_fs169.rmSync)((0, import_node_path187.join)(getAgentSessionsDir(), id19.replace(/[^a-zA-Z0-9_-]/g, "_")), { recursive: true, force: true });
+  (0, import_node_fs168.rmSync)((0, import_node_path186.join)(getAgentSessionsDir(), id19.replace(/[^a-zA-Z0-9_-]/g, "_")), { recursive: true, force: true });
 }
 function moveSessionToWorkspace(sessionId2, targetWorkspaceId) {
   const index5 = readIndex3();
@@ -676379,29 +676452,29 @@ function moveSessionToWorkspace(sessionId2, targetWorkspaceId) {
   if (session3.workspaceId) {
     const sourceWs = getAgentWorkspace(session3.workspaceId);
     if (sourceWs) {
-      sourceDirectory = (0, import_node_path187.join)(getAgentWorkspacePath(sourceWs.slug), sessionId2);
+      sourceDirectory = (0, import_node_path186.join)(getAgentWorkspacePath(sourceWs.slug), sessionId2);
     }
   } else {
     sourceDirectory = getStandaloneAgentSessionWorkspacePath(sessionId2);
   }
-  if (sourceDirectory && (0, import_node_fs169.existsSync)(sourceDirectory)) {
+  if (sourceDirectory && (0, import_node_fs168.existsSync)(sourceDirectory)) {
     const srcDir = sourceDirectory;
-    const destDir = (0, import_node_path187.join)(getAgentWorkspacePath(targetWs.slug), sessionId2);
-    if ((0, import_node_fs169.existsSync)(destDir)) {
+    const destDir = (0, import_node_path186.join)(getAgentWorkspacePath(targetWs.slug), sessionId2);
+    if ((0, import_node_fs168.existsSync)(destDir)) {
       try {
-        const contents = (0, import_node_fs169.readdirSync)(destDir);
+        const contents = (0, import_node_fs168.readdirSync)(destDir);
         if (contents.length === 0) {
-          (0, import_node_fs169.rmSync)(destDir, { recursive: true });
+          (0, import_node_fs168.rmSync)(destDir, { recursive: true });
           console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u6E05\u7406\u7A7A\u76EE\u6807\u76EE\u5F55: ${destDir}`);
         } else {
-          (0, import_node_fs169.rmSync)(destDir, { recursive: true });
+          (0, import_node_fs168.rmSync)(destDir, { recursive: true });
           console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u6E05\u7406\u975E\u7A7A\u76EE\u6807\u76EE\u5F55\uFF08\u4EE5\u6E90\u76EE\u5F55\u4E3A\u51C6\uFF09: ${destDir}`);
         }
       } catch (cleanupError) {
         console.warn(`[Agent \u4F1A\u8BDD] \u6E05\u7406\u76EE\u6807\u76EE\u5F55\u5931\u8D25\uFF0C\u8DF3\u8FC7\u76EE\u5F55\u8FC1\u79FB:`, cleanupError);
       }
     }
-    (0, import_node_fs169.renameSync)(srcDir, destDir);
+    (0, import_node_fs168.renameSync)(srcDir, destDir);
     console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u79FB\u52A8\u5DE5\u4F5C\u76EE\u5F55: ${srcDir} \u2192 ${destDir}`);
   }
   getAgentSessionWorkspacePath(targetWs.slug, sessionId2);
@@ -676424,15 +676497,15 @@ async function importChatConversation(conversation) {
   const id19 = conversation.id;
   if (readIndex3().sessions.some((session3) => session3.id === id19)) return false;
   const sessionDir2 = getStandaloneAgentSessionWorkspacePath(id19);
-  (0, import_node_fs169.mkdirSync)((0, import_node_path187.join)(sessionDir2, ".context"), { recursive: true });
+  (0, import_node_fs168.mkdirSync)((0, import_node_path186.join)(sessionDir2, ".context"), { recursive: true });
   const messages = [];
   for (const cm of getConversationMessages(id19)) {
     if (cm.role !== "user" && cm.role !== "assistant") continue;
     const files = (cm.attachments ?? []).flatMap((attachment) => {
       const source = resolveAttachmentPath(attachment.localPath);
-      if (!(0, import_node_fs169.existsSync)(source)) return [];
-      const name2 = uniqueFileName(sessionDir2, (0, import_node_path187.basename)(attachment.filename));
-      (0, import_node_fs169.copyFileSync)(source, (0, import_node_path187.join)(sessionDir2, name2));
+      if (!(0, import_node_fs168.existsSync)(source)) return [];
+      const name2 = uniqueFileName(sessionDir2, (0, import_node_path186.basename)(attachment.filename));
+      (0, import_node_fs168.copyFileSync)(source, (0, import_node_path186.join)(sessionDir2, name2));
       return [name2];
     });
     const text17 = [cm.content.trim(), files.length ? `\u9644\u4EF6\uFF1A${files.join("\u3001")}` : ""].filter(Boolean).join("\n\n");
@@ -676446,7 +676519,7 @@ async function importChatConversation(conversation) {
       knowledge: cm.knowledge
     });
   }
-  (0, import_node_fs169.writeFileSync)(getAgentSessionMessagesPath(id19), messages.map((message8) => JSON.stringify(message8)).join("\n") + (messages.length ? "\n" : ""));
+  (0, import_node_fs168.writeFileSync)(getAgentSessionMessagesPath(id19), messages.map((message8) => JSON.stringify(message8)).join("\n") + (messages.length ? "\n" : ""));
   const { getKnowledgeCatalogStore: getKnowledgeCatalogStore2 } = await Promise.resolve().then(() => (init_knowledge_service(), knowledge_service_exports));
   const catalog2 = getKnowledgeCatalogStore2();
   try {
@@ -676487,7 +676560,7 @@ function uniqueFileName(dir, name2) {
   const stem = dot > 0 ? name2.slice(0, dot) : name2;
   const ext = dot > 0 ? name2.slice(dot) : "";
   let candidate = name2;
-  for (let i = 2; (0, import_node_fs169.existsSync)((0, import_node_path187.join)(dir, candidate)); i++) candidate = `${stem} (${i})${ext}`;
+  for (let i = 2; (0, import_node_fs168.existsSync)((0, import_node_path186.join)(dir, candidate)); i++) candidate = `${stem} (${i})${ext}`;
   return candidate;
 }
 async function forkAgentSession(input, snapshot2) {
@@ -676525,14 +676598,14 @@ async function forkAgentSession(input, snapshot2) {
   if (sourceDir) {
     const ws = sourceMeta.workspaceId ? getAgentWorkspace(sourceMeta.workspaceId) : void 0;
     const destDir = ws ? getAgentSessionWorkspacePath(ws.slug, newMeta.id) : getStandaloneAgentSessionWorkspacePath(newMeta.id);
-    if (!(0, import_node_fs169.existsSync)(destDir)) (0, import_node_fs169.mkdirSync)(destDir, { recursive: true });
+    if (!(0, import_node_fs168.existsSync)(destDir)) (0, import_node_fs168.mkdirSync)(destDir, { recursive: true });
     try {
-      const entries = (0, import_node_fs169.readdirSync)(sourceDir);
+      const entries = (0, import_node_fs168.readdirSync)(sourceDir);
       for (const entry of entries) {
         if (entry === ".claude" || entry === ".context" || entry === ".DS_Store" || entry === ".git") continue;
-        const srcPath = (0, import_node_path187.join)(sourceDir, entry);
-        const destPath = (0, import_node_path187.join)(destDir, entry);
-        (0, import_node_fs169.cpSync)(srcPath, destPath, { recursive: true });
+        const srcPath = (0, import_node_path186.join)(sourceDir, entry);
+        const destPath = (0, import_node_path186.join)(destDir, entry);
+        (0, import_node_fs168.cpSync)(srcPath, destPath, { recursive: true });
       }
       const copiedCount = entries.filter((e) => e !== ".claude" && e !== ".context" && e !== ".DS_Store" && e !== ".git").length;
       console.log(`[Agent \u4F1A\u8BDD] \u5DF2\u590D\u5236\u5DE5\u4F5C\u533A\u6587\u4EF6: ${sourceDir} \u2192 ${destDir} (${copiedCount} \u4E2A\u6761\u76EE)`);
@@ -676577,9 +676650,9 @@ function truncateSDKMessagesLocked(id19, filePath, upToUuidInclusive) {
     throw new Error(`[Agent \u4F1A\u8BDD] \u622A\u65AD\u5931\u8D25: \u672A\u627E\u5230 uuid=${upToUuidInclusive}, sessionId=${id19}`);
   }
   const kept = messages.slice(0, cutIndex + 1);
-  if ((0, import_node_fs169.existsSync)(filePath)) {
-    const raw = (0, import_node_fs169.readFileSync)(filePath, "utf-8");
-    if (raw.split("\n").filter((line) => line.trim()).length > parseJsonLines(raw).length) (0, import_node_fs169.copyFileSync)(filePath, `${filePath}.${Date.now()}.bak`);
+  if ((0, import_node_fs168.existsSync)(filePath)) {
+    const raw = (0, import_node_fs168.readFileSync)(filePath, "utf-8");
+    if (raw.split("\n").filter((line) => line.trim()).length > parseJsonLines(raw).length) (0, import_node_fs168.copyFileSync)(filePath, `${filePath}.${Date.now()}.bak`);
   }
   const content4 = kept.map((m2) => JSON.stringify(m2)).join("\n") + (kept.length > 0 ? "\n" : "");
   writeTextFileAtomic(filePath, content4);
@@ -676613,9 +676686,9 @@ function searchAgentSessionMessages(query) {
   for (const session3 of index5.sessions) {
     if (results.length >= maxResults) break;
     const filePath = getAgentSessionMessagesPath(session3.id);
-    if (!(0, import_node_fs169.existsSync)(filePath)) continue;
+    if (!(0, import_node_fs168.existsSync)(filePath)) continue;
     try {
-      const raw = (0, import_node_fs169.readFileSync)(filePath, "utf-8");
+      const raw = (0, import_node_fs168.readFileSync)(filePath, "utf-8");
       for (const parsed of parseJsonLines(raw)) {
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
         const record11 = parsed;
@@ -676653,11 +676726,11 @@ function searchAgentSessionMessages(query) {
   }
   return results;
 }
-var import_node_fs169, import_node_string_decoder, import_node_crypto182, import_node_path187, INDEX_VERSION3, sessionContentCache, historyCache, HISTORY_CACHE_MS, PASSIVE_META_KEYS;
+var import_node_fs168, import_node_string_decoder, import_node_crypto182, import_node_path186, INDEX_VERSION3, sessionContentCache, historyCache, HISTORY_CACHE_MS, PASSIVE_META_KEYS;
 var init_agent_session_manager = __esm({
   "../electron/src/main/lib/agent-session-manager.ts"() {
     "use strict";
-    import_node_fs169 = require("node:fs");
+    import_node_fs168 = require("node:fs");
     import_node_string_decoder = require("node:string_decoder");
     init_src();
     init_safe_file();
@@ -676666,7 +676739,7 @@ var init_agent_session_manager = __esm({
     init_pending_message_writes();
     init_turn_delivery();
     import_node_crypto182 = require("node:crypto");
-    import_node_path187 = require("node:path");
+    import_node_path186 = require("node:path");
     init_config_paths();
     init_workflow_journal();
     init_composer_draft_store();
@@ -676864,7 +676937,7 @@ init_tool_events();
 init_agents();
 init_attachments();
 init_session_fork();
-var import_node_fs171 = require("node:fs");
+var import_node_fs170 = require("node:fs");
 init_utils();
 init_src();
 init_model_thinking_service();
@@ -676872,38 +676945,38 @@ init_settings_service();
 init_config_paths();
 
 // ../electron/src/main/runtime/profile.ts
-var import_node_fs170 = require("node:fs");
+var import_node_fs169 = require("node:fs");
 var import_node_os28 = require("node:os");
-var import_node_path188 = require("node:path");
+var import_node_path187 = require("node:path");
 var import_node_crypto183 = require("node:crypto");
 init_src();
 init_file_lock();
 init_safe_file();
 function canonical2(path13) {
-  if ((0, import_node_fs170.existsSync)(path13)) return (0, import_node_fs170.realpathSync)(path13);
-  const parent = (0, import_node_path188.resolve)(path13, "..");
-  return (0, import_node_path188.join)(canonical2(parent), (0, import_node_path188.relative)(parent, path13));
+  if ((0, import_node_fs169.existsSync)(path13)) return (0, import_node_fs169.realpathSync)(path13);
+  const parent = (0, import_node_path187.resolve)(path13, "..");
+  return (0, import_node_path187.join)(canonical2(parent), (0, import_node_path187.relative)(parent, path13));
 }
 function contains3(parent, path13) {
-  const rel2 = (0, import_node_path188.relative)(parent, path13);
-  return !rel2 || !rel2.startsWith(".." + import_node_path188.sep) && rel2 !== ".." && !(0, import_node_path188.isAbsolute)(rel2);
+  const rel2 = (0, import_node_path187.relative)(parent, path13);
+  return !rel2 || !rel2.startsWith(".." + import_node_path187.sep) && rel2 !== ".." && !(0, import_node_path187.isAbsolute)(rel2);
 }
 function openProfile(input) {
-  const directory = canonical2((0, import_node_path188.resolve)(input));
+  const directory = canonical2((0, import_node_path187.resolve)(input));
   for (const protectedName of [".cortex", ".cortex-kb-dev", ".cortex-dev"]) {
-    const protectedPath = canonical2((0, import_node_path188.join)((0, import_node_os28.homedir)(), protectedName));
+    const protectedPath = canonical2((0, import_node_path187.join)((0, import_node_os28.homedir)(), protectedName));
     if (contains3(protectedPath, directory) || contains3(directory, protectedPath)) throw new Error(tr("CLI \u9884\u89C8\u4E0D\u80FD\u4F7F\u7528\u684C\u9762\u914D\u7F6E\u76EE\u5F55\u6216\u5176\u7236\u5B50\u76EE\u5F55", "CLI preview can\u2019t use the desktop config directory or its parents or children"));
   }
-  (0, import_node_fs170.mkdirSync)(directory, { recursive: true, mode: 448 });
-  const markerPath = (0, import_node_path188.join)(directory, "cli-profile.json");
+  (0, import_node_fs169.mkdirSync)(directory, { recursive: true, mode: 448 });
+  const markerPath = (0, import_node_path187.join)(directory, "cli-profile.json");
   withFileLock(markerPath, () => {
-    if ((0, import_node_fs170.existsSync)(markerPath)) {
-      const marker2 = JSON.parse((0, import_node_fs170.readFileSync)(markerPath, "utf8"));
+    if ((0, import_node_fs169.existsSync)(markerPath)) {
+      const marker2 = JSON.parse((0, import_node_fs169.readFileSync)(markerPath, "utf8"));
       if (!marker2 || typeof marker2 !== "object" || !("format" in marker2) || marker2.format !== "cortex-cli-preview-v1") {
         throw new Error(tr("CLI \u914D\u7F6E\u76EE\u5F55\u683C\u5F0F\u4E0D\u517C\u5BB9", "The CLI config directory format is incompatible"));
       }
     } else {
-      if ((0, import_node_fs170.readdirSync)(directory).some((name2) => name2 !== "cli-profile.json.lock")) {
+      if ((0, import_node_fs169.readdirSync)(directory).some((name2) => name2 !== "cli-profile.json.lock")) {
         throw new Error(tr("CLI \u9884\u89C8\u9700\u8981\u7A7A\u7684\u9694\u79BB\u914D\u7F6E\u76EE\u5F55\uFF0C\u4E0D\u80FD\u63A5\u7BA1\u5DF2\u6709\u6570\u636E", "CLI preview needs an empty, isolated config directory and can\u2019t take over existing data"));
       }
       writeJsonFileAtomic(markerPath, { format: "cortex-cli-preview-v1" });
@@ -676913,7 +676986,7 @@ function openProfile(input) {
 }
 function acquireSessionLease(directory, sessionId2) {
   if (!/^[\w-]+$/.test(sessionId2)) throw new Error(tr("\u4F1A\u8BDD\u6807\u8BC6\u65E0\u6548", "Invalid session ID"));
-  const leasePath = (0, import_node_path188.join)(directory, "cli-locks", sessionId2 + ".json");
+  const leasePath = (0, import_node_path187.join)(directory, "cli-locks", sessionId2 + ".json");
   const token = (0, import_node_crypto183.randomUUID)();
   const transaction2 = (run3) => withFileLock(leasePath, run3, { recoverDeadOwner: true });
   transaction2(() => {
@@ -676921,7 +676994,7 @@ function acquireSessionLease(directory, sessionId2) {
     writeJsonFileAtomic(leasePath, { pid: process.pid, token, identity: linuxProcessIdentity(process.pid) }, true);
   });
   return () => transaction2(() => {
-    if ((0, import_node_fs170.existsSync)(leasePath) && JSON.parse((0, import_node_fs170.readFileSync)(leasePath, "utf8")).token === token) (0, import_node_fs170.rmSync)(leasePath);
+    if ((0, import_node_fs169.existsSync)(leasePath) && JSON.parse((0, import_node_fs169.readFileSync)(leasePath, "utf8")).token === token) (0, import_node_fs169.rmSync)(leasePath);
   });
 }
 function assertSessionFree(directory, sessionId2) {
@@ -676935,7 +677008,7 @@ function sessionLeaseOwner(directory, sessionId2) {
   let pid;
   let savedIdentity;
   try {
-    const owner = JSON.parse((0, import_node_fs170.readFileSync)((0, import_node_path188.join)(directory, "cli-locks", sessionId2 + ".json"), "utf8"));
+    const owner = JSON.parse((0, import_node_fs169.readFileSync)((0, import_node_path187.join)(directory, "cli-locks", sessionId2 + ".json"), "utf8"));
     pid = owner.pid;
     savedIdentity = owner.identity;
   } catch {
@@ -677023,8 +677096,8 @@ async function execute(request2) {
     }
     const saved = request2.sessionId ? sessions.getAgentSessionMeta(request2.sessionId) : void 0;
     if (request2.sessionId && (!saved || !saved.cliCwd)) throw new Error(tr("\u4F1A\u8BDD\u4E0D\u5B58\u5728\u6216\u4E0D\u662F CLI \u9884\u89C8\u4F1A\u8BDD", "The session doesn\u2019t exist or isn\u2019t a CLI preview session"));
-    const cwd = (0, import_node_fs171.realpathSync)(request2.cwd ?? saved?.cliCwd ?? process.cwd());
-    if (!(0, import_node_fs171.statSync)(cwd).isDirectory()) throw new Error(tr("\u5DE5\u4F5C\u76EE\u5F55\u4E0D\u662F\u6587\u4EF6\u5939", "The working directory isn\u2019t a folder."));
+    const cwd = (0, import_node_fs170.realpathSync)(request2.cwd ?? saved?.cliCwd ?? process.cwd());
+    if (!(0, import_node_fs170.statSync)(cwd).isDirectory()) throw new Error(tr("\u5DE5\u4F5C\u76EE\u5F55\u4E0D\u662F\u6587\u4EF6\u5939", "The working directory isn\u2019t a folder."));
     if (saved && cwd !== saved.cliCwd) throw new Error(tr("\u6062\u590D\u4F1A\u8BDD\u4E0D\u80FD\u6539\u53D8\u5DE5\u4F5C\u76EE\u5F55", "A resumed session can\u2019t change its working directory."));
     if (saved && request2.permissionMode && request2.permissionMode !== (saved.permissionMode ?? "auto")) {
       throw new Error(tr("\u6062\u590D\u4F1A\u8BDD\u4E0D\u80FD\u901A\u8FC7\u53C2\u6570\u6539\u53D8\u6743\u9650\u6A21\u5F0F", "A resumed session can\u2019t change its permission mode through arguments."));

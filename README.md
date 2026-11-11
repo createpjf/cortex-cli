@@ -21,7 +21,7 @@ npm install -g github:createpjf/cortex-cli --loglevel=error
 cortex
 ```
 
-First launch guides you through choosing a provider, model and API key. The interface defaults to English; change it in **`/settings` → Language**.
+First launch guides you through choosing a provider, model and API key. The interface follows your system language (Chinese on a Chinese system, English otherwise); change it in **`/settings` → Language**.
 
 **Providers:** Anthropic, OpenAI, Google, DeepSeek, FLock API Platform, xAI / Grok, OpenRouter, Kimi, Zhipu AI, MiniMax, Doubao, Qwen and custom OpenAI-compatible endpoints. Use `/config` to change connections and `/model` to switch models. Availability depends on your provider and account.
 

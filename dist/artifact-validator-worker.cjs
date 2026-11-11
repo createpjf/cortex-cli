@@ -259,7 +259,7 @@ var init_artifact = __esm({
 });
 
 // ../../packages/shared/src/types/meetings.ts
-var MEETING_IMPORT_MAX_BYTES, app, MEETING_APPS;
+var MEETING_IMPORT_MAX_BYTES, app, MEETING_APPS, MEETING_OTHERS_QUIET_PROMPT_MS;
 var init_meetings = __esm({
   "../../packages/shared/src/types/meetings.ts"() {
     "use strict";
@@ -284,6 +284,7 @@ var init_meetings = __esm({
       app("org.mozilla.firefox", "Firefox", "Firefox", true),
       app("com.apple.WebKit.GPU", "Safari", "Safari", true)
     ];
+    MEETING_OTHERS_QUIET_PROMPT_MS = 15 * 6e4;
   }
 });
 

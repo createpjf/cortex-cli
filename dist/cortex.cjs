@@ -289,7 +289,7 @@ var init_artifact = __esm({
 });
 
 // ../../packages/shared/src/types/meetings.ts
-var MEETING_IMPORT_MAX_BYTES, app, MEETING_APPS;
+var MEETING_IMPORT_MAX_BYTES, app, MEETING_APPS, MEETING_OTHERS_QUIET_PROMPT_MS;
 var init_meetings = __esm({
   "../../packages/shared/src/types/meetings.ts"() {
     "use strict";
@@ -314,6 +314,7 @@ var init_meetings = __esm({
       app("org.mozilla.firefox", "Firefox", "Firefox", true),
       app("com.apple.WebKit.GPU", "Safari", "Safari", true)
     ];
+    MEETING_OTHERS_QUIET_PROMPT_MS = 15 * 6e4;
   }
 });
 
@@ -2383,6 +2384,43 @@ function providerCards() {
       keyUrl: BAILIAN_KEY_URL,
       mediaOnly: true,
       methods: dashscopeMethods(WAN_MODELS)
+    },
+    // 本地运行：都走 OpenAI 兼容接口，地址是各自文档里的默认端口
+    {
+      id: "ollama",
+      name: "Ollama",
+      group: "local",
+      logo: "ollama",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:11434/v1" }]
+    },
+    {
+      id: "lmstudio",
+      name: "LM Studio",
+      group: "local",
+      logo: "lmstudio",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:1234/v1" }]
+    },
+    {
+      id: "vllm",
+      name: "vLLM",
+      group: "local",
+      logo: "vllm",
+      note: tr("\u81EA\u5EFA\u670D\u52A1\u5668", "Self-hosted server"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:8000/v1" }]
+    },
+    {
+      id: "llamacpp",
+      name: "llama.cpp",
+      group: "local",
+      logo: "llamacpp",
+      note: tr("\u672C\u673A\u8FD0\u884C\uFF0C\u514D\u8D39", "Runs on your computer, free"),
+      local: true,
+      methods: [{ label: "", provider: "custom", baseUrl: "http://localhost:8080/v1" }]
     },
     {
       id: "openrouter",
@@ -6291,7 +6329,7 @@ function parseModelDiscovery(item, provider, baseUrl, modelId) {
     provider,
     modelId,
     checkedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    contextWindow: integer(item.context_length ?? item.context_window ?? item.inputTokenLimit ?? item.max_input_tokens, 1024, 1e7),
+    contextWindow: integer(item.context_length ?? item.context_window ?? item.inputTokenLimit ?? item.max_input_tokens ?? item.max_model_len, 1024, 1e7),
     maxOutputTokens: integer(top.max_completion_tokens ?? item.max_output_tokens ?? item.outputTokenLimit, 128, 1e6),
     ...Array.isArray(modalities) && modalities.includes("text") ? { input: modalities.includes("image") ? ["text", "image"] : ["text"] } : {},
     ...typeof item.supports_function_calling === "boolean" ? { tools: item.supports_function_calling } : parameters.includes("tools") ? { tools: true } : {},
@@ -32808,6 +32846,11 @@ ${captureLines}` : capture.stack;
 });
 
 // ../electron/src/main/lib/error-patterns.ts
+function transportErrorCategory(text2) {
+  if (/Proxy response \(\d{3}\) !== 200 when HTTP Tunneling/.test(text2)) return "proxy_tunnel";
+  const code = TRANSPORT_CODE_PATTERN.exec(text2)?.[1];
+  return code ? TRANSPORT_ERROR_CATEGORIES[code] : void 0;
+}
 var TRANSPORT_ERROR_CATEGORIES, TRANSPORT_CODE_PATTERN;
 var init_error_patterns = __esm({
   "../electron/src/main/lib/error-patterns.ts"() {
@@ -33038,6 +33081,39 @@ var init_proxy_fetch = __esm({
     dispatchers = /* @__PURE__ */ new Map();
     proxyScopes = 0;
     ERROR_CATEGORIES = TRANSPORT_ERROR_CATEGORIES;
+  }
+});
+
+// ../electron/src/main/lib/agent-error-utils.ts
+function isPromptTooLongError(...messages) {
+  const combined = messages.join(" ").toLowerCase();
+  return PROMPT_TOO_LONG_PATTERNS.some((p) => combined.includes(p));
+}
+var TRANSPORT_REASONS, PROMPT_TOO_LONG_PATTERNS;
+var init_agent_error_utils = __esm({
+  "../electron/src/main/lib/agent-error-utils.ts"() {
+    "use strict";
+    init_src();
+    init_error_patterns();
+    TRANSPORT_REASONS = {
+      dns: () => tr("\u65E0\u6CD5\u627E\u5230\u4F9B\u5E94\u5546\u7684\u5730\u5740\uFF08\u57DF\u540D\u89E3\u6790\u5931\u8D25\uFF09\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u3001\u4EE3\u7406\u6216 Base URL", "Couldn\u2019t find the provider\u2019s address (DNS lookup failed). Check your network, proxy, or base URL."),
+      connection: () => tr("\u65E0\u6CD5\u8FDE\u63A5\u4F9B\u5E94\u5546\uFF1A\u8FDE\u63A5\u88AB\u62D2\u7EDD\u6216\u5730\u5740\u4E0D\u53EF\u8FBE\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u662F\u5426\u5F00\u7740\u3001Base URL \u662F\u5426\u6B63\u786E", "Couldn\u2019t connect to the provider: the connection was refused or the address is unreachable. Check that your proxy is running and the base URL is correct."),
+      tls: () => tr("\u8BC1\u4E66\u6821\u9A8C\u6CA1\u901A\u8FC7\uFF0C\u5E38\u89C1\u4E8E\u4EE3\u7406\u6216\u516C\u53F8\u7F51\u7EDC\u66FF\u6362\u4E86\u8BC1\u4E66\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E", "The certificate check failed. A proxy or company network may be replacing certificates. Check your proxy settings."),
+      proxy_tunnel: () => tr("\u4EE3\u7406\u8FDE\u4E0D\u4E0A\u76EE\u6807\u5730\u5740\uFF0C\u8BF7\u68C0\u67E5 Base URL \u4E0E\u7AEF\u53E3\uFF1B\u6A21\u578B\u670D\u52A1\u5728\u672C\u673A\u65F6\u5148\u786E\u8BA4\u5B83\u5DF2\u542F\u52A8", "The proxy couldn\u2019t reach the target address. Check the base URL and port. If the model runs on this computer, make sure it\u2019s started."),
+      proxy: () => tr("\u65E0\u6CD5\u548C\u4EE3\u7406\u5EFA\u7ACB\u52A0\u5BC6\u8FDE\u63A5\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u5730\u5740\u4E0E\u534F\u8BAE", "Couldn\u2019t open a secure connection to the proxy. Check the proxy address and protocol.")
+    };
+    PROMPT_TOO_LONG_PATTERNS = [
+      "prompt is too long",
+      "prompt_too_long",
+      "input is too long",
+      "context_length_exceeded",
+      "context size has been exceeded",
+      "exceeds the available context size",
+      "input length exceeds",
+      "maximum context length",
+      "token limit",
+      "exceeds the model"
+    ];
   }
 });
 
@@ -37323,32 +37399,6 @@ var init_agent_tool_registry = __esm({
   }
 });
 
-// ../electron/src/main/lib/agent-error-utils.ts
-function isPromptTooLongError(...messages) {
-  const combined = messages.join(" ").toLowerCase();
-  return PROMPT_TOO_LONG_PATTERNS.some((p) => combined.includes(p));
-}
-var PROMPT_TOO_LONG_PATTERNS;
-var init_agent_error_utils = __esm({
-  "../electron/src/main/lib/agent-error-utils.ts"() {
-    "use strict";
-    init_src();
-    init_error_patterns();
-    PROMPT_TOO_LONG_PATTERNS = [
-      "prompt is too long",
-      "prompt_too_long",
-      "input is too long",
-      "context_length_exceeded",
-      "context size has been exceeded",
-      "exceeds the available context size",
-      "input length exceeds",
-      "maximum context length",
-      "token limit",
-      "exceeds the model"
-    ];
-  }
-});
-
 // ../electron/src/main/lib/adapters/pi-context-budget.ts
 function estimateRequestTokens(context) {
   let tokens = 0;
@@ -39147,7 +39197,7 @@ function decryptApiKey(channelId) {
 async function testChannel(channelId) {
   const channel2 = readConfig().channels.find((item) => item.id === channelId);
   if (!channel2) return { success: false, message: tr("\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728", "Provider not found") };
-  return testChannelDirect({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey: decryptKey(channel2.apiKey) });
+  return testChannelDirect({ provider: channel2.provider, baseUrl: channel2.baseUrl, apiKey: decryptKey(channel2.apiKey), local: isLocalChannel(channel2) });
 }
 function recordImageInputCheck(snapshot, modelId, supported) {
   return withChannelsLock(() => {
@@ -39213,11 +39263,23 @@ async function fetchModels(input, signal = AbortSignal.timeout(1e4), quiet = fal
         return { success: false, message: tr(`\u4E0D\u652F\u6301\u7684\u4F9B\u5E94\u5546\uFF1A${input.provider}`, `Unsupported provider: ${input.provider}`), models: [] };
     }
   } catch (error) {
-    const raw = error instanceof Error ? error.message : tr("\u672A\u77E5\u9519\u8BEF", "Unknown error");
+    const cause = fetchFailureCause(error);
+    const raw = `${error instanceof Error ? error.message : tr("\u672A\u77E5\u9519\u8BEF", "Unknown error")}${cause ? tr(`\uFF08${cause}\uFF09`, ` (${cause})`) : ""}`;
     const message = input.apiKey ? raw.split(input.apiKey).join("[REDACTED]") : raw;
+    const category = cause ? transportErrorCategory(cause) : void 0;
+    const local = (category === "connection" || category === "proxy_tunnel") && (input.local === true || isLocalModelEndpoint(input.baseUrl));
+    const reason = local ? tr(
+      "\u8BF7\u786E\u8BA4\u672C\u5730\u6A21\u578B\u670D\u52A1\u5DF2\u7ECF\u542F\u52A8\u3001\u5730\u5740\u5E26\u4E0A\u7AEF\u53E3\uFF1B\u670D\u52A1\u5728\u53E6\u4E00\u53F0\u7535\u8111\u4E0A\u65F6\uFF0C\u90A3\u8FB9\u8981\u76D1\u542C 0.0.0.0\uFF0C\u4E0D\u80FD\u53EA\u76D1\u542C\u672C\u673A",
+      "Make sure the local model server is running and the address includes the port. If it runs on another computer, it must listen on 0.0.0.0, not only on localhost"
+    ) : TRANSPORT_REASONS[category ?? ""]?.();
     if (!quiet) console.error("[\u6E20\u9053\u7BA1\u7406] \u62C9\u53D6\u6A21\u578B\u5217\u8868\u5931\u8D25:", message);
-    return { success: false, message: tr(`\u65E0\u6CD5\u83B7\u53D6\u6A21\u578B\uFF1A${message}`, `Couldn\u2019t fetch models: ${message}`), models: [] };
+    return { success: false, message: tr(`\u65E0\u6CD5\u83B7\u53D6\u6A21\u578B\uFF1A${message}${reason ? `\u3002${reason}` : ""}`, `Couldn\u2019t fetch models: ${message}${reason ? `. ${reason}` : ""}`), models: [] };
   }
+}
+function fetchFailureCause(error) {
+  const cause = error?.cause;
+  const text2 = cause?.message || cause?.errors?.[0]?.message || cause?.code;
+  return typeof text2 === "string" && text2 ? text2 : void 0;
 }
 async function fetchAnthropicCompatibleModels(baseUrl, apiKey, proxyUrl, provider = "anthropic", signal) {
   let url = normalizeAnthropicBaseUrl(baseUrl, provider);
@@ -39489,6 +39551,8 @@ var init_channel_manager = __esm({
     init_safe_file();
     init_file_lock();
     init_proxy_fetch();
+    init_agent_error_utils();
+    init_error_patterns();
     init_proxy_settings_service();
     init_chat_tool_config();
     init_src2();
@@ -50085,7 +50149,10 @@ function validateKeys(value) {
 var themeNames = ["auto", "dark", "light", "catppuccin", "dracula", "nord", "gruvbox", "tokyo-night", "high-contrast"];
 var isLanguage = (value) => value === "en" || value === "zh-CN";
 function resolveCliLanguage(env, saved) {
-  return isLanguage(env.CORTEX_LANGUAGE) ? env.CORTEX_LANGUAGE : saved ?? "en";
+  if (isLanguage(env.CORTEX_LANGUAGE)) return env.CORTEX_LANGUAGE;
+  if (saved) return saved;
+  const system = env.LC_ALL || env.LC_MESSAGES || env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
+  return system.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
 }
 var defaultAppearance = { theme: "auto", reducedMotion: false };
 var appearanceStore = createStore();
@@ -63300,7 +63367,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.55";
+var version = "0.1.56";
 
 // src/interactive.ts
 var import_node_fs20 = require("node:fs");
