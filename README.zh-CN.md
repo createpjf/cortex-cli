@@ -36,8 +36,15 @@ cortex
 | 查看代理 / 待处理会话 | `/agents` / `/inbox` |
 | 停止当前运行 / 重开待确认请求 | Esc / `/pending` |
 | 恢复对话 / 修改设置 | `/resume` / `/settings` |
+| 添加图片 | Ctrl+V，或把文件拖进终端 |
+| 在本机运行一条命令 | `!` 加命令 |
+| 为项目写一份 AGENTS.md | `/init` |
+| 清空输入 / 退出 | Ctrl+C / 输入为空时连按两次 Ctrl+C |
+| 挂起到 Shell | Ctrl+Z，`fg` 回来 |
 
-默认按需确认。**Plan** 只读；**Auto-approve** 减少确认，但仍保留不可逆操作保护。运行中按 Enter 将消息排队，Alt+Enter 向当前运行插话。`/keymap` 自定义快捷键，`/help` 查看更多操作。
+默认按需确认。**Plan** 只读；**Auto-approve** 减少确认，但仍保留不可逆操作保护。审批面板在你停止输入后才出现，用数字键选择，打到一半的句子不会替你作答。运行中按 Enter 将消息排队，Alt+Enter 向当前运行插话；停止运行时，排队的消息放回输入框。
+
+`!` 命令在项目目录里用你的 Shell 直接运行，不经沙箱和审批。输出显示在对话里，并随你的下一条消息发给模型，可在 `/attachments` 移除。`/keymap` 自定义快捷键，`/help` 查看更多操作。
 
 <details>
 <summary>欢迎页、命令面板与代理看板</summary>
@@ -59,17 +66,19 @@ cortex
 cortex exec "总结当前项目" --output-format json
 cortex review                         # 只读审查未提交的改动
 cortex sessions                      # 查看已保存的对话
-cortex resume <session-id>
+cortex resume                        # 选一个对话恢复
+cortex resume --last                 # 接上当前目录最近一次
+echo "总结当前项目" | cortex exec
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
 ```
 
-`--output-schema schema.json` 校验 JSON 回复，`-o answer.md` 保存最终回复且拒绝覆盖已有文件。`cortex --help` 查看全部参数。
+`--output-schema schema.json` 校验 JSON 回复，`-o answer.md` 保存最终回复且拒绝覆盖已有文件。`exec` 默认不限时，需要时加 `--timeout <秒>`。`cortex --help` 查看全部参数。
 
 **已经在用 Cortex 桌面？** 运行 `cortex --desktop` 共用桌面的供应商、权限和对话，并保持兼容的桌面应用运行。Windows 不支持共享模式，Linux 共享模式尚未验收；操作电脑还需交互审批和桌面扩展。
 
 ## 设置与更新
 
-独立模式的设置和对话保存在 `~/.cortex-cli-preview`，外观与语言保存在 `~/.cortex-cli-ui.json`。模型请求发往你配置的供应商，工具在本机执行。`CORTEX_LANGUAGE=en` 或 `zh-CN` 优先于保存的语言；`NO_COLOR=1` 关闭颜色，`/motion` 减少动画。下一步预测仍为 Beta，每轮会额外请求一次模型，可在 `/settings` 关闭。
+独立模式的设置和对话保存在 `~/.cortex-cli-preview`，外观与语言保存在 `~/.cortex-cli-ui.json`。模型请求发往你配置的供应商，工具在本机执行。`CORTEX_LANGUAGE=en` 或 `zh-CN` 优先于保存的语言；`NO_COLOR=1` 关闭颜色，`/motion` 减少动画。下一步预测仍为 Beta，每轮会额外请求一次模型，可在 `/settings` 关闭。终端在后台时，需要你确认或长任务结束会提醒你：Ghostty、iTerm2、Kitty、WezTerm、Warp 弹系统通知，其他终端响铃。装上 [`fd`](https://github.com/sharkdp/fd) 后 `@` 可按名称搜索整个项目，`cortex doctor` 会检查。
 
 ```sh
 cortex update                        # 从本仓库更新

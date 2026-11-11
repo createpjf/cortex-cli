@@ -36,8 +36,15 @@ First launch guides you through choosing a provider, model and API key. The inte
 | View agents / sessions needing attention | `/agents` / `/inbox` |
 | Stop the current run / reopen a pending request | Esc / `/pending` |
 | Resume a conversation / change settings | `/resume` / `/settings` |
+| Attach an image | Ctrl+V, or drag the file into the terminal |
+| Run a command on your computer | `!` followed by the command |
+| Write an AGENTS.md for the project | `/init` |
+| Clear the input / quit | Ctrl+C / Ctrl+C twice on an empty input |
+| Suspend to the shell | Ctrl+Z, then `fg` |
 
-The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Use `/keymap` to customize bindings and `/help` for more.
+The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Approvals open after you stop typing and take number keys, so a half-typed sentence can't answer them. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Stopping a run moves queued messages back to the input.
+
+`!` commands run in your shell in the project folder, without the sandbox or approvals. Their output is shown in the conversation and sent along with your next message; remove it in `/attachments`. Use `/keymap` to customize bindings and `/help` for more.
 
 <details>
 <summary>Welcome screen, command palette and agent dashboard</summary>
@@ -59,17 +66,19 @@ Screens are rendered from the real TUI with example data.
 cortex exec "Summarize this project" --output-format json
 cortex review                         # Read-only review of uncommitted changes
 cortex sessions                      # List saved conversations
-cortex resume <session-id>
+cortex resume                        # Choose a conversation to resume
+cortex resume --last                 # Continue the latest one in this folder
+echo "Summarize this project" | cortex exec
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
 ```
 
-Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to save the final reply without overwriting an existing file. `cortex --help` lists every option.
+Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to save the final reply without overwriting an existing file. `exec` has no time limit unless you pass `--timeout <seconds>`. `cortex --help` lists every option.
 
 **Already using Cortex desktop?** Run `cortex --desktop` to share its providers, permissions and conversations. Keep a compatible desktop app running. Desktop mode is unsupported on Windows and unverified on Linux; computer use requires desktop mode, interactive approval and the desktop extension.
 
 ## Settings and updates
 
-Standalone settings and conversations live in `~/.cortex-cli-preview`; appearance and language live in `~/.cortex-cli-ui.json`. Model requests go to your configured provider; tools run on your computer. `CORTEX_LANGUAGE=en` or `zh-CN` overrides the saved language. `NO_COLOR=1` disables colors; `/motion` reduces animation. Next-message predictions are beta, make an extra model request per turn, and can be disabled in `/settings`.
+Standalone settings and conversations live in `~/.cortex-cli-preview`; appearance and language live in `~/.cortex-cli-ui.json`. Model requests go to your configured provider; tools run on your computer. `CORTEX_LANGUAGE=en` or `zh-CN` overrides the saved language. `NO_COLOR=1` disables colors; `/motion` reduces animation. Next-message predictions are beta, make an extra model request per turn, and can be disabled in `/settings`. When the terminal is in the background, Cortex lets you know when it needs approval or finishes a long run: a system notification in Ghostty, iTerm2, Kitty, WezTerm and Warp, a bell elsewhere. Install [`fd`](https://github.com/sharkdp/fd) so `@` searches the whole project by name; `cortex doctor` checks for it.
 
 ```sh
 cortex update                        # Update from this repository
