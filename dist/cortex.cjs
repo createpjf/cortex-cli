@@ -50097,7 +50097,7 @@ function validateAppearance(value) {
   if (data.version !== 1 || !themeNames.includes(String(data.theme)) || typeof data.reducedMotion !== "boolean") {
     throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   }
-  if (data.language !== void 0 && !isLanguage(data.language) || data.notifications !== void 0 && typeof data.notifications !== "boolean" || data.expandDetails !== void 0 && typeof data.expandDetails !== "boolean" || data.predictions !== void 0 && typeof data.predictions !== "boolean") {
+  if (data.language !== void 0 && !isLanguage(data.language) || data.notifications !== void 0 && typeof data.notifications !== "boolean" || data.expandDetails !== void 0 && typeof data.expandDetails !== "boolean" || data.predictions !== void 0 && typeof data.predictions !== "boolean" || data.vim !== void 0 && typeof data.vim !== "boolean") {
     throw new Error(tr("\u5916\u89C2\u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "Appearance settings are invalid"));
   }
   return {
@@ -50107,7 +50107,8 @@ function validateAppearance(value) {
     ...data.language !== void 0 && { language: data.language },
     ...data.notifications !== void 0 && { notifications: data.notifications },
     ...data.expandDetails !== void 0 && { expandDetails: data.expandDetails },
-    ...data.predictions !== void 0 && { predictions: data.predictions }
+    ...data.predictions !== void 0 && { predictions: data.predictions },
+    ...data.vim !== void 0 && { vim: data.vim }
   };
 }
 function readAppearance(path = appearancePath()) {
@@ -51106,6 +51107,13 @@ function commandCatalog(context) {
       group: tools
     },
     {
+      name: "btw",
+      label: tr("\u65C1\u95EE", "Side question"),
+      description: tr("\u987A\u53E3\u95EE\u4E00\u53E5\uFF0C\u4E0D\u6253\u65AD\u3001\u4E0D\u8FDB\u5BF9\u8BDD", "Ask without interrupting; not added to the conversation"),
+      group: session,
+      argumentHint: tr("<\u95EE\u9898>", "<question>")
+    },
+    {
       name: "queue",
       label: tr("\u5F85\u53D1\u9001\u6D88\u606F", "Queued messages"),
       description: tr("\u67E5\u770B\u3001\u64A4\u56DE\u6216\u6539\u56DE\u8349\u7A3F", "View, withdraw or edit queued messages"),
@@ -51127,6 +51135,7 @@ function commandCatalog(context) {
       description: tr("\u731C\u4F60\u4E0B\u4E00\u53E5\uFF0CTab \u586B\u5165", "Suggest your next message; Tab fills it in"),
       group: settings2
     },
+    { name: "vim", label: tr("Vim \u8F93\u5165\u6A21\u5F0F", "Vim input mode"), description: tr("\u6253\u5F00\u6216\u5173\u95ED\uFF0CEsc \u8FDB\u5165\u666E\u901A\u6A21\u5F0F", "Toggle; Esc enters normal mode"), group: settings2 },
     {
       name: "details",
       label: tr("\u9ED8\u8BA4\u5C55\u5F00\u65B9\u5F0F", "Default expansion"),
@@ -60553,6 +60562,81 @@ var Composer = class extends import_pi_tui3.Editor {
   isShowingAutocomplete() {
     return super.isShowingAutocomplete() || this.fileMenu()?.count === 0;
   }
+  /** Vim 输入模式；关着时不看 vimMode。打开时从插入模式开始 */
+  vimMode = "insert";
+  vimPending;
+  /** 插入模式下的 Esc 只切到普通模式；返回 false 时由原逻辑处理（停止、回退） */
+  vimEscape() {
+    if (!vimOn() || this.isShowingAutocomplete()) return false;
+    if (this.vimMode === "normal") {
+      const pending = !!this.vimPending;
+      this.vimPending = void 0;
+      return pending;
+    }
+    this.vimMode = "normal";
+    if (this.getCursor().col > 0) super.handleInput("\x1B[D");
+    return true;
+  }
+  /** 普通模式的按键翻译成编辑器已有的操作（与 Emacs 键同一套）；返回 false 交回原逻辑 */
+  vimKey(data) {
+    const char = (0, import_pi_tui3.decodeKittyPrintable)(data) ?? data;
+    if (/[\x00-\x1f\x7f]/.test(char) || char === "/" && !this.getText()) return false;
+    const key = (sequence) => super.handleInput(sequence);
+    const { line, col } = this.getCursor(), lines = this.getLines(), text2 = lines[line] ?? "";
+    const insert = () => {
+      this.vimMode = "insert";
+    };
+    const pending = this.vimPending;
+    this.vimPending = void 0;
+    if (pending) {
+      if (char === pending) {
+        key("");
+        if (text2) key("\v");
+        if (pending === "d" && lines.length > 1) key(line < lines.length - 1 ? "\v" : "");
+      } else {
+        const sequence = { w: "\x1Bd", e: "\x1Bd", b: "", $: "\v", "0": "" }[char];
+        if (!sequence) return true;
+        key(sequence);
+      }
+      if (pending === "c") insert();
+      return true;
+    }
+    const simple = { j: "\x1B[B", k: "\x1B[A", w: "\x1Bf", e: "\x1Bf", b: "\x1Bb", "0": "", "^": "", u: "", p: "" };
+    if (simple[char]) key(simple[char]);
+    else if (char === "h") {
+      if (col > 0) key("\x1B[D");
+    } else if (char === "l") {
+      if (col < text2.length - 1) key("\x1B[C");
+    } else if (char === "$") {
+      key("");
+      if (text2) key("\x1B[D");
+    } else if (char === "x") {
+      if (col < text2.length) key("\x1B[3~");
+    } else if (char === "i") insert();
+    else if (char === "a") {
+      if (col < text2.length) key("\x1B[C");
+      insert();
+    } else if (char === "I") {
+      key("");
+      insert();
+    } else if (char === "A") {
+      key("");
+      insert();
+    } else if (char === "o") {
+      key("");
+      key("\n");
+      insert();
+    } else if (char === "O") {
+      key("");
+      key("\n");
+      key("\x1B[A");
+      insert();
+    } else if (char === "D" || char === "C") {
+      if (col < text2.length) key("\v");
+      if (char === "C") insert();
+    } else if (char === "d" || char === "c") this.vimPending = char;
+    return true;
+  }
   handleInput(data) {
     if (this.prediction) {
       const text2 = this.prediction;
@@ -60562,6 +60646,7 @@ var Composer = class extends import_pi_tui3.Editor {
         return;
       }
     }
+    if (vimOn() && this.vimMode === "normal" && this.vimKey(data)) return;
     if (data === "/" && !this.getText()) {
       this.openCommands();
       return;
@@ -60614,13 +60699,15 @@ var Composer = class extends import_pi_tui3.Editor {
       const text2 = (index ? "  " : this.getText().startsWith("!") ? theme.warning("\u203A ") : theme.accent("\u203A ")) + (ghost && !index ? (0, import_pi_tui3.truncateToWidth)(line.trimEnd() + ghost, inner) : line);
       return theme.border("\u2502") + " " + text2 + " ".repeat(Math.max(0, inner + 2 - (0, import_pi_tui3.visibleWidth)(text2))) + " " + theme.border("\u2502");
     });
-    return [...menu, border(width, "\u256D\u256E", frame.topLeft, frame.top), ...body, border(width, "\u2570\u256F", "", frame.bottom)];
+    const vim = !vimOn() ? "" : this.vimMode === "normal" ? theme.accent(theme.bold(tr("\u666E\u901A", "Normal"))) : theme.muted(tr("\u63D2\u5165", "Insert"));
+    return [...menu, border(width, "\u256D\u256E", frame.topLeft, frame.top), ...body, border(width, "\u2570\u256F", vim, frame.bottom)];
   }
   // 重排后的补全列表不复用旧鼠标坐标，键盘操作保持一致。
   handleMouse() {
     return void 0;
   }
 };
+var vimOn = () => appearanceStore.get(appearanceAtom).vim === true;
 var SecretInput = class extends import_pi_tui3.Input {
   render(width) {
     const masked = "\u2022".repeat(Math.min(this.getValue().length, Math.max(0, width - 4), 24));
@@ -60871,6 +60958,10 @@ var TerminalUI = class {
       if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "up") && !this.editor.getText() && !this.editor.isShowingAutocomplete() && this.onRecallQueued()) {
         return { consume: true };
       }
+      if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "escape") && this.editor.vimEscape()) {
+        this.tui.requestRender();
+        return { consume: true };
+      }
       if (!this.pending && (0, import_pi_tui3.matchesKey)(data, "escape") && !this.editor.isShowingAutocomplete()) {
         this.onStop();
         if (!this.active && !this.editor.getText()) {
@@ -61085,6 +61176,10 @@ var TerminalUI = class {
           { value: "off", label: tr("\u5173\u95ED", "Off") }
         ], { initial: before.notifications === false ? "off" : "on", search: false });
         next = { ...before, notifications: selected === "on" };
+      } else if (command === "/vim") {
+        next = { ...before, vim: !before.vim };
+        this.editor.vimMode = "insert";
+        this.notify(next.vim ? tr("Vim \u6A21\u5F0F\u5DF2\u5F00\u542F\uFF0CEsc \u8FDB\u5165\u666E\u901A\u6A21\u5F0F", "Vim mode on. Esc enters normal mode") : tr("Vim \u6A21\u5F0F\u5DF2\u5173\u95ED", "Vim mode off"));
       } else if (command === "/predictions") {
         const selected = await this.select(tr("\u4E0B\u4E00\u6B65\u9884\u6D4B\uFF08Beta\uFF09", "Next-message prediction (Beta)"), [
           { value: "on", label: tr("\u5F00\u542F", "On"), description: tr("\u6BCF\u8F6E\u7ED3\u675F\u540E\u731C\u4F60\u4E0B\u4E00\u53E5\uFF0CTab \u586B\u5165\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u53D1\u9001\uFF1B\u6BCF\u8F6E\u591A\u4E00\u6B21\u5C0F\u8BF7\u6C42", "Suggests your next message after each turn; Tab fills it in and never sends. One extra small request per turn") },
@@ -61376,17 +61471,21 @@ var TerminalUI = class {
     const commandKey = keyFor("commands", appearanceStore.get(appearanceAtom).keys) ? this.shortcut("commands") : empty ? "/" : "";
     const modeKey = keyFor("permissions", appearanceStore.get(appearanceAtom).keys) ? this.shortcut("permissions") : empty ? "/mode" : "";
     const commands = commandKey ? [{ text: hint(commandKey, tr("\u547D\u4EE4", "commands")), drop: this.active ? 1 : 0 }] : [];
+    const vim = vimOn() ? this.editor.vimMode : void 0;
+    const vimHint = vim === "normal" ? [{ text: hint("i", tr("\u8F93\u5165", "insert")), drop: 0 }] : vim === "insert" ? [{ text: hint("Esc", tr("\u666E\u901A\u6A21\u5F0F", "normal mode")), drop: 2 }] : [];
     const actions = [];
     if (!this.pending && !this.editor.isShowingAutocomplete()) {
       if (this.editor.getText().startsWith("!")) actions.push({ text: hint("Enter", tr("\u5728\u672C\u673A\u8FD0\u884C", "run on this machine")), drop: 0 });
       else if (!this.context) actions.push({ text: hint("Ctrl+D", tr("\u9000\u51FA", "quit")), drop: 0 });
       else if (this.commands.interaction) actions.push({ text: hint("/pending", tr("\u786E\u8BA4", "review")), drop: 0 }, { text: hint("Ctrl+C", tr("\u505C\u6B62", "stop")), drop: 0 });
       else if (this.active) {
-        actions.push({ text: hint("Esc", tr("\u505C\u6B62", "stop")), drop: 0 });
+        actions.push({ text: vim === "insert" ? hint("Ctrl+C", tr("\u505C\u6B62", "stop")) : hint("Esc", tr("\u505C\u6B62", "stop")), drop: 0 });
         if (this.editor.getText().trim() || this.attachments.length) actions.push({ text: hint("Enter", tr("\u6392\u961F", "queue")), drop: 3 });
-        actions.push(...commands);
+        actions.push(...vimHint, ...commands);
       } else if (this.editor.prediction && empty) actions.push({ text: hint("Tab", tr("\u63A5\u53D7\u9884\u6D4B", "accept")), drop: 0 }, ...commands);
+      else if (vim === "normal") actions.push(...vimHint, ...!empty ? [{ text: hint("Enter", tr("\u53D1\u9001", "send")), drop: 1 }] : [], ...commands);
       else if (this.idle) actions.push(
+        ...vimHint,
         ...modeKey ? [{ text: hint(modeKey, tr("\u6A21\u5F0F", "mode")), drop: 2 }] : [],
         ...empty ? [{ text: hint("/model", tr("\u6A21\u578B", "model")), drop: 3 }] : [],
         ...commands
@@ -61590,14 +61689,19 @@ var TerminalUI = class {
             warning: tr("\u63D0\u9192", "Warning"),
             turn: tr("\u672C\u8F6E\u6B65\u9AA4", "Steps"),
             divider: tr("\u8F6E\u6B21", "Turn"),
-            shell: tr("\u547D\u4EE4", "Command")
+            shell: tr("\u547D\u4EE4", "Command"),
+            aside: tr("\u65C1\u95EE", "Aside")
           }[entry2.kind]
         })),
         { initial }
       );
       initial = id;
       const entry = entries.find((item) => item.id === id);
-      if (entry) await this.view(entry.kind === "assistant" ? "Cortex" : tr("\u8BE6\u60C5", "Details"), entry.detail || entry.text, entry.kind === "assistant");
+      if (entry) await this.view(
+        entry.kind === "assistant" ? "Cortex" : tr("\u8BE6\u60C5", "Details"),
+        entry.kind === "aside" ? entry.text + "\n\n" + (entry.output ?? "") : entry.detail || entry.text,
+        entry.kind === "assistant" || entry.kind === "aside"
+      );
     }
   }
   cancelForm(error = new UiCancelled()) {
@@ -61805,6 +61909,13 @@ var TerminalUI = class {
             if (open && report.length > 8) lines.push(theme.muted(this.keyHint(tr("    \u2514 Ctrl+T \u5B8C\u6574\u62A5\u544A", "    \u2514 Ctrl+T full report"))));
           }
           lines.push("");
+          continue;
+        }
+        if (entry.kind === "aside") {
+          const bar = theme.muted("\u2502 ");
+          const answer = entry.status === "failed" ? new import_pi_tui3.Text(theme.error("\u2717 " + (entry.output ?? "")), 0, 0).render(Math.max(1, width - 2)) : entry.output ? this.markdown(entry.id, entry.output, Math.max(1, width - 2)) : [];
+          const tail = entry.status === "running" ? theme.accent(this.indicator()) + theme.muted(tr(" \u56DE\u7B54\u4E2D", " Answering")) : entry.status === "failed" ? "" : theme.muted(tr("\u53EA\u7ED9\u4F60\u770B\uFF0C\u4E0D\u8FDB\u5BF9\u8BDD\uFF0CAgent \u770B\u4E0D\u5230", "Only shown to you; not added to the conversation, so the agent can\u2019t see it") + (entry.elapsedMs !== void 0 ? "  " + formatDuration(entry.elapsedMs) : ""));
+          lines.push(...[...new import_pi_tui3.Text(theme.bold(tr("\u65C1\u95EE", "Aside")) + "  " + theme.muted(text2), 0, 0).render(Math.max(1, width - 2)), ...answer, ...tail ? [tail] : []].map((line) => bar + line), "");
           continue;
         }
         if (entry.kind === "shell") {
@@ -63189,7 +63300,7 @@ async function connectDesktop(profileDir) {
 }
 
 // package.json
-var version = "0.1.53";
+var version = "0.1.55";
 
 // src/interactive.ts
 var import_node_fs20 = require("node:fs");
@@ -64149,6 +64260,11 @@ async function runInteractive(worker, options, request, ui) {
           description: appearanceStore.get(appearanceAtom).predictions === false ? tr("\u5173\u95ED", "Off") : tr("\u5F00\u542F", "On")
         },
         {
+          value: "/vim",
+          label: tr("Vim \u8F93\u5165\u6A21\u5F0F", "Vim input mode"),
+          description: appearanceStore.get(appearanceAtom).vim ? tr("\u5F00\u542F", "On") : tr("\u5173\u95ED", "Off")
+        },
+        {
           value: "/notifications",
           label: tr("\u5B8C\u6210\u4E0E\u786E\u8BA4\u63D0\u9192", "Notifications"),
           description: appearanceStore.get(appearanceAtom).notifications === false ? tr("\u5173\u95ED", "Off") : tr("\u5F00\u542F", "On")
@@ -64156,7 +64272,7 @@ async function runInteractive(worker, options, request, ui) {
         { value: "/language", label: tr("\u8BED\u8A00", "Language"), description: getLanguage() === "en" ? "English" : "\u7B80\u4F53\u4E2D\u6587" },
         { value: "/keymap", label: tr("\u5FEB\u6377\u952E", "Key bindings"), description: tr("\u5F53\u524D\u7ACB\u5373\u751F\u6548  \u5176\u4ED6\u7EC8\u7AEF\u91CD\u5F00\u751F\u6548", "Applies here now  reopen other terminals") }
       ], { description: options.desktop ? tr("\u4F9B\u5E94\u5546\u8FDE\u63A5\u8BF7\u5728 Cortex \u684C\u9762\u4FEE\u6539\u3002", "Change the provider connection in Cortex desktop.") : void 0 });
-      if (command === "/theme" || command === "/motion" || command === "/notifications" || command === "/details" || command === "/predictions") await ui.showAppearance(command);
+      if (command === "/theme" || command === "/motion" || command === "/notifications" || command === "/details" || command === "/predictions" || command === "/vim") await ui.showAppearance(command);
       else if (command === "/keymap") await ui.showKeymap();
       else if (command === "/language") {
         await ui.showAppearance(command);
@@ -64299,6 +64415,17 @@ async function runInteractive(worker, options, request, ui) {
     }).catch(() => {
     });
   };
+  const asides = /* @__PURE__ */ new Map();
+  const askAside = (question) => {
+    const id = (0, import_node_crypto9.randomUUID)(), startedAt = Date.now();
+    const show = (patch) => {
+      const entries = store.get(state).entries, index = entries.findIndex((item) => item.id === id);
+      if (index >= 0) update({ entries: entries.with(index, { ...entries[index], ...patch }) });
+    };
+    update({ entries: [...store.get(state).entries, { id, kind: "aside", text: clean(question), status: "running", startedAt }] });
+    asides.set(id, (text2) => show({ output: clean(text2) }));
+    void query({ type: "aside", id, question }, new AbortController().signal).then((reply) => show({ output: reply.type === "aside" ? clean(reply.text) : "", status: "completed", elapsedMs: Date.now() - startedAt })).catch((error) => show({ output: clean(error.message), status: "failed", elapsedMs: Date.now() - startedAt })).finally(() => asides.delete(id));
+  };
   const submit = (text2) => {
     predicting?.abort();
     predicting = void 0;
@@ -64326,6 +64453,15 @@ async function runInteractive(worker, options, request, ui) {
       if (command === "/help") {
         if (ui) ui.showHelp();
         else entry(help(commandContext()));
+      } else if (command === "/btw") {
+        const question = text2.trim().slice(rawCommand.length).trim();
+        if (question) askAside(question);
+        else if (ui) void ui.ask(tr("\u65C1\u95EE", "Side question"), { hint: tr("\u4E0D\u6253\u65AD\u3001\u4E0D\u8FDB\u5BF9\u8BDD  Enter \u63D0\u95EE  Esc \u8FD4\u56DE", "Doesn\u2019t interrupt or join the conversation  Enter ask  Esc back") }).then((value2) => {
+          if (value2.trim()) askAside(value2.trim());
+        }).catch((error) => {
+          if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
+        });
+        else entry(tr("\u7528\u6CD5\uFF1A/btw \u95EE\u9898\u3002\u8FD0\u884C\u4E2D\u4E5F\u80FD\u95EE\uFF0C\u7B54\u6848\u53EA\u7ED9\u4F60\u770B\uFF0C\u4E0D\u8FDB\u5BF9\u8BDD\u3002", "Usage: /btw <question>. Works during a run; the answer is only shown to you and isn\u2019t added to the conversation."));
       } else if (command === "/status") {
         const session = current2.session;
         const context = current2.context;
@@ -64467,7 +64603,7 @@ async function runInteractive(worker, options, request, ui) {
         void action?.catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
-      } else if (command === "/theme" || command === "/motion" || command === "/details" || command === "/predictions") {
+      } else if (command === "/theme" || command === "/motion" || command === "/details" || command === "/predictions" || command === "/vim") {
         if (ui) void ui.showAppearance(command).catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
@@ -64838,7 +64974,9 @@ async function runInteractive(worker, options, request, ui) {
     } else if (message.type === "receipt") {
     } else if (message.type === "resolved") {
       update({ requests: store.get(state).requests.filter((item) => item.interaction.request.requestId !== message.requestId), answers: {} });
-    } else if (message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "prediction" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff" || message.type === "forked") {
+    } else if (message.type === "aside" && !message.done) {
+      asides.get(message.id)?.(message.text);
+    } else if (message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "prediction" || message.type === "aside" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff" || message.type === "forked") {
       const pending = queries.get(message.id);
       queries.delete(message.id);
       if ("error" in message && message.error) pending?.reject(new Error(message.error));
@@ -65070,10 +65208,12 @@ async function runInteractive(worker, options, request, ui) {
       const unsubscribe = store.sub(state, () => {
         const current2 = store.get(state);
         for (const item of current2.entries) {
-          if (printed.get(item.id) !== item.text) {
-            const speaker = item.agentId ? "@" + item.agentId + tr("\uFF1A", ": ") : item.kind === "assistant" ? tr("Cortex\uFF1A", "Cortex: ") : item.kind === "user" ? tr("\u4F60\uFF1A", "You: ") : "";
-            process.stdout.write(speaker + item.text + "\n");
-            printed.set(item.id, item.text);
+          if (item.kind === "aside" && item.status === "running") continue;
+          const text2 = item.kind === "aside" ? item.text + "\n" + (item.output ?? "") : item.text;
+          if (printed.get(item.id) !== text2) {
+            const speaker = item.agentId ? "@" + item.agentId + tr("\uFF1A", ": ") : item.kind === "assistant" ? tr("Cortex\uFF1A", "Cortex: ") : item.kind === "user" ? tr("\u4F60\uFF1A", "You: ") : item.kind === "aside" ? tr("\u65C1\u95EE\uFF1A", "Aside: ") : "";
+            process.stdout.write(speaker + text2 + "\n");
+            printed.set(item.id, text2);
           }
         }
         const pending = clean(pendingText());

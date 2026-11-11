@@ -39,10 +39,12 @@ First launch guides you through choosing a provider, model and API key. The inte
 | Attach an image | Ctrl+V, or drag the file into the terminal |
 | Run a command on your computer | `!` followed by the command |
 | Write an AGENTS.md for the project | `/init` |
+| Ask a side question without interrupting | `/btw` followed by the question |
+| Vim input mode | `/vim` to turn it on or off |
 | Clear the input / quit | Ctrl+C / Ctrl+C twice on an empty input |
 | Suspend to the shell | Ctrl+Z, then `fg` |
 
-The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Approvals open after you stop typing and take number keys, so a half-typed sentence can't answer them. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Stopping a run moves queued messages back to the input.
+The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Approvals open after you stop typing and take number keys, so a half-typed sentence can't answer them. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Stopping a run moves queued messages back to the input. `/btw` asks the model once using the current conversation, even during a run; the answer only appears in your transcript, the agent can't see it, and it's unavailable in conversations that used a knowledge base. With Vim mode on, Esc first switches to normal mode and a second Esc stops the run; normal mode supports hjkl, w b e, 0 $, i a o, x dd cc dw, u to undo and p to put back.
 
 `!` commands run in your shell in the project folder, without the sandbox or approvals. Their output is shown in the conversation and sent along with your next message; remove it in `/attachments`. Use `/keymap` to customize bindings and `/help` for more.
 
