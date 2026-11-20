@@ -72,9 +72,13 @@ cortex resume                        # Choose a conversation to resume
 cortex resume --last                 # Continue the latest one in this folder
 echo "Summarize this project" | cortex exec
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
+cortex hooks list                    # List hooks in global/hooks.json
+cortex hooks trust 6ae5bb22          # Runs from the next run once trusted
 ```
 
 Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to save the final reply without overwriting an existing file. `exec` has no time limit unless you pass `--timeout <seconds>`. `cortex --help` lists every option.
+
+Hooks go in `global/hooks.json` in the config directory, in the Claude Code format, and support UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Stop and SubagentStop. Only hooks you trust with `cortex hooks trust <ID>` run; editing a command requires trusting it again, and `untrust` revokes it. On macOS hooks run in a sandbox by default; on other systems they run with your user permissions. In desktop mode, trust hooks in the desktop app under Settings › Hooks.
 
 **Already using Cortex desktop?** Run `cortex --desktop` to share its providers, permissions and conversations. Keep a compatible desktop app running. Desktop mode is unsupported on Windows and unverified on Linux; computer use requires desktop mode, interactive approval and the desktop extension.
 

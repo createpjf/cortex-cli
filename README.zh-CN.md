@@ -72,9 +72,13 @@ cortex resume                        # 选一个对话恢复
 cortex resume --last                 # 接上当前目录最近一次
 echo "总结当前项目" | cortex exec
 cortex mcp add files -- npx -y @modelcontextprotocol/server-filesystem ~/Documents
+cortex hooks list                    # 列出 global/hooks.json 里的钩子
+cortex hooks trust 6ae5bb22          # 确认后下一轮运行起执行
 ```
 
 `--output-schema schema.json` 校验 JSON 回复，`-o answer.md` 保存最终回复且拒绝覆盖已有文件。`exec` 默认不限时，需要时加 `--timeout <秒>`。`cortex --help` 查看全部参数。
+
+钩子按 Claude Code 格式写在配置目录的 `global/hooks.json`，支持 UserPromptSubmit、PreToolUse、PostToolUse、PostToolUseFailure、Stop 与 SubagentStop。只有用 `cortex hooks trust <ID>` 信任过的才运行，改了命令要重新信任；`untrust` 取消信任。macOS 上默认在沙箱里运行，其他系统以你的用户权限运行。共享模式在桌面的设置 › 钩子里信任。
 
 **已经在用 Cortex 桌面？** 运行 `cortex --desktop` 共用桌面的供应商、权限和对话，并保持兼容的桌面应用运行。Windows 不支持共享模式，Linux 共享模式尚未验收；操作电脑还需交互审批和桌面扩展。
 
