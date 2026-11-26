@@ -30,9 +30,9 @@ cortex
 | 操作 | 快捷键或命令 |
 | --- | --- |
 | 发送消息 / 换行 | Enter / Ctrl+J |
-| 选择工作方式 | Shift+Tab |
-| 切换模型 / 思考强度 | `/model` / Ctrl+S |
-| 查找命令与 Skills / 引用文件 | Ctrl+P 或 `/` / `@` |
+| 轮换工作方式（按需确认 → 计划 → 自动执行） | Shift+Tab；完全放行在 `/permissions` |
+| 切换模型 / 思考强度 | `/model`，或直接 `/model opus high` / Ctrl+S |
+| 命令（常用的直接列出，其余输入即可搜到）/ 引用文件 | `/` 或 Ctrl+P / `@` |
 | 查看代理 / 待处理会话 | `/agents` / `/inbox` |
 | 停止当前运行 / 重开待确认请求 | Esc / `/pending` |
 | 恢复对话 / 修改设置 | `/resume` / `/settings` |
@@ -44,7 +44,7 @@ cortex
 | 清空输入 / 退出 | Ctrl+C / 输入为空时连按两次 Ctrl+C |
 | 挂起到 Shell | Ctrl+Z，`fg` 回来 |
 
-默认按需确认。**Plan** 只读；**Auto-approve** 减少确认，但仍保留不可逆操作保护。审批面板在你停止输入后才出现，用数字键选择，打到一半的句子不会替你作答。运行中按 Enter 将消息排队，Alt+Enter 向当前运行插话；停止运行时，排队的消息放回输入框。`/btw` 用当前对话的记录单独问一次模型，运行中也能问；答案只显示在对话区，Agent 看不到，用过知识库的对话不能用。打开 Vim 模式后，Esc 先切到普通模式，再按一次才停止运行；普通模式支持 hjkl、w b e、0 $、i a o、x dd cc dw、u 撤销与 p 粘回。
+默认按需确认。**Plan** 只读；**Auto-approve** 减少确认，但仍保留不可逆操作保护。审批面板在你停止输入后才出现，用数字键选择，Esc 即拒绝，打到一半的句子不会替你作答。运行中按 Enter 将消息排队，Alt+Enter 向当前运行插话；停止运行时，排队的消息放回输入框。`/btw` 用当前对话的记录单独问一次模型，运行中也能问；答案只显示在对话区，Agent 看不到，用过知识库的对话不能用。打开 Vim 模式后，Esc 先切到普通模式，再按一次才停止运行；普通模式支持 hjkl、w b e、0 $、i a o、x dd cc dw、u 撤销与 p 粘回。
 
 `!` 命令在项目目录里用你的 Shell 直接运行，不经沙箱和审批。输出显示在对话里，并随你的下一条消息发给模型，可在 `/attachments` 移除。`/keymap` 自定义快捷键，`/help` 查看更多操作。
 
@@ -80,7 +80,7 @@ cortex hooks trust 6ae5bb22          # 确认后下一轮运行起执行
 
 钩子按 Claude Code 格式写在配置目录的 `global/hooks.json`，支持 UserPromptSubmit、PreToolUse、PostToolUse、PostToolUseFailure、Stop 与 SubagentStop。只有用 `cortex hooks trust <ID>` 信任过的才运行，改了命令要重新信任；`untrust` 取消信任。macOS 上默认在沙箱里运行，其他系统以你的用户权限运行。共享模式在桌面的设置 › 钩子里信任。
 
-**已经在用 Cortex 桌面？** 运行 `cortex --desktop` 共用桌面的供应商、权限和对话，并保持兼容的桌面应用运行。Windows 不支持共享模式，Linux 共享模式尚未验收；操作电脑还需交互审批和桌面扩展。
+**已经在用 Cortex 桌面？** macOS 上桌面开着时，直接运行 `cortex` 就会接上桌面，共用供应商、权限和对话，`/model` 一屏列出桌面里所有已启用的供应商；桌面没开时，CLI 也用桌面里的供应商在本机运行：用过一次 CLI 之后，桌面把能共用的 API Key 加密存在配置目录，主密钥放在系统钥匙串（订阅登录与 Bedrock IAM 不共用；删掉配置目录里的 `shared-credentials.optin` 即停止共用），对话存在 CLI 自己的目录。`cortex resume` 找的是 CLI 自己的对话，恢复桌面里的对话加 `--desktop`。要用独立配置加 `--standalone`。桌面没开时可用 `cortex --desktop` 显式连接（需保持兼容的桌面应用运行）。Windows 不支持共享模式，Linux 共享模式尚未验收；操作电脑还需交互审批和桌面扩展。
 
 ## 设置与更新
 

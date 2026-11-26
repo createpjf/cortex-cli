@@ -30,9 +30,9 @@ First launch guides you through choosing a provider, model and API key. The inte
 | Action | Shortcut or command |
 | --- | --- |
 | Send a message / add a newline | Enter / Ctrl+J |
-| Choose work mode | Shift+Tab |
-| Switch model / thinking level | `/model` / Ctrl+S |
-| Find commands and skills / reference a file | Ctrl+P or `/` / `@` |
+| Cycle work mode (Ask → Plan → Auto-approve) | Shift+Tab; Bypass permissions lives in `/permissions` |
+| Switch model / thinking level | `/model`, or `/model opus high` directly / Ctrl+S |
+| Commands (common ones listed, type to find the rest) / reference a file | `/` or Ctrl+P / `@` |
 | View agents / sessions needing attention | `/agents` / `/inbox` |
 | Stop the current run / reopen a pending request | Esc / `/pending` |
 | Resume a conversation / change settings | `/resume` / `/settings` |
@@ -44,7 +44,7 @@ First launch guides you through choosing a provider, model and API key. The inte
 | Clear the input / quit | Ctrl+C / Ctrl+C twice on an empty input |
 | Suspend to the shell | Ctrl+Z, then `fg` |
 
-The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Approvals open after you stop typing and take number keys, so a half-typed sentence can't answer them. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Stopping a run moves queued messages back to the input. `/btw` asks the model once using the current conversation, even during a run; the answer only appears in your transcript, the agent can't see it, and it's unavailable in conversations that used a knowledge base. With Vim mode on, Esc first switches to normal mode and a second Esc stops the run; normal mode supports hjkl, w b e, 0 $, i a o, x dd cc dw, u to undo and p to put back.
+The default mode asks for approval when needed. **Plan** is read-only; **Auto-approve** reduces prompts but retains protection for irreversible actions. Approvals open after you stop typing and take number keys (Esc denies), so a half-typed sentence can't answer them. Enter queues a follow-up while a run is active; Alt+Enter sends it into the current run. Stopping a run moves queued messages back to the input. `/btw` asks the model once using the current conversation, even during a run; the answer only appears in your transcript, the agent can't see it, and it's unavailable in conversations that used a knowledge base. With Vim mode on, Esc first switches to normal mode and a second Esc stops the run; normal mode supports hjkl, w b e, 0 $, i a o, x dd cc dw, u to undo and p to put back.
 
 `!` commands run in your shell in the project folder, without the sandbox or approvals. Their output is shown in the conversation and sent along with your next message; remove it in `/attachments`. Use `/keymap` to customize bindings and `/help` for more.
 
@@ -80,7 +80,7 @@ Use `--output-schema schema.json` to validate a JSON reply, or `-o answer.md` to
 
 Hooks go in `global/hooks.json` in the config directory, in the Claude Code format, and support UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Stop and SubagentStop. Only hooks you trust with `cortex hooks trust <ID>` run; editing a command requires trusting it again, and `untrust` revokes it. On macOS hooks run in a sandbox by default; on other systems they run with your user permissions. In desktop mode, trust hooks in the desktop app under Settings › Hooks.
 
-**Already using Cortex desktop?** Run `cortex --desktop` to share its providers, permissions and conversations. Keep a compatible desktop app running. Desktop mode is unsupported on Windows and unverified on Linux; computer use requires desktop mode, interactive approval and the desktop extension.
+**Already using Cortex desktop?** On macOS, plain `cortex` connects to it while it's running: same providers, permissions and conversations, and `/model` lists every provider enabled in the desktop app. When the desktop app is closed, the CLI still uses its providers locally: once you've used the CLI on this Mac, the desktop encrypts shareable API keys in its config folder with a master key kept in the macOS Keychain (subscription sign-ins and Bedrock IAM aren't shared; delete `shared-credentials.optin` in the config folder to stop sharing), and conversations stay in the CLI's own folder. `cortex resume` looks in the CLI's own conversations; add `--desktop` to resume a desktop one. Add `--standalone` to use separate settings. `cortex --desktop` connects explicitly; keep a compatible desktop app running. Desktop mode is unsupported on Windows and unverified on Linux; computer use requires desktop mode, interactive approval and the desktop extension.
 
 ## Settings and updates
 
