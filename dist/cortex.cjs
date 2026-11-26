@@ -38,7 +38,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var version;
 var init_package = __esm({
   "package.json"() {
-    version = "0.1.70";
+    version = "0.1.71";
   }
 });
 
@@ -44202,10 +44202,6 @@ function stepsLabel(steps, max, paint2 = { added: (text2) => text2, removed: (te
     }
   }
   const lines = [added && paint2.added("+" + added), removed && paint2.removed("\u2212" + removed)].filter(Boolean).join(" ");
-  const internal = (key) => key === "Tasks" || key === "DiscoverCapabilities";
-  if ([...counts.keys()].some((key) => !internal(key))) {
-    for (const key of [...counts.keys()]) if (internal(key)) counts.delete(key);
-  }
   const segments = [...counts].map(([key, n4]) => toolSegment(key, n4) + (key === "Edit" && lines ? " " + lines : ""));
   const shown = segments.slice(0, max);
   const rest = [...counts.values()].slice(max).reduce((sum, n4) => sum + n4, 0);
@@ -58272,8 +58268,6 @@ var init_tui = __esm({
       metrics = "";
       contextText = "";
       tasks = "";
-      /** 任务清单第一次出现的时间（按轮）：小任务不挂清单，至少 3 项、出现满 10 秒才显示 */
-      tasksSince;
       agents = [];
       agentRunId;
       agentsTruncated = false;
@@ -58464,7 +58458,7 @@ var init_tui = __esm({
             return { consume: true };
           }
           if (!this.pending && key("tools")) {
-            this.launch(() => this.showTools(false));
+            this.launch(() => this.showTools());
             return { consume: true };
           }
           if (!this.pending && key("transcript")) {
@@ -58923,8 +58917,6 @@ var init_tui = __esm({
         this.metrics = metrics;
         this.contextText = contextText;
         this.tasks = tasks;
-        if (!tasks) this.tasksSince = void 0;
-        else if (!this.tasksSince || this.tasksSince.runId !== runId) this.tasksSince = { runId, at: this.now() };
         this.agents = agents;
         this.agentRunId = runId;
         this.agentsTruncated = truncated;
@@ -59147,9 +59139,7 @@ var init_tui = __esm({
           );
           rows.push((0, import_pi_tui3.truncateToWidth)(styled, width));
         }
-        const total = Number(/(\d+)\/(\d+)/.exec(this.tasks)?.[2] ?? 0);
-        const settled = !!this.tasksSince && this.now() - this.tasksSince.at >= 1e4;
-        const tasks = this.active && this.tasks && total >= 3 && settled ? "\u25C6 " + clean(this.tasks) : "";
+        const tasks = this.active && this.tasks ? "\u25C6 " + clean(this.tasks) : "";
         const agents = this.agentStrip(width);
         if (tasks || agents) {
           const room = Math.max(0, width - (0, import_pi_tui3.visibleWidth)(agents) - (agents ? 2 : 0));
@@ -59596,12 +59586,10 @@ var init_tui = __esm({
             }
             if (entry.kind === "assistant") {
               if (text2) {
-                const rewritten = rewriteMentionLinks(text2, this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks);
-                const body = this.markdown(entry.id, rewritten, Math.max(1, width - 2)).map((line) => "  " + line);
-                const first = assistantShown ? -1 : body.findIndex((line) => clean(line).trim());
-                if (first >= 0) body[first] = theme.accent("\u25CF ") + body[first].slice(2);
+                if (!assistantShown) lines.push(theme.accent("\u25CF ") + theme.accent(theme.bold("Cortex")));
                 assistantShown = true;
-                lines.push(...body, "");
+                const rewritten = rewriteMentionLinks(text2, this.context?.cwd, (0, import_pi_tui3.getCapabilities)().hyperlinks);
+                lines.push(...this.markdown(entry.id, rewritten, Math.max(1, width - 2)).map((line) => "  " + line), "");
               }
               continue;
             }
@@ -59672,13 +59660,12 @@ var init_tui = __esm({
               const open = this.isOpen(entry.id);
               const raw = text2.split("\n").filter(Boolean);
               clickable(entry.id);
-              const live = entry.status === "running" && this.liveRunId === entry.runId && group22.at(-1) === entry && groups.at(-1) === group22;
-              if (live) {
-                const latest = raw.at(-1) ?? "";
-                lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted("\u25B8 " + tr("\u601D\u8003\u4E2D", "Thinking") + (latest ? "  " + latest : "\u2026")), width));
+              if (entry.status === "running") {
+                lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted("\u25B8 " + tr("\u601D\u8003\u4E2D\u2026", "Thinking\u2026")), width));
+                const preview = new import_pi_tui3.Text(clean(text2), 0, 0).render(Math.max(1, width - 4)).slice(-2);
+                lines.push(...preview.map((line) => "  " + theme.muted("\u2502 " + line)));
               } else {
-                const seconds = entry.startedAt !== void 0 && entry.endedAt !== void 0 ? Math.max(1, Math.round((entry.endedAt - entry.startedAt) / 1e3)) : void 0;
-                lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted((open ? "\u25BE " : "\u25B8 ") + (seconds !== void 0 ? tr(`\u60F3\u4E86 ${seconds} \u79D2`, `Thought for ${seconds}s`) : tr("\u601D\u8003\u8FC7\u7A0B", "Thought process"))), width));
+                lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted((open ? "\u25BE " : "\u25B8 ") + tr("\u601D\u8003\u8FC7\u7A0B", "Thought process") + "  " + raw.length + tr(" \u884C", " " + plural(raw.length, "line")) + (open ? "" : this.keyHint(tr("  (Ctrl+O)", "  (Ctrl+O)")))), width));
                 if (open && text2) {
                   const body = new import_pi_tui3.Text(clean(text2), 0, 0).render(Math.max(1, width - 4));
                   lines.push(...body.slice(0, 16).map((line) => "  " + theme.muted("\u2502 " + line)));
