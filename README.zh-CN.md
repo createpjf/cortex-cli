@@ -5,6 +5,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT 许可证" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.19-43853d" alt="需要 Node.js 22.19 或更高版本" /></a>
   <a href="https://github.com/createpjf/cortex-cli/commits/main"><img src="https://img.shields.io/badge/status-preview-8b5cf6" alt="预览版" /></a>
+  <a href="https://github.com/createpjf/cortex-cli/releases"><img src="https://img.shields.io/github/downloads/createpjf/cortex-cli/total?label=downloads" alt="下载量" /></a>
 </p>
 
 <picture>

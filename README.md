@@ -5,6 +5,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.19-43853d" alt="Node.js 22.19 or later" /></a>
   <a href="https://github.com/createpjf/cortex-cli/commits/main"><img src="https://img.shields.io/badge/status-preview-8b5cf6" alt="Preview" /></a>
+  <a href="https://github.com/createpjf/cortex-cli/releases"><img src="https://img.shields.io/github/downloads/createpjf/cortex-cli/total?label=downloads" alt="Downloads" /></a>
 </p>
 
 <picture>
