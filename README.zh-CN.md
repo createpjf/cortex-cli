@@ -32,8 +32,8 @@ cortex
 | --- | --- |
 | 发送消息 / 换行 | Enter / Ctrl+J |
 | 轮换工作方式（按需确认 → 计划 → 自动执行） | Shift+Tab；完全放行在 `/permissions` |
-| 切换模型 / 思考强度 | `/model`，或直接 `/model opus high` / Ctrl+S |
-| 命令（常用的直接列出，其余输入即可搜到）/ 引用文件 | `/` 或 Ctrl+P / `@` |
+| 切换模型 / 供应商连接 / 思考强度 | `/model`、`/config` / Ctrl+S |
+| 命令 / 引用文件 | `/` 或 Ctrl+P / `@` |
 | 查看代理 / 待处理会话 | `/agents` / `/inbox` |
 | 停止当前运行 / 重开待确认请求 | Esc / `/pending` |
 | 恢复对话 / 修改设置 | `/resume` / `/settings` |

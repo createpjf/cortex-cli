@@ -32,8 +32,8 @@ First launch guides you through choosing a provider, model and API key. The inte
 | --- | --- |
 | Send a message / add a newline | Enter / Ctrl+J |
 | Cycle work mode (Ask → Plan → Auto-approve) | Shift+Tab; Bypass permissions lives in `/permissions` |
-| Switch model / thinking level | `/model`, or `/model opus high` directly / Ctrl+S |
-| Commands (common ones listed, type to find the rest) / reference a file | `/` or Ctrl+P / `@` |
+| Switch model / provider connection / thinking | `/model`, `/config` / Ctrl+S |
+| Commands / reference a file | `/` or Ctrl+P / `@` |
 | View agents / sessions needing attention | `/agents` / `/inbox` |
 | Stop the current run / reopen a pending request | Esc / `/pending` |
 | Resume a conversation / change settings | `/resume` / `/settings` |

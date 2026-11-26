@@ -38,7 +38,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var version;
 var init_package = __esm({
   "package.json"() {
-    version = "0.1.69";
+    version = "0.1.70";
   }
 });
 
@@ -44736,7 +44736,7 @@ function commandCatalog(context) {
         group: settings2,
         getArgumentCompletions: (prefix) => choices(context.session.thinking.levels, prefix)
       }],
-      ...!context.desktop && context.session?.provider ? [{ name: "config", label: tr("\u8FDE\u63A5\u8BBE\u7F6E", "Connection"), aliases: [tr("\u8BBE\u7F6E API", "Set API"), "API Key", tr("\u4F9B\u5E94\u5546", "Provider")], description: tr("\u7F16\u8F91\u4F9B\u5E94\u5546\u8FDE\u63A5", "Edit the provider connection"), group: settings2 }] : []
+      ...!context.desktop ? [{ name: "config", label: tr("\u8FDE\u63A5\u8BBE\u7F6E", "Connection"), aliases: [tr("\u8BBE\u7F6E API", "Set API"), "API Key", tr("\u4F9B\u5E94\u5546", "Provider")], description: tr("\u7F16\u8F91\u4F9B\u5E94\u5546\u8FDE\u63A5", "Edit the provider connection"), group: settings2 }] : []
     ] : [],
     { name: "theme", label: tr("\u4E3B\u9898", "Theme"), description: tr("\u9884\u89C8\u4E0E\u4FDD\u5B58\u7EC8\u7AEF\u914D\u8272", "Preview and save terminal colors"), group: settings2 },
     { name: "motion", label: tr("\u52A8\u6001\u6548\u679C", "Motion"), description: tr("\u5F00\u542F\u6216\u51CF\u5C11\u52A8\u6001\u6548\u679C", "Enable or reduce motion"), group: settings2 },
@@ -44854,8 +44854,7 @@ function commandCatalog(context) {
   ].map((command6) => {
     const bindings = { settings: "settings", tools: "tools", transcript: "transcript", thinking: "thinking", permissions: "permissions" };
     const action = bindings[command6.name];
-    const secondary = !PRIMARY_COMMANDS.includes(command6.name) && !CONTEXTUAL_COMMANDS.includes(command6.name);
-    return { ...command6, ...action && { shortcut: keyLabel(keyFor(action, context.keys)) }, ...secondary && { secondary } };
+    return action ? { ...command6, shortcut: keyLabel(keyFor(action, context.keys)) } : command6;
   });
 }
 function skillItems(skills) {
@@ -44877,7 +44876,7 @@ function fileReferencePrefix(before) {
   if (token.startsWith("@") || /^"?(?:\.{1,2}[/\\]|~[/\\]|[a-z]:[/\\])/i.test(token)) return token;
   return /^"?\/[^/\s]+\//.test(token) ? token : void 0;
 }
-var import_node_child_process, import_node_fs4, import_node_os2, import_node_path5, import_pi_tui2, PRIMARY_COMMANDS, CONTEXTUAL_COMMANDS, choices, CortexAutocomplete;
+var import_node_child_process, import_node_fs4, import_node_os2, import_node_path5, import_pi_tui2, choices, CortexAutocomplete;
 var init_commands = __esm({
   "src/commands.ts"() {
     "use strict";
@@ -44890,8 +44889,6 @@ var init_commands = __esm({
     init_presentation();
     init_terminal_text();
     init_keymap();
-    PRIMARY_COMMANDS = ["model", "permissions", "new", "resume", "rewind", "compact", "btw", "diff", "review", "init", "agents", "status", "settings", "help", "exit"];
-    CONTEXTUAL_COMMANDS = ["pending"];
     choices = (values, prefix) => values.filter((value) => value.toLowerCase().includes(prefix.toLowerCase())).map((value) => ({ value, label: value }));
     CortexAutocomplete = class extends import_pi_tui2.CombinedAutocompleteProvider {
       constructor(context, cwd, discover, sessions, fd = findFd()) {
@@ -44933,7 +44930,7 @@ var init_commands = __esm({
         if (token) {
           const skills = token === "/" || token === "/skill:" ? await this.discover(options.signal) : context.session?.skills ?? [];
           if (options.signal.aborted) return null;
-          const commands7 = before.trimStart() === token ? commandCatalog(this.context()).filter((command6) => token !== "/" || !command6.secondary).map((command6) => ({
+          const commands7 = before.trimStart() === token ? commandCatalog(this.context()).map((command6) => ({
             value: command6.name,
             label: "/" + command6.name,
             description: command6.description,
@@ -59323,13 +59320,13 @@ var init_tui = __esm({
           await this.view(tr("\u5FEB\u6377\u952E", "Shortcuts"), render, false, this.keyHint(tr("\u5168\u90E8\u547D\u4EE4\uFF1ACtrl+P", "All commands: Ctrl+P")));
         });
       }
-      /** Ctrl+P：与「/」同一份命令，一级命令按「会话 / 设置 / 工具」分组列出，其余命令与 Skills 输入搜索词后出现 */
+      /** Ctrl+P：与「/」同一份命令，按「会话 / 设置 / 工具」分组列出，Skills 输入搜索词后出现 */
       async showCommands() {
         const context = this.commands;
         const available = new Set(commandCatalog(context).map((item) => item.name));
         const commands6 = commandCatalog({ ...context, busy: false });
         const groups = [...new Set(commands6.map((item) => item.group))];
-        commands6.sort((a6, b6) => Number(!!a6.secondary) - Number(!!b6.secondary) || groups.indexOf(a6.group) - groups.indexOf(b6.group));
+        commands6.sort((a6, b6) => groups.indexOf(a6.group) - groups.indexOf(b6.group));
         const skills = () => (this.commands.session?.skills ?? []).map((skill) => ({
           value: "/skill:" + skill.id,
           group: "Skill",
@@ -59340,14 +59337,13 @@ var init_tui = __esm({
         let lastGroup = "";
         const command6 = await this.select(tr("\u547D\u4EE4", "Commands"), [
           ...commands6.map((item) => {
-            const group22 = !item.secondary && item.group !== lastGroup ? item.group : void 0;
+            const group22 = item.group !== lastGroup ? item.group : void 0;
             if (group22) lastGroup = item.group;
             return {
               value: "/" + item.name,
               ...group22 && { group: group22 },
               label: "/" + item.name,
               muted: !available.has(item.name),
-              hidden: item.secondary,
               searchText: [item.name, item.label, item.description, ...item.aliases ?? []].join(" "),
               description: available.has(item.name) ? clean(item.description ?? "") + (item.shortcut ? "  " + item.shortcut : "") : context.busyReason ?? tr("\u5F53\u524D\u6682\u4E0D\u53EF\u7528", "Currently unavailable")
             };
@@ -59535,7 +59531,7 @@ var init_tui = __esm({
           ];
           const greetingWidth = Math.max(...greeting.map((line) => (0, import_pi_tui3.visibleWidth)(line)));
           const welcome = [];
-          if (this.unicode && this.terminal.rows >= 40 && width >= dotLogoWidth + 4) {
+          if (this.unicode && this.terminal.rows >= 24 && width >= dotLogoWidth + 4) {
             const logo = dotLogo(this.logoFrame, logoShade);
             if (width >= dotLogoWidth + greetingWidth + 8) {
               const pad = " ".repeat(Math.max(0, Math.floor((width - dotLogoWidth - greetingWidth - 6) / 2)));
@@ -188713,14 +188709,17 @@ function resolveModelQuery(text2, candidates) {
   const match = pick((id) => id === needle) ?? pick((id) => id.startsWith(needle)) ?? pick((id) => id.includes(needle));
   return { query, ...last && { thinking: last }, ...match && { match } };
 }
-async function chooseDesktopModel(ui, providers, currentChannel, current2, saveScope) {
+async function chooseDesktopModel(ui, providers, currentChannel, current2, saveScope, allowEdit = false) {
   const ordered = [...providers].sort((a6, b6) => Number(b6.channelId === currentChannel) - Number(a6.channelId === currentChannel));
-  const items = ordered.flatMap((provider) => provider.models.map((model2, index) => ({
-    value: provider.channelId + "\n" + model2,
-    label: model2 + (provider.channelId === currentChannel && model2 === current2 ? " \u2713" : ""),
-    searchText: model2 + " " + provider.name + " " + provider.provider,
-    ...index === 0 && { group: provider.name }
-  })));
+  const items = [
+    ...ordered.flatMap((provider) => provider.models.map((model2, index) => ({
+      value: provider.channelId + "\n" + model2,
+      label: model2 + (provider.channelId === currentChannel && model2 === current2 ? " \u2713" : ""),
+      searchText: model2 + " " + provider.name + " " + provider.provider,
+      ...index === 0 && { group: provider.name }
+    }))),
+    ...allowEdit ? [{ value: ":edit\n", label: tr("\uFF0B \u6DFB\u52A0\u6216\u4FEE\u6539\u8FDE\u63A5\u2026", "+ Add or change connection\u2026"), group: tr("\u5176\u4ED6\u8FDE\u63A5", "Other") }] : []
+  ];
   let scope = "default";
   const selection = await ui.select(tr("\u9009\u62E9\u6A21\u578B", "Select model"), items, {
     initial: currentChannel ? currentChannel + "\n" + current2 : void 0,
@@ -190496,7 +190495,11 @@ async function runInteractive(worker, options, request, ui) {
         let selectedScope = "default";
         const picked = await chooseDesktopModel(ui, providers, currentChannel, session.model, (value) => {
           selectedScope = value;
-        });
+        }, !options.desktop);
+        if (picked.channelId === ":edit") {
+          next = "/config";
+          return;
+        }
         if (picked.channelId === currentChannel && picked.model === session.model) return;
         const provider = providers.find((item) => item.channelId === picked.channelId);
         if (!options.desktop) selectedScope = "session";
