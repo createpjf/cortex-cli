@@ -76354,6 +76354,131 @@ var init_file_lock = __esm({
   }
 });
 
+// ../electron/src/main/runtime/cli-settings.ts
+function isLocalEndpoint(baseUrl) {
+  try {
+    const host2 = new URL(baseUrl).hostname.toLowerCase();
+    return host2 === "localhost" || host2 === "127.0.0.1" || host2 === "::1" || host2 === "[::1]" || host2.endsWith(".local");
+  } catch {
+    return false;
+  }
+}
+function validateCliSettings(value2) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) throw new Error(tr("CLI \u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "CLI settings are invalid"));
+  const data3 = value2;
+  if (data3.version !== 1 || typeof data3.provider !== "string" || !Object.hasOwn(PROVIDER_DEFAULT_URLS, data3.provider)) {
+    throw new Error(tr("\u8BF7\u9009\u62E9\u652F\u6301\u7684\u4F9B\u5E94\u5546", "Choose a supported provider"));
+  }
+  if (typeof data3.baseUrl !== "string") throw new Error(tr("\u8BF7\u586B\u5199 API \u5730\u5740", "Enter the API URL"));
+  let url4;
+  try {
+    url4 = new URL(data3.baseUrl);
+  } catch {
+    throw new Error(tr("API \u5730\u5740\u5FC5\u987B\u662F\u5B8C\u6574\u7684 HTTP(S) URL", "The API URL must be a complete HTTP(S) URL"));
+  }
+  if (!["https:", "http:"].includes(url4.protocol) || url4.username || url4.password || url4.search || url4.hash) {
+    throw new Error(tr("API \u5730\u5740\u4E0D\u80FD\u5305\u542B\u8D26\u53F7\u3001API Key\u3001\u67E5\u8BE2\u53C2\u6570\u6216\u7247\u6BB5", "The API URL can\u2019t contain credentials, API keys, query parameters or fragments"));
+  }
+  if (typeof data3.model !== "string" || !data3.model.trim() || data3.model.length > 256 || /[\s\x00-\x1f\x7f-\x9f]/.test(data3.model)) {
+    throw new Error(tr("\u8BF7\u586B\u5199\u4E0D\u542B\u7A7A\u767D\u7684\u6A21\u578B ID", "Enter a model ID without whitespace"));
+  }
+  if (data3.apiKey !== void 0 && (typeof data3.apiKey !== "string" || !data3.apiKey || data3.apiKey.length > 16384 || /[\x00-\x20\x7f]/.test(data3.apiKey))) {
+    throw new Error(tr("API Key \u4E3A\u7A7A\u6216\u5305\u542B\u65E0\u6548\u5B57\u7B26", "The API key is empty or has invalid characters"));
+  }
+  if (data3.keyEnv !== void 0 && (typeof data3.keyEnv !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(data3.keyEnv))) {
+    throw new Error(tr("\u73AF\u5883\u53D8\u91CF\u540D\u79F0\u683C\u5F0F\u65E0\u6548", "Invalid environment variable name"));
+  }
+  if (data3.credentials !== void 0 && (!data3.credentials || typeof data3.credentials !== "object" || Array.isArray(data3.credentials) || Object.entries(data3.credentials).some(([key4, value3]) => !/^[a-z-]+:https?:\/\//.test(key4) || typeof value3 !== "string" || !value3 || value3.length > 16384 || /[\x00-\x20\x7f]/.test(value3)))) {
+    throw new Error(tr("\u5DF2\u4FDD\u5B58\u7684\u51ED\u8BC1\u683C\u5F0F\u65E0\u6548", "The saved credential is invalid"));
+  }
+  return {
+    version: 1,
+    provider: data3.provider,
+    baseUrl: url4.href.replace(/\/$/, ""),
+    model: data3.model,
+    ...typeof data3.apiKey === "string" && { apiKey: data3.apiKey },
+    ...typeof data3.keyEnv === "string" && { keyEnv: data3.keyEnv },
+    ...data3.credentials && { credentials: data3.credentials }
+  };
+}
+function sameCliEndpoint(settings2, provider, baseUrl) {
+  try {
+    return settings2.provider === provider && settings2.baseUrl === new URL(baseUrl).href.replace(/\/$/, "");
+  } catch {
+    return false;
+  }
+}
+function savedCliKey(settings2, provider, baseUrl) {
+  if (!settings2) return;
+  if (sameCliEndpoint(settings2, provider, baseUrl) && settings2.apiKey) return settings2.apiKey;
+  return settings2.credentials?.[provider + ":" + new URL(baseUrl).href.replace(/\/$/, "")];
+}
+function readCliSettings(directory) {
+  const path13 = (0, import_node_path3.join)(directory, "cli-settings.json");
+  const entry = (0, import_node_fs3.lstatSync)(path13, { throwIfNoEntry: false });
+  if (!entry) return;
+  if (!entry.isFile()) throw new Error(tr("CLI \u8BBE\u7F6E\u5FC5\u987B\u662F\u666E\u901A\u6587\u4EF6\uFF0C\u4E0D\u80FD\u662F\u94FE\u63A5", "CLI settings must be a regular file, not a link"));
+  const fd2 = (0, import_node_fs3.openSync)(path13, import_node_fs3.constants.O_RDONLY | import_node_fs3.constants.O_NOFOLLOW);
+  try {
+    const stat17 = (0, import_node_fs3.fstatSync)(fd2);
+    if (!stat17.isFile() || stat17.size > 64 * 1024 || process.platform !== "win32" && (stat17.uid !== process.getuid?.() || stat17.mode & 63)) {
+      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u5FC5\u987B\u4EC5\u5F53\u524D\u7528\u6237\u53EF\u8BFB\u5199\uFF08chmod 600\uFF09\uFF0C\u4E14\u4E0D\u8D85\u8FC7 64 KiB", "The CLI settings file must be readable and writable only by the current user (chmod 600) and no larger than 64 KiB"));
+    }
+    let value2;
+    try {
+      value2 = JSON.parse((0, import_node_fs3.readFileSync)(fd2, "utf8"));
+    } catch {
+      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u635F\u574F\uFF1B\u8BF7\u6838\u5BF9 cli-settings.json\uFF0C\u539F\u6587\u4EF6\u672A\u6539\u52A8", "The CLI settings file is damaged. Check cli-settings.json; the original file is unchanged."));
+    }
+    return validateCliSettings(value2);
+  } finally {
+    (0, import_node_fs3.closeSync)(fd2);
+  }
+}
+function saveCliSettings(directory, settings2) {
+  withFileLock((0, import_node_path3.join)(directory, "cli-settings.json"), () => saveUnlocked(directory, settings2));
+}
+function saveUnlocked(directory, settings2) {
+  const previous4 = readCliSettings(directory);
+  const credentials = { ...previous4?.credentials, ...settings2.credentials };
+  if (previous4?.apiKey) credentials[previous4.provider + ":" + previous4.baseUrl] = previous4.apiKey;
+  const checked2 = validateCliSettings(settings2);
+  checked2.apiKey ??= savedCliKey(previous4, checked2.provider, checked2.baseUrl);
+  delete credentials[checked2.provider + ":" + checked2.baseUrl];
+  if (Object.keys(credentials).length) checked2.credentials = credentials;
+  if (Buffer.byteLength(JSON.stringify(checked2, null, 2)) > 64 * 1024) throw new Error(tr("CLI \u8BBE\u7F6E\u8D85\u8FC7 64 KiB\uFF0C\u672A\u5199\u5165", "CLI settings exceed 64 KiB and weren\u2019t saved"));
+  const path13 = (0, import_node_path3.join)(directory, "cli-settings.json");
+  for (const file3 of [path13, path13 + ".tmp"]) {
+    const stat17 = (0, import_node_fs3.lstatSync)(file3, { throwIfNoEntry: false });
+    if (stat17 && (!stat17.isFile() || process.platform !== "win32" && (stat17.uid !== process.getuid?.() || stat17.mode & 63))) {
+      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u7C7B\u578B\u6216\u6743\u9650\u4E0D\u5B89\u5168\uFF0C\u672A\u5199\u5165", "The CLI settings file type or permissions are unsafe, so nothing was saved"));
+    }
+  }
+  const oldMask = process.umask(63);
+  try {
+    writeJsonFileAtomic(path13, checked2, true);
+  } finally {
+    process.umask(oldMask);
+  }
+}
+function applyCliDefaults(request2, settings2) {
+  if (!settings2 || request2.sessionId || request2.channelId) return request2;
+  const provider = request2.provider ?? settings2.provider;
+  const baseUrl = request2.baseUrl ?? (provider === settings2.provider ? settings2.baseUrl : PROVIDER_DEFAULT_URLS[provider]);
+  return { ...request2, provider, baseUrl, model: request2.model ?? (sameCliEndpoint(settings2, provider, baseUrl) ? settings2.model : void 0) };
+}
+var import_node_fs3, import_node_path3;
+var init_cli_settings = __esm({
+  "../electron/src/main/runtime/cli-settings.ts"() {
+    "use strict";
+    import_node_fs3 = require("node:fs");
+    import_node_path3 = require("node:path");
+    init_src();
+    init_safe_file();
+    init_file_lock();
+  }
+});
+
 // ../../packages/core/src/providers/model-capabilities.ts
 function isNativeAnthropicUrl(baseUrl) {
   if (!baseUrl) return false;
@@ -211866,6 +211991,56 @@ var init_channel_manager = __esm({
     discoveryRefreshes = /* @__PURE__ */ new Map();
     BUCKET_NAME = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
     ACCESS_KEY_ID = /^[A-Za-z0-9]{1,128}$/;
+  }
+});
+
+// ../electron/src/main/runtime/connection.ts
+async function discoverModels(settings2, apiKey, signal) {
+  const { fetchModels: fetchModels2 } = await Promise.resolve().then(() => (init_channel_manager(), channel_manager_exports));
+  const result8 = await fetchModels2({ provider: settings2.provider, baseUrl: settings2.baseUrl, apiKey }, signal, true);
+  signal.throwIfAborted();
+  const clean5 = (text18) => apiKey ? text18.split(apiKey).join("[REDACTED]") : text18;
+  if (!result8.success) throw new Error(clean5(result8.message));
+  return [...new Set(result8.models.flatMap((model2) => {
+    try {
+      return [validateCliSettings({ ...settings2, model: model2.id }).model];
+    } catch {
+      return [];
+    }
+  }))].slice(0, 1e3);
+}
+async function verifyConnection(settings2, apiKey, signal) {
+  const { streamModel: streamModel2 } = await Promise.resolve().then(() => (init_model_transport(), model_transport_exports));
+  const { getFetchFn: getFetchFn2 } = await Promise.resolve().then(() => (init_proxy_fetch(), proxy_fetch_exports));
+  const { getEffectiveProxyUrl: getEffectiveProxyUrl2 } = await Promise.resolve().then(() => (init_proxy_settings_service(), proxy_settings_service_exports));
+  try {
+    const result8 = await streamModel2(
+      {
+        provider: settings2.provider,
+        baseUrl: settings2.baseUrl,
+        apiKey,
+        modelId: settings2.model,
+        // 写给模型的提示词保持中文
+        history: [],
+        userMessage: "\u53EA\u56DE\u590D OK\u3002",
+        systemMessage: "",
+        readImageAttachments: () => []
+      },
+      { signal, fetchFn: getFetchFn2(await getEffectiveProxyUrl2(true)), onEvent: () => {
+      }, maxTokens: 32 }
+    );
+    signal.throwIfAborted();
+    if (!result8.content.trim()) throw new Error(tr("\u6A21\u578B\u672A\u8FD4\u56DE\u6587\u5B57\uFF0C\u5C1A\u672A\u9A8C\u8BC1\u6210\u529F", "The model returned no text, so the connection isn\u2019t verified"));
+  } catch (error50) {
+    const message8 = error50 instanceof Error ? error50.message : String(error50);
+    throw new Error(apiKey ? message8.split(apiKey).join("[REDACTED]") : message8);
+  }
+}
+var init_connection = __esm({
+  "../electron/src/main/runtime/connection.ts"() {
+    "use strict";
+    init_src();
+    init_cli_settings();
   }
 });
 
@@ -735059,6 +735234,7 @@ async function startDesktopRuntime(options2) {
   const { host: host2 } = options2;
   const clients = /* @__PURE__ */ new Set();
   const runs2 = /* @__PURE__ */ new Map();
+  const lookups = /* @__PURE__ */ new Map();
   const settingsRevisions = /* @__PURE__ */ new Map();
   let ledger;
   let closing2 = false;
@@ -735619,6 +735795,10 @@ async function startDesktopRuntime(options2) {
         if (payload.type === "close") end(client);
         return;
       }
+      if (payload.type === "cancel-query") {
+        if (id19) lookups.get(id19)?.abort();
+        return;
+      }
       if (!UUID7.test(id19)) throw new Error(tr("\u4EA4\u4E92\u8BF7\u6C42 ID \u5FC5\u987B\u4E3A UUID", "The interactive request ID must be a UUID."));
       if (payload.type === "attachment") {
         if (payload.sessionId !== meta5.id) throw new Error(tr("\u9644\u4EF6\u4E0A\u4F20\u4F1A\u8BDD\u5DF2\u8FC7\u671F", "The attachment upload session has expired."));
@@ -735813,6 +735993,108 @@ async function startDesktopRuntime(options2) {
         } finally {
           settled();
           run3.pending.delete(pending5);
+        }
+        return;
+      }
+      if (payload.type === "providers-list") {
+        if (client.mobile) throw new Error(tr("\u79FB\u52A8\u7AEF\u4E0D\u53EF\u67E5\u770B\u6216\u4FEE\u6539\u4F9B\u5E94\u5546\u914D\u7F6E", "Mobile clients cannot manage provider settings."));
+        const providers = listChannels().map((channel2) => ({
+          channelId: channel2.id,
+          name: channel2.name,
+          provider: channel2.provider,
+          baseUrl: channel2.baseUrl,
+          enabled: channel2.enabled,
+          hasKey: Boolean(channel2.apiKey || channel2.subscription),
+          ...channel2.local !== void 0 && { local: channel2.local },
+          models: channel2.models.map(({ id: modelId, name: name2, enabled }) => ({ id: modelId, name: name2, enabled }))
+        }));
+        send3(client, { type: "providers", id: id19, providers });
+        return;
+      }
+      if (payload.type === "provider-upsert") {
+        if (client.mobile) throw new Error(tr("\u79FB\u52A8\u7AEF\u4E0D\u53EF\u4FEE\u6539\u4F9B\u5E94\u5546\u914D\u7F6E", "Mobile clients cannot modify provider settings."));
+        if (currentRunId || run3) throw new Error(tr("\u8BF7\u5728\u5F53\u524D\u8FD0\u884C\u7ED3\u675F\u540E\u4FEE\u6539\u4F9B\u5E94\u5546\u914D\u7F6E", "Change provider settings after the current run ends."));
+        const name2 = typeof payload.name === "string" ? payload.name.trim() : "";
+        if (!name2 || name2.length > 80) throw new Error(tr("\u4F9B\u5E94\u5546\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A\u4E14\u4E0D\u8D85\u8FC7 80 \u5B57\u7B26", "Provider name is required (max 80 characters)."));
+        if (typeof payload.provider !== "string" || !Object.hasOwn(PROVIDER_DEFAULT_URLS, payload.provider)) {
+          throw new Error(tr("\u8BF7\u9009\u62E9\u652F\u6301\u7684\u4F9B\u5E94\u5546", "Choose a supported provider."));
+        }
+        const checked2 = validateCliSettings({
+          version: 1,
+          provider: payload.provider,
+          baseUrl: payload.baseUrl,
+          model: payload.model,
+          ...typeof payload.apiKey === "string" && payload.apiKey ? { apiKey: payload.apiKey } : {}
+        });
+        let savedId;
+        if (typeof payload.channelId === "string" && payload.channelId) {
+          const existing = getChannelById(payload.channelId);
+          if (!existing) throw new Error(tr("\u76EE\u6807\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728", "Target provider was not found."));
+          const hasModel = existing.models.some((item) => item.id === checked2.model);
+          const models = hasModel ? existing.models.map((item) => item.id === checked2.model ? { ...item, enabled: true } : item) : [...existing.models, { id: checked2.model, name: checked2.model, enabled: true }];
+          const updated = updateChannel(existing.id, {
+            name: name2,
+            provider: checked2.provider,
+            baseUrl: checked2.baseUrl,
+            ...checked2.apiKey ? { apiKey: checked2.apiKey } : {},
+            ...typeof payload.enabled === "boolean" && { enabled: payload.enabled },
+            ...typeof payload.local === "boolean" && { local: payload.local },
+            models
+          });
+          savedId = updated.id;
+        } else {
+          const created = createChannel({
+            name: name2,
+            provider: checked2.provider,
+            baseUrl: checked2.baseUrl,
+            apiKey: checked2.apiKey ?? "",
+            enabled: typeof payload.enabled === "boolean" ? payload.enabled : true,
+            ...typeof payload.local === "boolean" && { local: payload.local },
+            models: [{ id: checked2.model, name: checked2.model, enabled: true }]
+          });
+          savedId = created.id;
+        }
+        for (const observer of clients) if (observer.sessionId) state12(observer);
+        send3(client, { type: "ack", id: id19, accepted: true, text: savedId });
+        return;
+      }
+      if (payload.type === "provider-delete") {
+        if (client.mobile) throw new Error(tr("\u79FB\u52A8\u7AEF\u4E0D\u53EF\u4FEE\u6539\u4F9B\u5E94\u5546\u914D\u7F6E", "Mobile clients cannot modify provider settings."));
+        if (currentRunId || run3) throw new Error(tr("\u8BF7\u5728\u5F53\u524D\u8FD0\u884C\u7ED3\u675F\u540E\u4FEE\u6539\u4F9B\u5E94\u5546\u914D\u7F6E", "Change provider settings after the current run ends."));
+        const channelId = typeof payload.channelId === "string" ? payload.channelId : "";
+        if (!channelId || !getChannelById(channelId)) throw new Error(tr("\u76EE\u6807\u4F9B\u5E94\u5546\u4E0D\u5B58\u5728", "Target provider was not found."));
+        deleteChannel(channelId);
+        for (const observer of clients) if (observer.sessionId) state12(observer);
+        send3(client, { type: "ack", id: id19, accepted: true });
+        return;
+      }
+      if (payload.type === "catalog" || payload.type === "verify") {
+        if (client.mobile) throw new Error(tr("\u79FB\u52A8\u7AEF\u4E0D\u53EF\u4FEE\u6539\u6216\u63A2\u6D4B\u4F9B\u5E94\u5546\u914D\u7F6E", "Mobile clients cannot query provider endpoints."));
+        const channelId = typeof payload.channelId === "string" && payload.channelId ? payload.channelId : void 0;
+        const existingChannel = channelId ? getChannelById(channelId) : void 0;
+        const raw2 = payload.connection ?? (existingChannel ? { version: 1, provider: existingChannel.provider, baseUrl: existingChannel.baseUrl, model: "pending" } : void 0);
+        const checked2 = validateCliSettings(raw2);
+        const key4 = checked2.apiKey || (channelId ? decryptApiKey(channelId) : "");
+        const controller3 = new AbortController();
+        lookups.set(id19, controller3);
+        try {
+          if (payload.type === "verify") {
+            try {
+              await verifyConnection(checked2, key4, AbortSignal.any([controller3.signal, AbortSignal.timeout(2e4)]));
+              send3(client, { type: "verification", id: id19 });
+            } catch (error50) {
+              send3(client, { type: "verification", id: id19, error: error50 instanceof Error ? error50.message : String(error50) });
+            }
+          } else {
+            try {
+              const models = await discoverModels(checked2, key4, AbortSignal.any([controller3.signal, AbortSignal.timeout(1e4)]));
+              send3(client, { type: "catalog", id: id19, models });
+            } catch (error50) {
+              send3(client, { type: "catalog", id: id19, models: [], error: error50 instanceof Error ? error50.message : String(error50) });
+            }
+          }
+        } finally {
+          lookups.delete(id19);
         }
         return;
       }
@@ -737031,6 +737313,8 @@ var init_desktop_service = __esm({
     init_utils();
     init_src();
     init_model_thinking_service();
+    init_cli_settings();
+    init_connection();
     init_settings_service();
     init_agent_session_manager();
     init_agent_workspace_manager();
@@ -835665,176 +835949,13 @@ var init_session_fork = __esm({
   }
 });
 
-// ../electron/src/main/runtime/connection.ts
-init_src();
-
-// ../electron/src/main/runtime/cli-settings.ts
-var import_node_fs3 = require("node:fs");
-var import_node_path3 = require("node:path");
-init_src();
-init_safe_file();
-init_file_lock();
-function isLocalEndpoint(baseUrl) {
-  try {
-    const host2 = new URL(baseUrl).hostname.toLowerCase();
-    return host2 === "localhost" || host2 === "127.0.0.1" || host2 === "::1" || host2 === "[::1]" || host2.endsWith(".local");
-  } catch {
-    return false;
-  }
-}
-function validateCliSettings(value2) {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) throw new Error(tr("CLI \u8BBE\u7F6E\u683C\u5F0F\u65E0\u6548", "CLI settings are invalid"));
-  const data3 = value2;
-  if (data3.version !== 1 || typeof data3.provider !== "string" || !Object.hasOwn(PROVIDER_DEFAULT_URLS, data3.provider)) {
-    throw new Error(tr("\u8BF7\u9009\u62E9\u652F\u6301\u7684\u4F9B\u5E94\u5546", "Choose a supported provider"));
-  }
-  if (typeof data3.baseUrl !== "string") throw new Error(tr("\u8BF7\u586B\u5199 API \u5730\u5740", "Enter the API URL"));
-  let url4;
-  try {
-    url4 = new URL(data3.baseUrl);
-  } catch {
-    throw new Error(tr("API \u5730\u5740\u5FC5\u987B\u662F\u5B8C\u6574\u7684 HTTP(S) URL", "The API URL must be a complete HTTP(S) URL"));
-  }
-  if (!["https:", "http:"].includes(url4.protocol) || url4.username || url4.password || url4.search || url4.hash) {
-    throw new Error(tr("API \u5730\u5740\u4E0D\u80FD\u5305\u542B\u8D26\u53F7\u3001API Key\u3001\u67E5\u8BE2\u53C2\u6570\u6216\u7247\u6BB5", "The API URL can\u2019t contain credentials, API keys, query parameters or fragments"));
-  }
-  if (typeof data3.model !== "string" || !data3.model.trim() || data3.model.length > 256 || /[\s\x00-\x1f\x7f-\x9f]/.test(data3.model)) {
-    throw new Error(tr("\u8BF7\u586B\u5199\u4E0D\u542B\u7A7A\u767D\u7684\u6A21\u578B ID", "Enter a model ID without whitespace"));
-  }
-  if (data3.apiKey !== void 0 && (typeof data3.apiKey !== "string" || !data3.apiKey || data3.apiKey.length > 16384 || /[\x00-\x20\x7f]/.test(data3.apiKey))) {
-    throw new Error(tr("API Key \u4E3A\u7A7A\u6216\u5305\u542B\u65E0\u6548\u5B57\u7B26", "The API key is empty or has invalid characters"));
-  }
-  if (data3.keyEnv !== void 0 && (typeof data3.keyEnv !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(data3.keyEnv))) {
-    throw new Error(tr("\u73AF\u5883\u53D8\u91CF\u540D\u79F0\u683C\u5F0F\u65E0\u6548", "Invalid environment variable name"));
-  }
-  if (data3.credentials !== void 0 && (!data3.credentials || typeof data3.credentials !== "object" || Array.isArray(data3.credentials) || Object.entries(data3.credentials).some(([key4, value3]) => !/^[a-z-]+:https?:\/\//.test(key4) || typeof value3 !== "string" || !value3 || value3.length > 16384 || /[\x00-\x20\x7f]/.test(value3)))) {
-    throw new Error(tr("\u5DF2\u4FDD\u5B58\u7684\u51ED\u8BC1\u683C\u5F0F\u65E0\u6548", "The saved credential is invalid"));
-  }
-  return {
-    version: 1,
-    provider: data3.provider,
-    baseUrl: url4.href.replace(/\/$/, ""),
-    model: data3.model,
-    ...typeof data3.apiKey === "string" && { apiKey: data3.apiKey },
-    ...typeof data3.keyEnv === "string" && { keyEnv: data3.keyEnv },
-    ...data3.credentials && { credentials: data3.credentials }
-  };
-}
-function sameCliEndpoint(settings2, provider, baseUrl) {
-  try {
-    return settings2.provider === provider && settings2.baseUrl === new URL(baseUrl).href.replace(/\/$/, "");
-  } catch {
-    return false;
-  }
-}
-function savedCliKey(settings2, provider, baseUrl) {
-  if (!settings2) return;
-  if (sameCliEndpoint(settings2, provider, baseUrl) && settings2.apiKey) return settings2.apiKey;
-  return settings2.credentials?.[provider + ":" + new URL(baseUrl).href.replace(/\/$/, "")];
-}
-function readCliSettings(directory) {
-  const path13 = (0, import_node_path3.join)(directory, "cli-settings.json");
-  const entry = (0, import_node_fs3.lstatSync)(path13, { throwIfNoEntry: false });
-  if (!entry) return;
-  if (!entry.isFile()) throw new Error(tr("CLI \u8BBE\u7F6E\u5FC5\u987B\u662F\u666E\u901A\u6587\u4EF6\uFF0C\u4E0D\u80FD\u662F\u94FE\u63A5", "CLI settings must be a regular file, not a link"));
-  const fd2 = (0, import_node_fs3.openSync)(path13, import_node_fs3.constants.O_RDONLY | import_node_fs3.constants.O_NOFOLLOW);
-  try {
-    const stat17 = (0, import_node_fs3.fstatSync)(fd2);
-    if (!stat17.isFile() || stat17.size > 64 * 1024 || process.platform !== "win32" && (stat17.uid !== process.getuid?.() || stat17.mode & 63)) {
-      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u5FC5\u987B\u4EC5\u5F53\u524D\u7528\u6237\u53EF\u8BFB\u5199\uFF08chmod 600\uFF09\uFF0C\u4E14\u4E0D\u8D85\u8FC7 64 KiB", "The CLI settings file must be readable and writable only by the current user (chmod 600) and no larger than 64 KiB"));
-    }
-    let value2;
-    try {
-      value2 = JSON.parse((0, import_node_fs3.readFileSync)(fd2, "utf8"));
-    } catch {
-      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u635F\u574F\uFF1B\u8BF7\u6838\u5BF9 cli-settings.json\uFF0C\u539F\u6587\u4EF6\u672A\u6539\u52A8", "The CLI settings file is damaged. Check cli-settings.json; the original file is unchanged."));
-    }
-    return validateCliSettings(value2);
-  } finally {
-    (0, import_node_fs3.closeSync)(fd2);
-  }
-}
-function saveCliSettings(directory, settings2) {
-  withFileLock((0, import_node_path3.join)(directory, "cli-settings.json"), () => saveUnlocked(directory, settings2));
-}
-function saveUnlocked(directory, settings2) {
-  const previous4 = readCliSettings(directory);
-  const credentials = { ...previous4?.credentials, ...settings2.credentials };
-  if (previous4?.apiKey) credentials[previous4.provider + ":" + previous4.baseUrl] = previous4.apiKey;
-  const checked2 = validateCliSettings(settings2);
-  checked2.apiKey ??= savedCliKey(previous4, checked2.provider, checked2.baseUrl);
-  delete credentials[checked2.provider + ":" + checked2.baseUrl];
-  if (Object.keys(credentials).length) checked2.credentials = credentials;
-  if (Buffer.byteLength(JSON.stringify(checked2, null, 2)) > 64 * 1024) throw new Error(tr("CLI \u8BBE\u7F6E\u8D85\u8FC7 64 KiB\uFF0C\u672A\u5199\u5165", "CLI settings exceed 64 KiB and weren\u2019t saved"));
-  const path13 = (0, import_node_path3.join)(directory, "cli-settings.json");
-  for (const file3 of [path13, path13 + ".tmp"]) {
-    const stat17 = (0, import_node_fs3.lstatSync)(file3, { throwIfNoEntry: false });
-    if (stat17 && (!stat17.isFile() || process.platform !== "win32" && (stat17.uid !== process.getuid?.() || stat17.mode & 63))) {
-      throw new Error(tr("CLI \u8BBE\u7F6E\u6587\u4EF6\u7C7B\u578B\u6216\u6743\u9650\u4E0D\u5B89\u5168\uFF0C\u672A\u5199\u5165", "The CLI settings file type or permissions are unsafe, so nothing was saved"));
-    }
-  }
-  const oldMask = process.umask(63);
-  try {
-    writeJsonFileAtomic(path13, checked2, true);
-  } finally {
-    process.umask(oldMask);
-  }
-}
-function applyCliDefaults(request2, settings2) {
-  if (!settings2 || request2.sessionId || request2.channelId) return request2;
-  const provider = request2.provider ?? settings2.provider;
-  const baseUrl = request2.baseUrl ?? (provider === settings2.provider ? settings2.baseUrl : PROVIDER_DEFAULT_URLS[provider]);
-  return { ...request2, provider, baseUrl, model: request2.model ?? (sameCliEndpoint(settings2, provider, baseUrl) ? settings2.model : void 0) };
-}
-
-// ../electron/src/main/runtime/connection.ts
-async function discoverModels(settings2, apiKey, signal) {
-  const { fetchModels: fetchModels2 } = await Promise.resolve().then(() => (init_channel_manager(), channel_manager_exports));
-  const result8 = await fetchModels2({ provider: settings2.provider, baseUrl: settings2.baseUrl, apiKey }, signal, true);
-  signal.throwIfAborted();
-  const clean5 = (text18) => apiKey ? text18.split(apiKey).join("[REDACTED]") : text18;
-  if (!result8.success) throw new Error(clean5(result8.message));
-  return [...new Set(result8.models.flatMap((model2) => {
-    try {
-      return [validateCliSettings({ ...settings2, model: model2.id }).model];
-    } catch {
-      return [];
-    }
-  }))].slice(0, 1e3);
-}
-async function verifyConnection(settings2, apiKey, signal) {
-  const { streamModel: streamModel2 } = await Promise.resolve().then(() => (init_model_transport(), model_transport_exports));
-  const { getFetchFn: getFetchFn2 } = await Promise.resolve().then(() => (init_proxy_fetch(), proxy_fetch_exports));
-  const { getEffectiveProxyUrl: getEffectiveProxyUrl2 } = await Promise.resolve().then(() => (init_proxy_settings_service(), proxy_settings_service_exports));
-  try {
-    const result8 = await streamModel2(
-      {
-        provider: settings2.provider,
-        baseUrl: settings2.baseUrl,
-        apiKey,
-        modelId: settings2.model,
-        // 写给模型的提示词保持中文
-        history: [],
-        userMessage: "\u53EA\u56DE\u590D OK\u3002",
-        systemMessage: "",
-        readImageAttachments: () => []
-      },
-      { signal, fetchFn: getFetchFn2(await getEffectiveProxyUrl2(true)), onEvent: () => {
-      }, maxTokens: 32 }
-    );
-    signal.throwIfAborted();
-    if (!result8.content.trim()) throw new Error(tr("\u6A21\u578B\u672A\u8FD4\u56DE\u6587\u5B57\uFF0C\u5C1A\u672A\u9A8C\u8BC1\u6210\u529F", "The model returned no text, so the connection isn\u2019t verified"));
-  } catch (error50) {
-    const message8 = error50 instanceof Error ? error50.message : String(error50);
-    throw new Error(apiKey ? message8.split(apiKey).join("[REDACTED]") : message8);
-  }
-}
-
 // ../electron/src/main/runtime/worker.ts
+init_connection();
 init_tool_events();
 init_agents();
 init_attachments();
 init_session_fork();
+init_cli_settings();
 var import_node_fs191 = require("node:fs");
 init_utils();
 init_src();

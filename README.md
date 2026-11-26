@@ -24,7 +24,7 @@ cortex
 
 First launch guides you through choosing a provider, model and API key. The interface follows your system language (Chinese on a Chinese system, English otherwise); change it in **`/settings` → Language**.
 
-**Providers:** Anthropic, OpenAI, Google, DeepSeek, FLock API Platform, xAI / Grok, OpenRouter, Kimi, Zhipu AI, MiniMax, Doubao, Qwen and custom OpenAI-compatible endpoints. Use `/config` to change connections and `/model` to switch models. Availability depends on your provider and account.
+**Providers:** Anthropic, OpenAI, Google, DeepSeek, FLock API Platform, xAI / Grok, OpenRouter, Kimi, Zhipu AI, MiniMax, Doubao, Qwen and custom OpenAI-compatible endpoints. Use `/config` (or `/providers`) to manage providers and connections in both standalone and desktop modes, and `/model` to switch models. Availability depends on your provider and account.
 
 ## In a conversation
 

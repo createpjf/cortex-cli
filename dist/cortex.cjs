@@ -38,7 +38,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var version;
 var init_package = __esm({
   "package.json"() {
-    version = "0.1.71";
+    version = "0.1.72";
   }
 });
 
@@ -44187,6 +44187,23 @@ function toolGroupLabel(group22) {
   }
   return stepsLabel(group22, 3);
 }
+function toolVerbLabel(tool, status, summary) {
+  const name = clean(tool ?? "");
+  const running = status === "running" || status === "requested";
+  const verbs = {
+    Bash: [tr("\u8FD0\u884C", "Running"), tr("\u5DF2\u8FD0\u884C", "Ran")],
+    Edit: [tr("\u4FEE\u6539", "Editing"), tr("\u5DF2\u4FEE\u6539", "Edited")],
+    MultiEdit: [tr("\u4FEE\u6539", "Editing"), tr("\u5DF2\u4FEE\u6539", "Edited")],
+    Write: [tr("\u5199\u5165", "Writing"), tr("\u5DF2\u5199\u5165", "Wrote")],
+    Read: [tr("\u8BFB\u53D6", "Reading"), tr("\u5DF2\u8BFB\u53D6", "Read")],
+    Grep: [tr("\u641C\u7D22", "Searching"), tr("\u5DF2\u641C\u7D22", "Searched")],
+    Glob: [tr("\u641C\u7D22", "Searching"), tr("\u5DF2\u641C\u7D22", "Searched")]
+  };
+  const pair = verbs[name];
+  const head = pair ? running ? pair[0] : pair[1] : name;
+  const tail = summary ? clean(summary) : "";
+  return tail ? head + " " + tail : head;
+}
 function stepsLabel(steps, max, paint2 = { added: (text2) => text2, removed: (text2) => text2 }) {
   const counts = /* @__PURE__ */ new Map();
   let added = 0, removed = 0;
@@ -44732,7 +44749,13 @@ function commandCatalog(context) {
         group: settings2,
         getArgumentCompletions: (prefix) => choices(context.session.thinking.levels, prefix)
       }],
-      ...!context.desktop ? [{ name: "config", label: tr("\u8FDE\u63A5\u8BBE\u7F6E", "Connection"), aliases: [tr("\u8BBE\u7F6E API", "Set API"), "API Key", tr("\u4F9B\u5E94\u5546", "Provider")], description: tr("\u7F16\u8F91\u4F9B\u5E94\u5546\u8FDE\u63A5", "Edit the provider connection"), group: settings2 }] : []
+      {
+        name: "config",
+        label: tr("\u4F9B\u5E94\u5546\u8FDE\u63A5", "Providers & connection"),
+        aliases: ["providers", tr("\u8BBE\u7F6E API", "Set API"), "API Key", tr("\u4F9B\u5E94\u5546", "Provider")],
+        description: tr("\u7BA1\u7406\u4F9B\u5E94\u5546\u4E0E API \u8FDE\u63A5", "Manage providers and API connections"),
+        group: settings2
+      }
     ] : [],
     { name: "theme", label: tr("\u4E3B\u9898", "Theme"), description: tr("\u9884\u89C8\u4E0E\u4FDD\u5B58\u7EC8\u7AEF\u914D\u8272", "Preview and save terminal colors"), group: settings2 },
     { name: "motion", label: tr("\u52A8\u6001\u6548\u679C", "Motion"), description: tr("\u5F00\u542F\u6216\u51CF\u5C11\u52A8\u6001\u6548\u679C", "Enable or reduce motion"), group: settings2 },
@@ -57937,6 +57960,24 @@ var init_attachments = __esm({
 });
 
 // src/tui.ts
+function formatNumberedDiffLines(patch, indent, innerWidth, limit) {
+  const rows = parsePatch(patch);
+  const digits = String(Math.max(1, ...rows.map((row) => Math.max(row.old ?? 0, row.new ?? 0)))).length;
+  const prefixPad = indent + "    ";
+  const lines = [];
+  for (const row of rows) {
+    if (row.kind === "hunk" || row.kind === "note") {
+      const hunkText = clean(row.text);
+      if (hunkText && row.kind === "note") lines.push((0, import_pi_tui3.truncateToWidth)(prefixPad + paintDiffRow(row, hunkText), innerWidth));
+      continue;
+    }
+    const lineNumber = row.kind === "remove" ? row.old : row.new ?? row.old;
+    const gutter = lineNumber === void 0 ? " ".repeat(digits) : String(lineNumber).padStart(digits);
+    const code = diffRowSign(row) + " " + clean(row.text);
+    lines.push((0, import_pi_tui3.truncateToWidth)(prefixPad + theme.muted(gutter) + " " + paintDiffRow(row, code), innerWidth));
+  }
+  return { lines: lines.slice(0, limit), total: lines.length };
+}
 function border(width, corners, left = "", right = "", line = theme.border) {
   const room = Math.max(0, width - 4);
   const r7 = right && (left ? (0, import_pi_tui3.visibleWidth)(left) + 2 : 0) + (0, import_pi_tui3.visibleWidth)(right) + 2 <= room ? right : "";
@@ -57965,7 +58006,7 @@ function detectNotifyProtocol(env8 = process.env) {
   if (env8.VTE_VERSION) return "osc777";
   return osc9Supported(env8) ? "osc9" : "bell";
 }
-var import_node_child_process4, import_node_path8, import_pi_tui3, decodePrintableKey, isDiffContent, SHORTCUT_GRACE_MS, selectTheme, listSelectTheme, markdownTheme, diffText, UiCancelled, shellStopKey, isShellDraft, Composer, vimOn, SecretInput, runClipCommand, copyNativeClipboard, TerminalUI;
+var import_node_child_process4, import_node_path8, import_pi_tui3, decodePrintableKey, isDiffContent, SHORTCUT_GRACE_MS, selectTheme, listSelectTheme, markdownTheme, diffText, paintDiffRow, diffRowSign, UiCancelled, shellStopKey, isShellDraft, Composer, vimOn, SecretInput, runClipCommand, copyNativeClipboard, TerminalUI;
 var init_tui = __esm({
   "src/tui.ts"() {
     "use strict";
@@ -58022,6 +58063,8 @@ var init_tui = __esm({
       underline: theme.underline
     };
     diffText = (text2) => clean(text2).split("\n").map((line) => line.startsWith("+") ? theme.success(line) : line.startsWith("-") ? theme.error(line) : line.startsWith("@@") ? theme.accent(line) : line).join("\n");
+    paintDiffRow = (row, text2) => !row ? text2 : row.kind === "add" ? theme.success(text2) : row.kind === "remove" ? theme.error(text2) : row.kind === "hunk" || row.kind === "note" ? theme.muted(text2) : text2;
+    diffRowSign = (row) => row.kind === "add" ? "+" : row.kind === "remove" ? "-" : " ";
     UiCancelled = class extends Error {
       constructor(exitCode, reason) {
         super(tr("\u5DF2\u53D6\u6D88", "Cancelled"));
@@ -59039,7 +59082,7 @@ var init_tui = __esm({
         if (failures.length) throw new Error(tr("\u90E8\u5206\u4EE3\u7406\u672A\u53D7\u7406\u505C\u6B62\u8BF7\u6C42\uFF1A\n", "Some agents rejected the stop request:\n") + failures.join("\n"));
       }
       indicator() {
-        return this.loader.render(8).join("").trim();
+        return clean(this.loader.render(8).join("")).trim();
       }
       syncAnimation() {
         const busy = this.active || this.entries.some((item) => (item.kind === "shell" || item.kind === "aside") && item.status === "running");
@@ -59129,7 +59172,7 @@ var init_tui = __esm({
         this.noticeTimer.unref();
         this.tui.requestRender();
       }
-      /** 输入框上方一行：运行中如有通知则在此优先展示；下面左侧为任务进度，右侧为代理统计 */
+      /** 输入框上方活动区：任务进度 + 代理统计，以及独立一行运行状态「◦ 运行中 (14s • Esc 停止)」 */
       renderActivity(width) {
         if (this.pending || this.tui.hasOverlay()) return [];
         const rows = [];
@@ -59145,6 +59188,18 @@ var init_tui = __esm({
           const room = Math.max(0, width - (0, import_pi_tui3.visibleWidth)(agents) - (agents ? 2 : 0));
           const left = (0, import_pi_tui3.truncateToWidth)(tasks, room);
           rows.push(theme.muted(left) + " ".repeat(Math.max(0, width - (0, import_pi_tui3.visibleWidth)(left) - (0, import_pi_tui3.visibleWidth)(agents))) + agents);
+        }
+        if (this.active) {
+          const stateText = clean(this.state).trim() || tr("\u8FD0\u884C\u4E2D", "Working");
+          const metricsParts = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
+          const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
+          const waiting = tool?.tool === "WaitAgentUpdates" && metricsParts.length > 1;
+          const label = waiting ? metricsParts[0] : stateText;
+          const elapsed = metricsParts.at(-1) || (this.busySince !== void 0 ? formatDuration(Math.max(0, this.now() - this.busySince)) : "");
+          const vim = vimOn() ? this.editor.vimMode : void 0;
+          const interrupt = vim === "insert" ? tr("Ctrl+C \u505C\u6B62", "ctrl+c to interrupt") : tr("Esc \u505C\u6B62", "esc to interrupt");
+          const meta = [elapsed, interrupt].filter(Boolean).join(" \u2022 ");
+          rows.push((0, import_pi_tui3.truncateToWidth)(theme.accent(this.indicator()) + " " + theme.bold(label) + (meta ? " " + theme.muted(`(${meta})`) : ""), width));
         }
         return rows;
       }
@@ -59171,18 +59226,18 @@ var init_tui = __esm({
         const modelRoom = room - (0, import_pi_tui3.visibleWidth)(parts.join("  ")) - 3;
         if (model2 && width >= 60 && modelRoom >= 12) parts.unshift(theme.muted((0, import_pi_tui3.truncateToWidth)(model2, modelRoom)));
         const bottom = parts.filter(Boolean).join("  ");
-        const state9 = clean(this.state).trim();
-        const metrics = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
-        const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
         const cwd = clean(this.context?.cwd ?? "");
         const branch = clean(this.context?.branch ?? "");
         const project = [(0, import_node_path8.basename)(cwd) || cwd, branch].filter(Boolean).join("  ");
+        const state9 = clean(this.state).trim();
+        const metrics = clean(this.metrics).split(/\s{2,}/).filter(Boolean);
+        const tool = this.entries.findLast((entry) => entry.kind === "tool" && !entry.agentId && entry.status === "running");
         const waiting = tool?.tool === "WaitAgentUpdates" && metrics.length > 1;
         const running = [waiting ? metrics[0] : state9, metrics.at(-1)].filter(Boolean).join("  ");
         const notice = this.notice ? { success: theme.success, info: theme.accent, warning: theme.warning, error: theme.error }[this.noticeVariant](
           { success: "\u2713", info: "\u2139", warning: "\u26A0", error: "\u2717" }[this.noticeVariant] + " " + this.notice
         ) : "";
-        const heading = this.active ? theme.accent(this.indicator()) + " " + theme.muted(running) : notice || (this.waiting ? theme.warning("\u25CF " + state9) : theme.muted(!this.context || !this.idle ? state9 : project));
+        const heading = this.active && !this.pending && !this.tui.hasOverlay() ? notice || theme.muted(project || state9) : this.active ? theme.accent(this.indicator()) + " " + theme.muted(running) : notice || (this.waiting ? theme.warning("\u25CF " + state9) : theme.muted(!this.context || !this.idle ? state9 : project));
         const topLeft = (0, import_pi_tui3.truncateToWidth)(heading, Math.max(0, width - 8 - (0, import_pi_tui3.visibleWidth)(top)));
         const hint = (key, label) => theme.bold(key) + theme.muted(" " + label);
         const empty = !this.editor.getText();
@@ -59607,11 +59662,18 @@ var init_tui = __esm({
               const status = entry.status === "denied" ? tr("\u672A\u6267\u884C", "Not executed") : entry.status === "failed" ? tr("\u5931\u8D25", "Failed") : entry.status === "unknown" ? tr("\u7ED3\u679C\u5F85\u6838\u5BF9", "Check result") : entry.status === "cancelled" ? tr("\u5DF2\u505C\u6B62", "Stopped") : entry.status === "running" && entry.startedAt !== void 0 ? marker + " " + formatDuration(Math.max(0, this.now() - entry.startedAt)) : marker;
               const color3 = entry.status === "denied" ? theme.warning : failed ? theme.error : entry.status === "completed" ? theme.success : entry.status === "cancelled" ? theme.muted : theme.accent;
               const owner = !grouped && entry.agentId ? this.agents.find((agent) => agent.id === entry.agentId)?.name : void 0;
-              const label = entry.tool ? clean(entry.tool) + (entry.summary ? "  " + clean(entry.summary) : "") : text2.slice(marker.length).trimStart();
+              const isDiff = entry.output ? isDiffContent(entry.output, entry.tool) : false;
+              const counts = isDiff && (entry.tool === "Edit" || entry.tool === "MultiEdit" || entry.tool === "Write") ? patchCounts(entry.output) : void 0;
+              const diffBadge = counts && (counts.added || counts.removed) ? [counts.added ? theme.success("+" + counts.added) : "", counts.removed ? theme.error("\u2212" + counts.removed) : ""].filter(Boolean).join(" ") : "";
+              const label = entry.tool ? toolVerbLabel(entry.tool, entry.status, entry.summary) : text2.slice(marker.length).trimStart();
               const prefix = indent + (open ? "\u25BE " : "\u25B8 ");
               const exit = !open && entry.exitCode !== void 0 && entry.exitCode !== 0 ? tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : "";
               const inlineExit = !!exit && (0, import_pi_tui3.visibleWidth)(status + "  " + exit) + Math.min(8, (0, import_pi_tui3.visibleWidth)(label)) <= width - (0, import_pi_tui3.visibleWidth)(prefix) - 2;
-              const tail = (0, import_pi_tui3.truncateToWidth)(color3(status) + (inlineExit ? "  " + exit : ""), Math.max(0, width - (0, import_pi_tui3.visibleWidth)(prefix) - 2));
+              const durationTail = open && entry.elapsedMs !== void 0 ? "  " + theme.muted(formatDuration(entry.elapsedMs)) : "";
+              const tail = (0, import_pi_tui3.truncateToWidth)(
+                (diffBadge ? diffBadge + "  " : "") + color3(status) + durationTail + (inlineExit ? "  " + exit : ""),
+                Math.max(0, width - (0, import_pi_tui3.visibleWidth)(prefix) - 2)
+              );
               const heading = prefix + (0, import_pi_tui3.truncateToWidth)(
                 label + (owner ? "  \u25C7 " + clean(owner) : ""),
                 Math.max(0, width - (0, import_pi_tui3.visibleWidth)(prefix) - (0, import_pi_tui3.visibleWidth)(tail) - 2)
@@ -59625,33 +59687,46 @@ var init_tui = __esm({
                 if (!grouped && groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
                 continue;
               }
-              const inner = Math.max(1, width - (0, import_pi_tui3.visibleWidth)(indent) - 4);
-              if (open && entry.input && Object.keys(entry.input).length) {
+              const bodyPad = indent + "    ";
+              const inner = Math.max(1, width - (0, import_pi_tui3.visibleWidth)(bodyPad));
+              if (open && entry.input && Object.keys(entry.input).length && !isDiff) {
                 const params = new import_pi_tui3.Text(JSON.stringify(entry.input, null, 2), 0, 0).render(inner);
-                lines.push(indent + theme.muted(tr("  \u251C \u53C2\u6570", "  \u251C Input")), ...params.slice(0, 4).map((line) => indent + theme.muted("  \u2502 ") + line));
-                if (params.length > 4) lines.push(indent + theme.muted(this.keyHint(tr("  \u2502 \u2026 Ctrl+T \u5B8C\u6574\u53C2\u6570", "  \u2502 \u2026 Ctrl+T full input"))));
+                lines.push(...params.slice(0, 4).map((line) => theme.muted(bodyPad + line)));
+                if (params.length > 4) lines.push(theme.muted(this.keyHint(bodyPad + tr("\u2026 Ctrl+T \u5B8C\u6574\u53C2\u6570", "\u2026 Ctrl+T full input"))));
               }
               if (entry.output) {
-                const formatted = failed ? theme.error(clean(entry.output)) : isDiffContent(entry.output, entry.tool) ? diffText(entry.output) : clean(entry.output);
-                const preview = new import_pi_tui3.Text(formatted, 0, 0).render(inner);
-                const limit = open ? 8 : 3;
-                const slice = entry.status === "running" && !open ? preview.slice(-limit) : preview.slice(0, limit);
-                lines.push(indent + theme.muted(tr("  \u251C \u8F93\u51FA", "  \u251C Output")), ...slice.map((line) => indent + theme.muted("  \u2502 ") + line));
-                if (preview.length > limit) lines.push((0, import_pi_tui3.truncateToWidth)(indent + theme.muted("  \u2502 +" + (preview.length - limit) + this.keyHint(tr(" \u884C  Ctrl+O \u5C55\u5F00  Ctrl+T \u8BE6\u60C5", " lines  Ctrl+O expand  Ctrl+T details"))), width));
+                if (isDiff) {
+                  const limit = open ? 12 : 4;
+                  const formatted = formatNumberedDiffLines(entry.output, indent, width, limit);
+                  if (formatted.lines.length) lines.push(...formatted.lines);
+                  else {
+                    const rawDiff = new import_pi_tui3.Text(diffText(entry.output), 0, 0).render(inner);
+                    lines.push(...rawDiff.slice(0, limit).map((line) => bodyPad + line));
+                  }
+                  if (formatted.total > limit) {
+                    lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted(bodyPad + "+" + (formatted.total - limit) + this.keyHint(tr(" \u884C  Ctrl+O \u5C55\u5F00  Ctrl+T \u8BE6\u60C5", " lines  Ctrl+O expand  Ctrl+T details"))), width));
+                  }
+                } else {
+                  const formatted = failed ? theme.error(clean(entry.output)) : clean(entry.output);
+                  const preview = new import_pi_tui3.Text(formatted, 0, 0).render(inner);
+                  const limit = open ? 8 : 3;
+                  const slice = entry.status === "running" && !open ? preview.slice(-limit) : preview.slice(0, limit);
+                  lines.push(...slice.map((line) => bodyPad + (failed ? line : theme.muted(line))));
+                  if (preview.length > limit) lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted(bodyPad + "+" + (preview.length - limit) + this.keyHint(tr(" \u884C  Ctrl+O \u5C55\u5F00  Ctrl+T \u8BE6\u60C5", " lines  Ctrl+O expand  Ctrl+T details"))), width));
+                }
                 if (entry.outputTruncated) {
-                  lines.push((0, import_pi_tui3.truncateToWidth)(indent + theme.muted(this.keyHint(tr("  \u2502 \u8F93\u51FA\u5DF2\u622A\u65AD  Ctrl+T \u8BE6\u60C5", "  \u2502 Output truncated  Ctrl+T details"))), width));
+                  lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted(this.keyHint(bodyPad + tr("\u8F93\u51FA\u5DF2\u622A\u65AD  Ctrl+T \u8BE6\u60C5", "Output truncated  Ctrl+T details"))), width));
                 }
               } else if (failed && entry.detail) {
-                lines.push(...new import_pi_tui3.Text(theme.error(clean(entry.detail)), 0, 0).render(inner).slice(0, 3).map((line) => indent + theme.muted("  \u2502 ") + line));
+                lines.push(...new import_pi_tui3.Text(theme.error(clean(entry.detail)), 0, 0).render(inner).slice(0, 3).map((line) => bodyPad + line));
               }
               const metadata = [
-                open && entry.elapsedMs !== void 0 ? formatDuration(entry.elapsedMs) : "",
                 open && typeof entry.input?.timeout === "number" ? "timeout " + formatDuration(entry.input.timeout * 1e3) : "",
                 !open && !failed || entry.permission && entry.output?.includes(entry.permission) ? "" : entry.permission,
                 entry.concurrent ? tr("\u672C\u8F6E\u6709\u5E76\u884C\u547D\u4EE4", "Concurrent commands in this run") : "",
                 entry.exitCode !== void 0 && entry.exitCode !== 0 ? tr("\u9000\u51FA\u7801\uFF1A", "Exit code: ") + entry.exitCode : ""
               ].filter(Boolean).join("  ");
-              if (metadata) lines.push((0, import_pi_tui3.truncateToWidth)(indent + theme.muted("  \u2514 " + clean(metadata)), width));
+              if (metadata) lines.push((0, import_pi_tui3.truncateToWidth)(theme.muted(bodyPad + clean(metadata)), width));
               if (!grouped && groups[groupIndex + 1]?.[0]?.kind !== "tool") lines.push("");
               continue;
             }
@@ -60252,8 +60327,6 @@ var init_tui = __esm({
         let split8 = false;
         let wrap = false;
         let hOffset = 0;
-        const paint2 = (row, text2) => !row ? text2 : row.kind === "add" ? theme.success(text2) : row.kind === "remove" ? theme.error(text2) : row.kind === "hunk" || row.kind === "note" ? theme.muted(text2) : text2;
-        const sign = (row) => row.kind === "add" ? "+" : row.kind === "remove" ? "-" : " ";
         const sliceWindow = (text2, width) => {
           if (wrap) return (0, import_pi_tui3.wrapTextWithAnsi)(text2, Math.max(1, width));
           if (hOffset <= 0) return [(0, import_pi_tui3.truncateToWidth)(text2, width)];
@@ -60279,25 +60352,25 @@ var init_tui = __esm({
               const gutterPad = " ".repeat(digits * 2 + 2);
               for (const row of rows) {
                 if (row.kind === "hunk" || row.kind === "note") {
-                  lines.push(paint2(row, clean(row.text)));
+                  lines.push(paintDiffRow(row, clean(row.text)));
                   continue;
                 }
-                const parts = sliceWindow(sign(row) + clean(row.text), textWidth);
+                const parts = sliceWindow(diffRowSign(row) + clean(row.text), textWidth);
                 parts.forEach((part, partIndex) => {
                   const prefix = partIndex === 0 ? number(row.old) + " " + number(row.new) + " " : gutterPad;
-                  lines.push(prefix + paint2(row, part));
+                  lines.push(prefix + paintDiffRow(row, part));
                 });
               }
               continue;
             }
             const half = Math.floor((inner - 3) / 2);
             const side = (row, value) => {
-              const code = row ? sliceWindow(sign(row) + clean(row.text), Math.max(8, half - digits - 1))[0] ?? "" : "";
-              const cell = row ? number(value) + " " + paint2(row, code) : "";
+              const code = row ? sliceWindow(diffRowSign(row) + clean(row.text), Math.max(8, half - digits - 1))[0] ?? "" : "";
+              const cell = row ? number(value) + " " + paintDiffRow(row, code) : "";
               const fitted = (0, import_pi_tui3.truncateToWidth)(cell, half);
               return fitted + " ".repeat(Math.max(0, half - (0, import_pi_tui3.visibleWidth)(fitted)));
             };
-            for (const pair of pairDiffRows(rows)) lines.push(pair.full ? paint2(pair.full, clean(pair.full.text)) : side(pair.left, pair.left?.old) + theme.muted(" \u2502 ") + side(pair.right, pair.right?.new));
+            for (const pair of pairDiffRows(rows)) lines.push(pair.full ? paintDiffRow(pair.full, clean(pair.full.text)) : side(pair.left, pair.left?.old) + theme.muted(" \u2502 ") + side(pair.right, pair.right?.new));
           }
           if (footer) lines.push("", theme.muted(footer));
           return lines;
@@ -188696,7 +188769,7 @@ function resolveModelQuery(text2, candidates) {
   const match = pick((id) => id === needle) ?? pick((id) => id.startsWith(needle)) ?? pick((id) => id.includes(needle));
   return { query, ...last && { thinking: last }, ...match && { match } };
 }
-async function chooseDesktopModel(ui, providers, currentChannel, current2, saveScope, allowEdit = false) {
+async function chooseDesktopModel(ui, providers, currentChannel, current2, saveScope, allowEdit = true) {
   const ordered = [...providers].sort((a6, b6) => Number(b6.channelId === currentChannel) - Number(a6.channelId === currentChannel));
   const items = [
     ...ordered.flatMap((provider) => provider.models.map((model2, index) => ({
@@ -188705,13 +188778,13 @@ async function chooseDesktopModel(ui, providers, currentChannel, current2, saveS
       searchText: model2 + " " + provider.name + " " + provider.provider,
       ...index === 0 && { group: provider.name }
     }))),
-    ...allowEdit ? [{ value: ":edit\n", label: tr("\uFF0B \u6DFB\u52A0\u6216\u4FEE\u6539\u8FDE\u63A5\u2026", "+ Add or change connection\u2026"), group: tr("\u5176\u4ED6\u8FDE\u63A5", "Other") }] : []
+    ...allowEdit ? [{ value: ":edit\n", label: tr("\uFF0B \u6DFB\u52A0\u6216\u7BA1\u7406\u4F9B\u5E94\u5546\u2026", "+ Add or manage providers\u2026"), group: tr("\u5176\u4ED6\u8FDE\u63A5", "Other") }] : []
   ];
   let scope = "default";
   const selection = await ui.select(tr("\u9009\u62E9\u6A21\u578B", "Select model"), items, {
     initial: currentChannel ? currentChannel + "\n" + current2 : void 0,
     search: true,
-    description: tr("\u684C\u9762\u5DF2\u542F\u7528\u7684\u4F9B\u5E94\u5546\u90FD\u5728\u8FD9\u91CC\uFF1B\u8981\u52A0\u4F9B\u5E94\u5546\uFF0C\u5728 Cortex \u684C\u9762 \u203A \u8BBE\u7F6E \u203A \u4F9B\u5E94\u5546\u91CC\u6DFB\u52A0\u3002", "All providers enabled in Cortex desktop. Add more under Settings \u203A Providers in the desktop app."),
+    description: tr("\u9009\u62E9\u5DF2\u542F\u7528\u7684\u6A21\u578B\uFF0C\u6216\u5728\u672B\u5C3E\u6DFB\u52A0/\u7BA1\u7406\u4F9B\u5E94\u5546\uFF08/config\uFF09\u3002", "Choose an enabled model, or add/manage providers below (/config)."),
     hint: tr("Enter \u9ED8\u8BA4  Ctrl+S \u672C\u6B21  Esc \u8FD4\u56DE", "Enter default  Ctrl+S session  Esc back"),
     searchHint: tr("Enter \u9ED8\u8BA4  Ctrl+S \u672C\u6B21  Esc \u8FD4\u56DE", "Enter default  Ctrl+S session  Esc back"),
     onAlternateConfirm: (data) => {
@@ -188723,6 +188796,233 @@ async function chooseDesktopModel(ui, providers, currentChannel, current2, saveS
   saveScope(scope);
   const at = selection.indexOf("\n");
   return { channelId: selection.slice(0, at), model: selection.slice(at + 1) };
+}
+async function manageDesktopProviders(ui, actions, currentChannel, currentModel) {
+  const editProviderForm = async (existing) => {
+    let draft = existing ? {
+      channelId: existing.channelId,
+      name: existing.name,
+      provider: existing.provider,
+      baseUrl: existing.baseUrl,
+      model: existing.models.find((item) => item.enabled)?.id ?? existing.models[0]?.id ?? ""
+    } : { name: providerLabel("openai"), provider: "openai", baseUrl: PROVIDER_DEFAULT_URLS.openai, model: "" };
+    let hasKey = existing?.hasKey ?? false;
+    const localNoKey = () => draft.provider === "custom" && isLocalEndpoint(draft.baseUrl) || existing?.local === true;
+    const pickProvider = async () => {
+      const selected = await ui.select(
+        tr("\u9009\u62E9\u4F9B\u5E94\u5546", "Select provider"),
+        Object.keys(PROVIDER_LABELS).map((id) => ({
+          value: id,
+          label: providerLabel(id),
+          group: id === "custom" ? tr("\u81EA\u5B9A\u4E49", "Custom") : tr("\u539F\u5382 API", "Direct API")
+        })),
+        { initial: draft.provider }
+      );
+      if (selected !== draft.provider || !existing) {
+        const defaultName2 = providerLabel(selected);
+        const baseUrl = PROVIDER_DEFAULT_URLS[selected] || draft.baseUrl;
+        draft = {
+          ...draft,
+          provider: selected,
+          baseUrl,
+          model: selected === draft.provider ? draft.model : "",
+          name: !existing || draft.name === providerLabel(draft.provider) ? defaultName2 : draft.name
+        };
+      }
+      if (!draft.baseUrl) await editEndpoint();
+    };
+    const editName = async () => {
+      draft = {
+        ...draft,
+        name: (await ui.ask(tr("\u4F9B\u5E94\u5546\u540D\u79F0", "Provider name"), {
+          value: draft.name,
+          validate: (value) => {
+            if (!value.trim() || value.trim().length > 80) throw new Error(tr("\u8BF7\u8F93\u5165 1-80 \u5B57\u7B26\u7684\u540D\u79F0", "Enter 1-80 characters"));
+          }
+        })).trim()
+      };
+    };
+    const editEndpoint = async () => {
+      const baseUrl = await ui.ask(tr("API \u5730\u5740", "API URL"), {
+        value: draft.baseUrl,
+        validate: (value) => {
+          validateCliSettings({ version: 1, provider: draft.provider, baseUrl: value, model: draft.model || "pending" });
+        }
+      });
+      if (baseUrl !== draft.baseUrl) draft = { ...draft, baseUrl, model: "" };
+    };
+    const editKey = async () => {
+      const apiKey = await ui.ask(tr("API Key\uFF08\u9690\u85CF\u8F93\u5165\uFF09", "API key (hidden)"), {
+        secret: true,
+        hint: hasKey ? tr("\u7559\u7A7A\u4FDD\u7559\u684C\u9762\u5DF2\u4FDD\u5B58\u5BC6\u94A5\u3002", "Leave blank to keep the desktop key.") : localNoKey() ? tr("\u672C\u673A\u670D\u52A1\u53EF\u7559\u7A7A\u3002", "Local endpoint allows blank key.") : void 0,
+        validate: (value) => {
+          if (!value && !hasKey && !localNoKey()) throw new Error(tr("\u8BF7\u8F93\u5165 API Key", "Enter an API key"));
+          if (value) validateCliSettings({ version: 1, provider: draft.provider, baseUrl: draft.baseUrl, model: draft.model || "pending", apiKey: value });
+        }
+      });
+      if (apiKey) {
+        draft = { ...draft, apiKey };
+        hasKey = true;
+      }
+    };
+    const pickModel = async () => {
+      if (!hasKey && !localNoKey()) await editKey();
+      const settingsDraft = { version: 1, provider: draft.provider, baseUrl: draft.baseUrl, model: draft.model || "pending", ...draft.apiKey && { apiKey: draft.apiKey } };
+      const picked = await chooseModel(ui, (signal) => actions.models(settingsDraft, signal, draft.apiKey ? void 0 : draft.channelId), draft.model, void 0, void 0, [], true);
+      if (picked === ":edit-key") return ":edit-key";
+      draft = { ...draft, model: picked };
+      return "ok";
+    };
+    if (!existing) {
+      let step = 0;
+      while (step < 3) {
+        try {
+          if (step === 0) {
+            await pickProvider();
+            step = 1;
+          } else if (step === 1) {
+            await editKey();
+            step = 2;
+          } else {
+            if (await pickModel() === ":edit-key") {
+              step = 1;
+              continue;
+            }
+            ;
+            step = 3;
+          }
+        } catch (error) {
+          if (!(error instanceof UiCancelled)) throw error;
+          if (step === 0) throw error;
+          step--;
+        }
+      }
+    }
+    while (true) {
+      const selection = await ui.select(existing ? tr("\u7F16\u8F91\u4F9B\u5E94\u5546", "Edit provider") : tr("\u65B0\u589E\u4F9B\u5E94\u5546", "Add provider"), [
+        { value: "name", label: tr("\u540D\u79F0", "Name"), description: draft.name },
+        { value: "provider", label: tr("\u534F\u8BAE\u4E0E\u9884\u8BBE", "Provider preset"), description: providerLabel(draft.provider) },
+        { value: "model", label: tr("\u9ED8\u8BA4\u6A21\u578B", "Default model"), description: draft.model || tr("\u672A\u9009\u62E9", "Not selected") },
+        { value: "key", label: tr("API Key", "API key"), description: draft.apiKey ? tr("\u5DF2\u66F4\u65B0\uFF08\u4FDD\u5B58\u540E\u52A0\u5BC6\u540C\u6B65\uFF09", "Updated (encrypted sync)") : hasKey ? tr("\u684C\u9762\u5DF2\u4FDD\u5B58", "Saved in desktop") : localNoKey() ? tr("\u672C\u673A\u514D\u5BC6\u94A5", "Optional (local)") : tr("\u672A\u8BBE\u7F6E", "Not set") },
+        { value: "endpoint", label: tr("API \u5730\u5740", "API URL"), description: draft.baseUrl === PROVIDER_DEFAULT_URLS[draft.provider] ? tr("\u9ED8\u8BA4", "Default") : draft.baseUrl },
+        { value: "save", label: tr("\u4FDD\u5B58\u5E76\u540C\u6B65\u5230\u684C\u9762", "Save & sync to desktop") },
+        { value: "verify", label: tr("\u9A8C\u8BC1\u540E\u4FDD\u5B58", "Verify & save"), description: tr("\u53D1\u9001\u4E00\u6B21\u6700\u5C0F\u8BF7\u6C42\u6D4B\u8BD5\u8FDE\u901A", "Sends a minimal request to verify") }
+      ], { initial: "save", description: tr("\u914D\u7F6E\u5199\u5165 Cortex \u684C\u9762\u7AEF\u5E76\u7528\u7CFB\u7EDF\u52A0\u5BC6\u5B58\u50A8\uFF0CCLI \u4FA7\u4E0D\u843D\u660E\u6587\u3002", "Saved encrypted in Cortex desktop; no plaintext key is written by CLI.") });
+      try {
+        if (selection === "name") await editName();
+        else if (selection === "provider") await pickProvider();
+        else if (selection === "endpoint") await editEndpoint();
+        else if (selection === "key") await editKey();
+        else if (selection === "model") {
+          if (await pickModel() === ":edit-key") await editKey();
+        } else {
+          if (!hasKey && !localNoKey()) await editKey();
+          if (!draft.model) await pickModel();
+          const checked = validateCliSettings({ version: 1, provider: draft.provider, baseUrl: draft.baseUrl, model: draft.model, ...draft.apiKey && { apiKey: draft.apiKey } });
+          if (selection === "verify") {
+            try {
+              await ui.wait(tr("\u6B63\u5728\u9A8C\u8BC1\u6A21\u578B\u8FDE\u63A5\u2026", "Verifying connection\u2026"), (signal) => actions.verify(checked, signal, draft.apiKey ? void 0 : draft.channelId));
+            } catch (error) {
+              if (error instanceof UiCancelled) throw error;
+              await ui.select(
+                tr("\u65E0\u6CD5\u9A8C\u8BC1\u8FDE\u63A5", "Couldn\u2019t verify connection"),
+                [{ value: "back", label: tr("\u8FD4\u56DE\u8BBE\u7F6E", "Back") }],
+                { description: errorSummary(error.message), search: false }
+              );
+              continue;
+            }
+          }
+          const savedId = await actions.upsert({
+            ...draft.channelId && { channelId: draft.channelId },
+            name: draft.name,
+            provider: checked.provider,
+            baseUrl: checked.baseUrl,
+            ...checked.apiKey && { apiKey: checked.apiKey },
+            model: checked.model,
+            enabled: true
+          });
+          ui.notify(tr("\u4F9B\u5E94\u5546\u5DF2\u540C\u6B65\u5230\u684C\u9762\uFF1A", "Provider synced to desktop: ") + draft.name, "success");
+          if (!existing && savedId) actions.activate(savedId, checked.model);
+          return;
+        }
+      } catch (error) {
+        if (!(error instanceof UiCancelled)) throw error;
+      }
+    }
+  };
+  let activeChannel = currentChannel;
+  while (true) {
+    const list = await ui.wait(tr("\u6B63\u5728\u8BFB\u53D6\u684C\u9762\u4F9B\u5E94\u5546\u2026", "Loading desktop providers\u2026"), () => actions.list());
+    const picked = await ui.select(tr("\u4F9B\u5E94\u5546\u914D\u7F6E \xB7 \u4E0E Cortex \u684C\u9762\u540C\u6B65", "Providers \xB7 Synced with Cortex desktop"), [
+      ...list.map((item) => {
+        const isCurrent = item.channelId === activeChannel;
+        const enabledModels = item.models.filter((m4) => m4.enabled).map((m4) => m4.id);
+        const modelText = isCurrent && currentModel ? currentModel : enabledModels[0] ?? tr("\u672A\u9009\u6A21\u578B", "No model");
+        const status = !item.enabled ? tr("\u5DF2\u505C\u7528", "Disabled") : item.hasKey ? tr("\u5DF2\u914D\u7F6E\u5BC6\u94A5", "Saved key") : item.local ? tr("\u672C\u673A\u670D\u52A1", "Local") : tr("\u672A\u8BBE\u5BC6\u94A5", "No key");
+        return {
+          value: item.channelId,
+          label: item.name + (isCurrent ? " \u2713" : ""),
+          description: [modelText, status].join("  \xB7  "),
+          searchText: item.name + " " + item.provider + " " + enabledModels.join(" ")
+        };
+      }),
+      { value: ":add", label: tr("\uFF0B \u6DFB\u52A0\u65B0\u4F9B\u5E94\u5546\u2026", "+ Add provider\u2026"), description: tr("\u9009\u62E9\u5185\u7F6E\u9884\u8BBE\u6216\u81EA\u5B9A\u4E49\u63A5\u53E3", "Choose a preset or custom endpoint"), group: tr("\u64CD\u4F5C", "Actions") }
+    ], { hint: tr("\u2191\u2193 \u9009\u62E9  Enter \u7BA1\u7406/\u5207\u6362  Esc \u8FD4\u56DE", "\u2191\u2193 select  Enter manage/switch  Esc back") });
+    if (picked === ":add") {
+      try {
+        await editProviderForm();
+      } catch (error) {
+        if (!(error instanceof UiCancelled)) throw error;
+      }
+      continue;
+    }
+    const target = list.find((item) => item.channelId === picked);
+    if (!target) continue;
+    const firstModel = target.models.find((m4) => m4.enabled)?.id ?? target.models[0]?.id;
+    try {
+      const action = await ui.select(target.name, [
+        ...firstModel ? [{ value: "use", label: tr("\u5207\u6362\u5230\u6B64\u4F9B\u5E94\u5546", "Switch to this provider"), description: firstModel }] : [],
+        { value: "edit", label: tr("\u7F16\u8F91\u540D\u79F0\u3001\u5730\u5740\u3001\u5BC6\u94A5\u4E0E\u6A21\u578B", "Edit name, URL, key & model") },
+        { value: "verify", label: tr("\u6D4B\u8BD5\u8FDE\u901A\u6027", "Test connection"), description: firstModel || target.baseUrl },
+        { value: "delete", label: tr("\u5220\u9664\u6B64\u4F9B\u5E94\u5546", "Delete provider") }
+      ], { search: false });
+      if (action === "use" && firstModel) {
+        actions.activate(target.channelId, firstModel);
+        activeChannel = target.channelId;
+        return;
+      }
+      if (action === "edit") await editProviderForm(target);
+      else if (action === "verify") {
+        try {
+          await ui.wait(tr("\u6B63\u5728\u9A8C\u8BC1\u6A21\u578B\u8FDE\u63A5\u2026", "Verifying connection\u2026"), (signal) => actions.verify({
+            version: 1,
+            provider: target.provider,
+            baseUrl: target.baseUrl,
+            model: firstModel || "pending"
+          }, signal, target.channelId));
+          ui.notify(tr("\u8FDE\u63A5\u9A8C\u8BC1\u6210\u529F\uFF1A", "Verified: ") + target.name, "success");
+        } catch (error) {
+          if (error instanceof UiCancelled) continue;
+          await ui.select(
+            tr("\u65E0\u6CD5\u9A8C\u8BC1\u8FDE\u63A5", "Couldn\u2019t verify connection"),
+            [{ value: "back", label: tr("\u8FD4\u56DE", "Back") }],
+            { description: errorSummary(error.message), search: false }
+          );
+        }
+      } else if (action === "delete") {
+        const confirm = await ui.select(tr("\u786E\u8BA4\u5220\u9664\u4F9B\u5E94\u5546\uFF1F", "Delete provider?"), [
+          { value: "cancel", label: tr("\u53D6\u6D88", "Cancel") },
+          { value: "yes", label: tr("\u786E\u8BA4\u5220\u9664 ", "Delete ") + target.name }
+        ], { search: false });
+        if (confirm === "yes") {
+          await actions.remove(target.channelId);
+          ui.notify(tr("\u5DF2\u5220\u9664\u4F9B\u5E94\u5546\uFF1A", "Deleted: ") + target.name, "success");
+        }
+      }
+    } catch (error) {
+      if (!(error instanceof UiCancelled)) throw error;
+    }
+  }
 }
 async function editConnection(ui, initial, actions, keyEnv, hasKey = !!initial?.apiKey, presets = {}) {
   const presetPatch = Object.fromEntries(Object.entries(presets).filter(([, value]) => value !== void 0));
@@ -190443,7 +190743,11 @@ async function runInteractive(worker, options, request, ui) {
           { value: "/model", label: tr("\u6A21\u578B", "Model"), description: session.model },
           ...session.thinking?.levels.some((level) => level !== "off") ? [{ value: "/thinking", label: tr("\u601D\u8003\u5F3A\u5EA6", "Thinking"), description: thinkingLabel(session.thinking.value) }] : [],
           { value: "/permissions", label: tr("\u6743\u9650", "Permissions"), description: modeLabel(session.mode) },
-          ...!options.desktop ? [{ value: "/config", label: tr("\u8FDE\u63A5", "Connection"), description: session.provider + "  " + session.baseUrl }] : []
+          {
+            value: "/config",
+            label: tr("\u4F9B\u5E94\u5546\u8FDE\u63A5", "Providers & connection"),
+            description: session.provider ? session.provider + "  " + (session.baseUrl ?? "") : tr("\u7BA1\u7406\u4F9B\u5E94\u5546", "Manage providers")
+          }
         ] : [],
         { value: "/theme", label: tr("\u4E3B\u9898", "Theme"), description: appearanceStore.get(appearanceAtom).theme },
         { value: "/motion", label: tr("\u52A8\u6001\u6548\u679C", "Motion"), description: appearanceStore.get(appearanceAtom).reducedMotion ? tr("\u51CF\u5C11", "Reduced") : tr("\u9ED8\u8BA4", "Default") },
@@ -190470,7 +190774,7 @@ async function runInteractive(worker, options, request, ui) {
         { value: "/language", label: tr("\u8BED\u8A00", "Language"), description: { "zh-CN": "\u7B80\u4F53\u4E2D\u6587", en: "English", ja: "\u65E5\u672C\u8A9E", ko: "\uD55C\uAD6D\uC5B4", es: "Espa\xF1ol" }[getLanguage()] },
         // i18n-ignore 语言自称
         { value: "/keymap", label: tr("\u5FEB\u6377\u952E", "Key bindings"), description: tr("\u5F53\u524D\u7ACB\u5373\u751F\u6548  \u5176\u4ED6\u7EC8\u7AEF\u91CD\u5F00\u751F\u6548", "Applies here now  reopen other terminals") }
-      ], { description: options.desktop ? tr("\u4F9B\u5E94\u5546\u8FDE\u63A5\u8BF7\u5728 Cortex \u684C\u9762\u4FEE\u6539\u3002", "Change the provider connection in Cortex desktop.") : void 0 });
+      ]);
       if (command6 === "/theme" || command6 === "/motion" || command6 === "/notifications" || command6 === "/details" || command6 === "/predictions" || command6 === "/vim") await ui.showAppearance(command6);
       else if (command6 === "/keymap") await ui.showKeymap();
       else if (command6 === "/language") {
@@ -190482,7 +190786,7 @@ async function runInteractive(worker, options, request, ui) {
         let selectedScope = "default";
         const picked = await chooseDesktopModel(ui, providers, currentChannel, session.model, (value) => {
           selectedScope = value;
-        }, !options.desktop);
+        }, true);
         if (picked.channelId === ":edit") {
           next = "/config";
           return;
@@ -190553,7 +190857,31 @@ async function runInteractive(worker, options, request, ui) {
         next = command6;
       } else {
         if (options.desktop) {
-          entry(tr("\u4F9B\u5E94\u5546\u8BBE\u7F6E\u8BF7\u5728 Cortex \u684C\u9762\u4FEE\u6539\uFF1B/model \u53EF\u5207\u6362\u5DF2\u542F\u7528\u6A21\u578B\u3002", "Change provider settings in Cortex desktop; /model switches enabled models."));
+          await manageDesktopProviders(ui, {
+            list: async () => {
+              const reply = await query({ type: "providers-list", id: (0, import_node_crypto40.randomUUID)() }, AbortSignal.timeout(1e4));
+              return reply.type === "providers" ? reply.providers : [];
+            },
+            models: async (draft, signal, channelId) => {
+              const reply = await query({ type: "catalog", id: (0, import_node_crypto40.randomUUID)(), connection: draft, ...channelId && { channelId } }, signal);
+              return reply.type === "catalog" ? reply.models : [];
+            },
+            verify: async (draft, signal, channelId) => {
+              await query({ type: "verify", id: (0, import_node_crypto40.randomUUID)(), connection: draft, ...channelId && { channelId } }, signal);
+            },
+            upsert: async (input) => {
+              const reply = await query({ type: "provider-upsert", id: (0, import_node_crypto40.randomUUID)(), ...input }, AbortSignal.timeout(1e4));
+              return reply.type === "ack" ? reply.text : void 0;
+            },
+            remove: async (channelId) => {
+              await query({ type: "provider-delete", id: (0, import_node_crypto40.randomUUID)(), channelId }, AbortSignal.timeout(1e4));
+            },
+            activate: (channelId, model2) => {
+              tracked({ type: "settings", id: (0, import_node_crypto40.randomUUID)(), channelId, model: model2, scope: "default" }, {
+                notice: model2 + tr("  \u5DF2\u5207\u6362\u5230\u6240\u9009\u4F9B\u5E94\u5546", "  Switched provider")
+              });
+            }
+          }, currentDesktopChannel(session), session.model);
           return;
         }
         const settings2 = await editConnection(ui, connection, actions, session.credentialSource === "environment" ? options.keyEnv : void 0, true);
@@ -191023,12 +191351,9 @@ async function runInteractive(worker, options, request, ui) {
         if (ui) void (command6 === "/tools" ? ui.showTools() : ui.showTranscript()).catch((error) => {
           if (!(error instanceof UiCancelled)) entry(error.message, void 0, "error");
         });
-      } else if (command6 === "/config" || command6 === "/settings") {
-        if (options.desktop && command6 === "/config") {
-          entry(tr("\u5171\u4EAB\u6A21\u5F0F\u8BF7\u5728 Cortex \u684C\u9762\u4E2D\u8BBE\u7F6E\u4F9B\u5E94\u5546\u3002", "In shared mode, set providers in Cortex desktop."));
-          return;
-        }
-        if (command6 === "/config" && (current2.running || Object.keys(current2.submissions).length)) {
+      } else if (command6 === "/config" || command6 === "/providers" || command6 === "/settings") {
+        const isConfig = command6 === "/config" || command6 === "/providers";
+        if (isConfig && (current2.running || Object.keys(current2.submissions).length)) {
           entry(tr("\u8BF7\u7B49\u5F85\u5F53\u524D\u64CD\u4F5C\u7ED3\u675F\uFF0C\u518D\u4FEE\u6539\u914D\u7F6E\u3002", "Wait for the current operation before changing the configuration."));
           return;
         }
@@ -191037,7 +191362,7 @@ async function runInteractive(worker, options, request, ui) {
           return;
         }
         if (ui) {
-          void openSettings(command6);
+          void openSettings(isConfig ? "/config" : command6);
           return;
         }
         entry(tr(
@@ -191282,7 +191607,7 @@ async function runInteractive(worker, options, request, ui) {
       update({ requests: store.get(state9).requests.filter((item) => item.interaction.request.requestId !== message.requestId), answers: {} });
     } else if (message.type === "aside" && !message.done) {
       asides.get(message.id)?.update(message.text);
-    } else if (message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "prediction" || message.type === "aside" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff" || message.type === "forked") {
+    } else if (message.type === "providers" || message.type === "catalog" || message.type === "verification" || message.type === "sessions" || message.type === "skills" || message.type === "mcp" || message.type === "prediction" || message.type === "aside" || message.type === "attachment" || message.type === "rewind-points" || message.type === "diff" || message.type === "forked") {
       const pending = queries.get(message.id);
       queries.delete(message.id);
       if ("error" in message && message.error) pending?.reject(new Error(message.error));
@@ -192555,7 +192880,7 @@ async function runUpdate(deps, options = {}) {
   if (notes.length) {
     write("\n  " + theme.bold(tr("\u66F4\u65B0\u5185\u5BB9", "What\u2019s new")) + "\n");
     for (const note of notes) {
-      note.items.forEach((item, index) => write("  " + theme.muted(index ? " ".repeat(note.version.length) : note.version) + "  " + item + "\n"));
+      note.items.forEach((item, index) => write("  " + theme.muted(index ? " ".repeat(note.version.length) : note.version) + "  \u2022 " + item + "\n"));
       if (!note.items.length) write("  " + theme.muted(note.version) + "\n");
     }
   }
@@ -192933,6 +193258,7 @@ function help2(subcommand) {
 var outputBroken = false;
 var onOutputClosed;
 async function main() {
+  const explicitUpdateLanguage = isAppLanguage(process.env.CORTEX_LANGUAGE);
   let saved;
   try {
     saved = readAppearance();
@@ -193006,6 +193332,7 @@ async function main() {
       return;
     }
     if (options.update) {
+      if (!explicitUpdateLanguage) setLanguage("en");
       process.exitCode = await runUpdate(systemUpdateDeps(version), { checkOnly: options.updateCheck });
       return;
     }
